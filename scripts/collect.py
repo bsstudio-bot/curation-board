@@ -70,10 +70,30 @@ IG_FIELDS = (
 )
 
 
-def collect_instagram(channels, token, ig_user_id):
+def collect_instagram(channels, token, ig_user_id, prev_ig=None):
+    """계정별로 실패하면(호출 한도·일시 오류) 직전 수집분을 그대로 쓴다."""
     accounts, posts = [], []
+    prev_ig = prev_ig or {}
+    prev_acc = {a["handle"]: a for a in prev_ig.get("accounts", []) if not a.get("error")}
+    prev_posts = {}
+    for p in prev_ig.get("posts", []):
+        prev_posts.setdefault(p["handle"], []).append(p)
+    limited = False
+
+    def fallback(ch, err):
+        u = ch["handle"]
+        if u in prev_acc:
+            a = dict(prev_acc[u]); a["stale"] = True
+            accounts.append(a); posts.extend(prev_posts.get(u, []))
+        else:
+            accounts.append({"handle": u, "cat": ch["cat"], "note": ch.get("note", ""), "name": u,
+                             "followers": None, "median_likes": None, "error": err})
+
     for ch in channels:
         u = ch["handle"]
+        if limited:
+            fallback(ch, "호출 한도로 이번엔 건너뜀")
+            continue
         q = urllib.parse.urlencode({"fields": IG_FIELDS.format(u=u), "access_token": token})
         url = f"https://graph.facebook.com/{ig_user_id}?{q}"
         try:
@@ -97,11 +117,16 @@ def collect_instagram(channels, token, ig_user_id):
                 })
         except urllib.error.HTTPError as e:
             msg = e.read().decode("utf-8", "ignore")[:200]
-            accounts.append({"handle": u, "cat": ch["cat"], "note": ch.get("note", ""), "name": u,
-                             "followers": None, "median_likes": None, "error": f"HTTP {e.code}: {msg}"})
+            if '"code":4' in msg or '"code":17' in msg or '"code":32' in msg or "request limit" in msg:
+                limited = True
+                fallback(ch, "호출 한도로 이번엔 건너뜀")
+            elif e.code >= 500:
+                fallback(ch, f"HTTP {e.code}")
+            else:
+                accounts.append({"handle": u, "cat": ch["cat"], "note": ch.get("note", ""), "name": u,
+                                 "followers": None, "median_likes": None, "error": f"HTTP {e.code}: {msg}"})
         except Exception as e:  # noqa: BLE001
-            accounts.append({"handle": u, "cat": ch["cat"], "note": ch.get("note", ""), "name": u,
-                             "followers": None, "median_likes": None, "error": str(e)[:200]})
+            fallback(ch, str(e)[:200])
         time.sleep(1)
     return accounts, posts
 
@@ -396,7 +421,7 @@ def main():
     token, ig_user_id = os.environ.get("IG_TOKEN"), os.environ.get("IG_USER_ID")
     notes = {c["handle"]: c.get("note", "") for c in channels["instagram"]}
     if token and ig_user_id:
-        accounts, posts = collect_instagram(channels["instagram"], token, ig_user_id)
+        accounts, posts = collect_instagram(channels["instagram"], token, ig_user_id, prev.get("instagram"))
         ig_source, ig_at = "meta-api", now.isoformat()
         if not posts and prev.get("instagram", {}).get("posts"):
             accounts, posts = prev["instagram"]["accounts"], prev["instagram"]["posts"]

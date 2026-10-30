@@ -1,0 +1,122 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex,nofollow">
+<title>데일리 큐레이션 보드</title>
+<style>
+:root{--bg:#FBFAF7;--navy:#1B2136;--coral:#E2674A;--line:#E8E4DC;--sub:#6B6F7B}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--navy);font-family:-apple-system,BlinkMacSystemFont,"Apple SD Gothic Neo","Pretendard","Noto Sans KR",sans-serif}
+a{color:inherit}
+header{position:sticky;top:0;background:var(--bg);border-bottom:1px solid var(--line);z-index:5}
+.wrap{max-width:1180px;margin:0 auto;padding:0 20px}
+.top{display:flex;align-items:center;gap:14px;padding:16px 0 8px;flex-wrap:wrap}
+h1{font-size:20px;margin:0}h1 b{color:var(--coral)}
+.upd{color:var(--sub);font-size:13px}
+.search{margin-left:auto;padding:8px 12px;border:1px solid var(--line);border-radius:8px;width:240px;font-size:14px;background:#fff}
+nav{display:flex;gap:2px;overflow-x:auto}
+nav button{border:0;background:none;padding:10px 13px;font-size:14px;color:var(--sub);cursor:pointer;border-bottom:2px solid transparent;white-space:nowrap}
+nav button.on{color:var(--navy);font-weight:700;border-color:var(--coral)}
+nav .cnt{font-size:11px;color:var(--sub);margin-left:4px}
+main{padding:18px 0 60px}
+.bar{display:flex;gap:8px;align-items:center;margin-bottom:14px;flex-wrap:wrap}
+.chip{border:1px solid var(--line);background:#fff;border-radius:999px;padding:5px 12px;font-size:13px;cursor:pointer;color:var(--navy)}
+.chip.on{background:var(--navy);color:#fff;border-color:var(--navy)}
+.sec{font-size:15px;font-weight:700;margin:22px 0 10px}.sec small{font-weight:400;color:var(--sub);margin-left:6px}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:12px}
+.card{background:#fff;border:1px solid var(--line);border-radius:12px;overflow:hidden;display:flex;flex-direction:column;position:relative}
+.thumb{aspect-ratio:4/5;background:#F1EEE7 center/cover no-repeat;display:block}
+.thumb.none{display:none}
+.body{padding:12px 14px;display:flex;flex-direction:column;gap:8px;flex:1}
+.acc{font-size:13px;font-weight:700;padding-right:26px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.acc span{font-weight:400;color:var(--sub)}
+.cap{font-size:14px;line-height:1.45;color:#2b3045;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
+.meta{display:flex;gap:9px;font-size:12px;color:var(--sub);align-items:center;flex-wrap:wrap;margin-top:auto}
+.badge{background:#FDECE7;color:var(--coral);font-weight:700;border-radius:6px;padding:2px 7px}
+.badge.mid{background:#EEF0F5;color:var(--navy)}
+.tag{font-size:11px;border:1px solid var(--line);border-radius:4px;padding:1px 5px}
+.open{font-weight:600;text-decoration:none;margin-left:auto;color:var(--navy)}
+.star{position:absolute;top:8px;right:8px;border:0;background:rgba(255,255,255,.9);border-radius:50%;width:30px;height:30px;font-size:16px;cursor:pointer;color:#C9C4BA;z-index:2}
+.star.on{color:var(--coral)}
+.nothumb .star{background:none}
+table{width:100%;border-collapse:collapse;background:#fff;border:1px solid var(--line);font-size:14px}
+th,td{padding:9px 12px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top}
+th{background:#F4F1EA;font-size:12px;color:var(--sub);font-weight:600}
+td.n{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+td a{text-decoration:none}td a:hover{text-decoration:underline}
+.empty{color:var(--sub);padding:30px;text-align:center}
+.note{font-size:12px;color:var(--sub);margin-top:8px;line-height:1.5}
+.err{color:#B0412B}
+@media(max-width:640px){.search{width:100%;margin-left:0}.grid{grid-template-columns:1fr 1fr}.thumb{aspect-ratio:1}}
+</style>
+</head>
+<body>
+<header><div class="wrap">
+  <div class="top"><h1>데일리 <b>큐레이션</b> 보드</h1><span class="upd" id="upd">불러오는 중…</span>
+  <input class="search" id="q" placeholder="캡션·계정·제목 검색"></div>
+  <nav id="nav"></nav>
+</div></header>
+<main class="wrap" id="main"></main>
+<script>
+const CATS=['아이랑 갈 곳','육아 정보','해설·인물','밈·트렌드'];
+const TABS=['오늘 뜬 것',...CATS,'맘카페 인기글','찜한 후보','채널 목록'];
+let D=null, tab='오늘 뜬 것', sort='ratio', cafeSel='전체', kidOnly=false, q='';
+let stars; try{stars=new Set(JSON.parse(localStorage.getItem('stars')||'[]'))}catch(e){stars=new Set()}
+const saveStars=()=>{try{localStorage.setItem('stars',JSON.stringify([...stars]))}catch(e){}};
+const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const fmt=n=>n==null?'-':n>=10000?(n/10000).toFixed(n>=100000?0:1)+'만':Math.round(n).toLocaleString();
+const kst=iso=>{if(!iso)return'';const d=new Date(iso);return d.toLocaleString('ko-KR',{timeZone:'Asia/Seoul',month:'numeric',day:'numeric',hour:'2-digit',minute:'2-digit'})};
+const day=iso=>iso?new Date(iso).toLocaleDateString('ko-KR',{timeZone:'Asia/Seoul',month:'numeric',day:'numeric'}):'';
+const hoursAgo=iso=>iso?(Date.now()-new Date(iso))/36e5:1e9;
+let kidRe=/아이랑/;
+const accMap=()=>Object.fromEntries(D.instagram.accounts.map(a=>[a.handle,a]));
+function match(t){return !q||t.toLowerCase().includes(q.toLowerCase())}
+function card(p,A){const r=p.ratio;const b=r==null?'':'<span class="badge'+(r<2?' mid':'')+'">평소 ×'+r+'</span>';
+  const th=p.thumb?'<a class="thumb" href="'+esc(p.permalink)+'" target="_blank" rel="noopener" style="background-image:url(\''+esc(p.thumb)+'\')"></a>':'';
+  return '<div class="card'+(p.thumb?'':' nothumb')+'"><button class="star'+(stars.has(p.permalink)?' on':'')+'" data-star="'+esc(p.permalink)+'">★</button>'+th+
+  '<div class="body"><div class="acc">@'+esc(p.handle)+' <span>'+esc((A[p.handle]||{}).name||'')+'</span></div><div class="cap">'+esc(p.caption||'(캡션 없음)')+'</div>'+
+  '<div class="meta">'+b+'<span>♥ '+fmt(p.likes)+'</span><span>💬 '+fmt(p.comments)+'</span><span>'+day(p.timestamp)+'</span><span class="tag">'+(p.media_type==='REELS'?'릴스':'게시물')+'</span><a class="open" href="'+esc(p.permalink)+'" target="_blank" rel="noopener">원문 →</a></div></div></div>'}
+function sorted(a){a=[...a];if(sort==='ratio')a.sort((x,y)=>(y.ratio||0)-(x.ratio||0));if(sort==='new')a.sort((x,y)=>(y.timestamp||'').localeCompare(x.timestamp||''));if(sort==='like')a.sort((x,y)=>(y.likes||0)-(x.likes||0));return a}
+function sortBar(){return '<div class="bar">'+[['ratio','평소 대비순'],['new','최신순'],['like','좋아요순']].map(([k,t])=>'<button class="chip'+(sort===k?' on':'')+'" data-sort="'+k+'">'+t+'</button>').join('')+'</div>'}
+function cafeTable(rows){if(!rows.length)return '<div class="empty">없음</div>';return '<table><tr><th>카페</th><th>제목</th><th class="n">조회</th><th class="n">댓글</th><th class="n">작성</th></tr>'+rows.map(r=>'<tr><td>'+esc(r.cafe)+'</td><td><a href="'+esc(r.url)+'" target="_blank" rel="noopener">'+esc(r.title)+'</a></td><td class="n">'+fmt(r.reads)+'</td><td class="n">'+fmt(r.comments)+'</td><td class="n">'+day(r.written_at)+'</td></tr>').join('')+'</table>'}
+function render(){
+  const A=accMap(), P=D.instagram.posts;
+  const counts={};CATS.forEach(c=>counts[c]=P.filter(p=>p.cat===c).length);
+  document.getElementById('nav').innerHTML=TABS.map(t=>'<button class="'+(t===tab?'on':'')+'" data-tab="'+t+'">'+t+(counts[t]!=null?'<span class="cnt">'+counts[t]+'</span>':t==='찜한 후보'?'<span class="cnt">'+stars.size+'</span>':'')+'</button>').join('');
+  let h='';
+  if(tab==='오늘 뜬 것'){
+    let hot=P.filter(p=>hoursAgo(p.timestamp)<=72&&p.ratio>=2&&match(p.caption+p.handle)).sort((a,b)=>b.ratio-a.ratio);
+    h+='<div class="sec">인스타 바이럴 후보<small>최근 3일 · 그 계정 평소 좋아요의 2배 이상</small></div>'+(hot.length?'<div class="grid">'+hot.slice(0,24).map(p=>card(p,A)).join('')+'</div>':'<div class="empty">최근 3일 안에 평소보다 크게 반응한 글이 없어요.</div>');
+    const top=D.cafe.filter(r=>kidRe.test(r.title)&&match(r.title)).sort((a,b)=>b.reads-a.reads).slice(0,10);
+    h+='<div class="sec">맘카페 나들이·육아 인기글 TOP 10<small>이번 주 인기글 중 나들이·놀이·유치원 관련</small></div>'+cafeTable(top);
+  } else if(counts[tab]!=null){
+    h+=sortBar()+'<div class="grid">'+sorted(P.filter(p=>p.cat===tab&&match(p.caption+p.handle))).map(p=>card(p,A)).join('')+'</div>';
+  } else if(tab==='맘카페 인기글'){
+    const names=['전체',...new Set(D.cafe.map(r=>r.cafe))];
+    h+='<div class="bar">'+names.map(n=>'<button class="chip'+(cafeSel===n?' on':'')+'" data-cafe="'+esc(n)+'">'+esc(n)+'</button>').join('')+'<button class="chip'+(kidOnly?' on':'')+'" data-kid="1">나들이·육아만</button></div>';
+    const rows=D.cafe.filter(r=>(cafeSel==='전체'||r.cafe===cafeSel)&&(!kidOnly||kidRe.test(r.title))&&match(r.title)).sort((a,b)=>b.reads-a.reads).slice(0,200);
+    h+=cafeTable(rows)+'<div class="note">로그인 없이 공개되는 주간 인기글 기준이에요. 맘스홀릭·레몬테라스·맘이베베는 가입해야 보여서 빠져 있어요.</div>';
+  } else if(tab==='찜한 후보'){
+    const s=P.filter(p=>stars.has(p.permalink));
+    h+=s.length?'<div class="grid">'+s.map(p=>card(p,A)).join('')+'</div>':'<div class="empty">카드 오른쪽 위 ★를 누르면 여기에 모여요. (이 브라우저에 저장)</div>';
+  } else if(tab==='채널 목록'){
+    h+='<table><tr><th>분류</th><th>계정</th><th>이름</th><th class="n">팔로워</th><th class="n">평소 좋아요</th><th>수집 이유</th></tr>'+D.instagram.accounts.map(a=>'<tr><td>'+esc(a.cat)+'</td><td><a href="https://www.instagram.com/'+esc(a.handle)+'/" target="_blank" rel="noopener">@'+esc(a.handle)+'</a></td><td>'+esc(a.name)+(a.error?'<div class="err">'+esc(a.error).slice(0,90)+'</div>':'')+'</td><td class="n">'+fmt(a.followers)+'</td><td class="n">'+fmt(a.median_likes)+'</td><td>'+esc(a.note||'')+'</td></tr>').join('')+'</table>';
+    const ce=D.errors.cafe||[];if(ce.length)h+='<div class="note">맘카페 수집 메모: '+ce.map(e=>esc(e.cafe+' '+e.error)).join(' / ')+'</div>';
+  }
+  document.getElementById('main').innerHTML=h;
+}
+document.getElementById('q').oninput=e=>{q=e.target.value.trim();render()};
+document.addEventListener('click',e=>{const t=e.target.closest('button');if(!t)return;
+  if(t.dataset.tab){tab=t.dataset.tab;render();scrollTo(0,0)}
+  if(t.dataset.sort){sort=t.dataset.sort;render()}
+  if(t.dataset.cafe){cafeSel=t.dataset.cafe;render()}
+  if(t.dataset.kid){kidOnly=!kidOnly;render()}
+  if(t.dataset.star){const u=t.dataset.star;stars.has(u)?stars.delete(u):stars.add(u);saveStars();render()}});
+fetch('data.json?'+Date.now()).then(r=>r.json()).then(d=>{D=d;kidRe=new RegExp((d.kid_keywords||['아이랑']).join('|'));
+  const ig=d.instagram;document.getElementById('upd').textContent='업데이트 '+kst(d.updated_at)+' · 인스타 '+(ig.source.startsWith('meta')?'자동':'수동')+' 수집 '+kst(ig.collected_at);render()})
+  .catch(e=>{document.getElementById('main').innerHTML='<div class="empty err">데이터를 불러오지 못했어요: '+esc(e.message)+'</div>'});
+</script>
+</body>
+</html>

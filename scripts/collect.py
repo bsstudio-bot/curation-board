@@ -116,8 +116,28 @@ def add_ratio(accounts, posts):
 # ---------------------------------------------------------------- 오늘의 추천 (규칙 기반)
 import re
 
-AD_RE = re.compile(r"#?광고|협찬|제작지원|공구|공동구매|이벤트|당첨|추첨|댓글[^\n]{0,10}(링크|DM)|링크[^\n]{0,10}(댓글|DM)|최저가|특가|할인코드|구매링크|체험단|서평단")
-GOSSIP_RE = re.compile(r"별세|사망|숨[져진]|살인|폭행|성폭|이혼|열애|루머|논란|의혹|구속|체포|흉기|참사|사고|국정조사|대법원장|민주당|국민의힘|대통령|북한|군사|전쟁|미사일|명단 발표|평가전|플레이오프|KBO|A매치|경기 결과")
+AD_RE = re.compile(r"#?광고|협찬|제작지원|공구|공동구매|이벤트|당첨|추첨|댓글[^\n]{0,10}(링크|DM)|링크[^\n]{0,10}(댓글|DM)|최저가|특가|할인코드|구매링크|체험단|서평단|내돈내산|쿠팡|구매처|스마트스토어|프로필 링크|오픈합니다|단독 혜택|할인")
+GOSSIP_RE = re.compile(r"별세|사망|숨[져진]|살인|폭행|성폭|이혼|열애|루머|논란|의혹|구속|체포|흉기|참사|사고|북한|군사|전쟁|미사일|명단 발표|평가전|플레이오프|KBO|A매치|경기 결과")
+POLITICS_RE = re.compile(r"정치|정당|국회|의원|대통령|대선|총선|지선|선거|투표|탄핵|여당|야당|민주당|국민의힘|조국혁신당|개혁신당|국정|특검|검찰|대법원|헌법재판|헌재|장관|총리|트럼프|시진핑|푸틴|정상회담|외교부|청와대|대통령실|이재명|윤석열|한동훈")
+# 맘카페: 정보 가치가 있는 글만 (질문·후기·추천·행사·교육 등)
+CAFE_INFO_RE = re.compile(r"추천|후기|정보|다녀|가볼|어디|오픈|개관|무료|축제|전시|체험|유치원|어린이집|학원|설명회|소아과|접종|키즈|놀이|나들이|방학|입학|교육|도서관|박물관|미술관|여행|숙소|캠핑|선물|비용|원비|\?")
+CAFE_TRIVIAL_RE = re.compile(r"촬영|현상황|현 상황|상황 ?입니다|지금 .{0,8}(상황|어때|어떤가)|자리 ?많|사람 ?많|막히|시끄|사이렌|불꽃|무슨 일|날씨|점심|저녁|아침|폐업|폐원|화재|정전|주차장|ㅋㅋ|ㅎㅎ|ㅠㅠ|ㅜㅜ|가입인사|안녕하세|출석")
+IG_TRIVIAL_RE = re.compile(r"근황|현상황|현 상황|실시간|지금 .{0,6}(상황|모습)|촬영 중|촬영중")
+PICK_MAX_HOURS = 72      # 이보다 오래된 글은 추천하지 않는다
+PICK_MIN_LIKES = 100     # 인스타 좋아요 100 미만은 추천하지 않는다
+PICK_MIN_READS = 100     # 맘카페 조회 100 미만은 추천하지 않는다
+PICK_MIN_CAPTION = 30    # 너무 짧은 캡션(정보 없음)은 제외
+
+
+def flag_of(text):
+    """추천·반응 탭에서 빼야 할 글이면 사유를 돌려준다."""
+    if AD_RE.search(text):
+        return "광고·공구"
+    if POLITICS_RE.search(text):
+        return "정치"
+    if GOSSIP_RE.search(text):
+        return "가십·사건·스포츠"
+    return None
 PLACE_RE = re.compile(r"전시|팝업|축제|공원|박물관|미술관|체험|가볼|나들이|숲|도서관|놀이터|카페|오픈|개관|코스|여행")
 PLACE_BONUS_RE = re.compile(r"무료|최초|신규|새로 생|오픈|개관|예약|한정|숨은")
 EXPLAIN_RE = re.compile(r"왜|이유|어떻게|비결|탄생|역사|가격|비싼|억|만 원|기업|창업|회장|대표이사|셰프|사장|원래|유래|비교|순위|TOP")
@@ -157,10 +177,12 @@ def make_picks(posts, cafe_rows, kid_keywords, now):
     cands = []
     for p in posts:
         cap = p.get("caption") or ""
-        if AD_RE.search(cap) or GOSSIP_RE.search(cap):
+        if p.get("flag") or len(cap.strip()) < PICK_MIN_CAPTION or IG_TRIVIAL_RE.search(cap[:80]):
+            continue
+        if (p.get("likes") or 0) < PICK_MIN_LIKES:
             continue
         h = hours_since(p.get("timestamp") or "", now)
-        if h > 24 * 7:
+        if h > PICK_MAX_HOURS:
             continue
         s = series_of(p)
         ratio = p.get("ratio") or 0
@@ -178,7 +200,7 @@ def make_picks(posts, cafe_rows, kid_keywords, now):
             m = EXPLAIN_RE.search(cap).group(0); score += 1; why.append(f"'{m}' 해설각")
         if s == "trend" and TREND_RE.search(cap):
             m = TREND_RE.search(cap).group(0); score += 1; why.append(f"'{m}' 키워드")
-        if ratio < 1 and h > 72:
+        if ratio < 1:
             continue
         # 해설·트렌드는 우리 포맷에 맞는 키워드가 있어야 후보로 본다
         if s == "explain" and not EXPLAIN_RE.search(cap):
@@ -200,8 +222,10 @@ def make_picks(posts, cafe_rows, kid_keywords, now):
             picks.append({"kind": "instagram", "series": label, "use": use, **{k: c[k] for k in (
                 "handle", "caption", "likes", "comments", "timestamp", "permalink", "thumb", "ratio", "media_type", "why", "score")}})
     kid_re = re.compile("|".join(kid_keywords) if kid_keywords else KID_RE_DEFAULT)
-    cafe_c = [r for r in cafe_rows if kid_re.search(r["title"]) and not AD_RE.search(r["title"])
-              and hours_since(r.get("written_at") or "", now) <= 72]
+    cafe_c = [r for r in cafe_rows if kid_re.search(r["title"]) and not flag_of(r["title"])
+              and r["reads"] >= PICK_MIN_READS and len(r["title"]) >= 8
+              and CAFE_INFO_RE.search(r["title"]) and not CAFE_TRIVIAL_RE.search(r["title"])
+              and hours_since(r.get("written_at") or "", now) <= PICK_MAX_HOURS]
     cafe_c.sort(key=lambda r: r["reads"] + r["comments"] * 20, reverse=True)
     seen = set()
     for r in cafe_c:
@@ -244,6 +268,10 @@ def main():
     for a in accounts:
         a["note"] = notes.get(a["handle"], a.get("note", ""))
     add_ratio(accounts, posts)
+    for p in posts:
+        p["flag"] = flag_of(p.get("caption") or "")
+    for r in cafe_rows:
+        r["flag"] = flag_of(r["title"]) or ("단순 현황" if CAFE_TRIVIAL_RE.search(r["title"]) else None)
 
     picks = make_picks(posts, cafe_rows, channels.get("kid_keywords", []), now)
 
@@ -251,6 +279,7 @@ def main():
         "updated_at": now.isoformat(),
         "picks": picks,
         "kid_keywords": channels.get("kid_keywords", []),
+        "rules": {"max_hours": PICK_MAX_HOURS, "min_likes": PICK_MIN_LIKES, "min_reads": PICK_MIN_READS},
         "instagram": {"source": ig_source, "collected_at": ig_at, "accounts": accounts, "posts": posts},
         "cafe": cafe_rows,
         "errors": {"cafe": cafe_errors, "instagram": [a for a in accounts if a.get("error")]},

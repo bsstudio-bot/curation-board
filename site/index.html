@@ -80,7 +80,7 @@ function card(p,A){const r=p.ratio;const b=r==null?'':'<span class="badge'+(r<2?
   return '<div class="card'+(p.thumb?'':' nothumb')+'"><button class="star'+(stars.has(p.permalink)?' on':'')+'" data-star="'+esc(p.permalink)+'">★</button>'+th+
   '<div class="body"><div class="acc">@'+esc(p.handle)+' <span>'+esc((A[p.handle]||{}).name||'')+'</span></div><div class="cap">'+esc(p.caption||'(캡션 없음)')+'</div>'+
   '<div class="meta">'+b+'<span>♥ '+fmt(p.likes)+'</span><span>💬 '+fmt(p.comments)+'</span><span>'+day(p.timestamp)+'</span><span class="tag">'+(p.media_type==='REELS'?'릴스':'게시물')+'</span><a class="open" href="'+esc(p.permalink)+'" target="_blank" rel="noopener">원문 →</a></div></div></div>'}
-function pickCard(x,A){const why='<div class="why">'+(x.why||[]).map(w=>'<span>'+esc(w)+'</span>').join('')+'</div>';
+function pickCard(x,A){const why='<div class="why">'+(x.why||[]).filter(w=>!(x.kind!=='cafe'&&w.startsWith('평소'))).map(w=>'<span>'+esc(w)+'</span>').join('')+'</div>';
   if(x.kind==='cafe')return '<div class="card nothumb"><div class="body"><div class="acc">'+esc(x.cafe)+' <span>맘카페 주간 인기글</span></div><div class="cap" style="-webkit-line-clamp:2;font-weight:600">'+esc(x.title)+'</div>'+why+'<div class="meta"><span>'+day(x.timestamp)+'</span><a class="open" href="'+esc(x.url)+'" target="_blank" rel="noopener">원문 →</a></div></div></div>';
   const p={...x};return card(p,A).replace('<div class="meta">',why+'<div class="meta">')}
 function sorted(a){a=[...a];if(sort==='ratio')a.sort((x,y)=>(y.ratio||0)-(x.ratio||0));if(sort==='new')a.sort((x,y)=>(y.timestamp||'').localeCompare(x.timestamp||''));if(sort==='like')a.sort((x,y)=>(y.likes||0)-(x.likes||0));return a}

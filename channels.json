@@ -1,0 +1,359 @@
+{
+ "instagram": [
+  {
+   "handle": "kids_museums",
+   "cat": "아이랑 갈 곳",
+   "note": "전시·문화행사를 [news][exhibition][place] 태그로 편집. 감도형 키즈 큐레이션"
+  },
+  {
+   "handle": "d_careeer",
+   "cat": "아이랑 갈 곳",
+   "note": "감도 높은 공간 큐레이션 톤 기준 (워킹홀리데이 추천 1순위)"
+  },
+  {
+   "handle": "seochoneditor",
+   "cat": "아이랑 갈 곳",
+   "note": "로컬 매거진형, 이번 주 전시·팝업 정리 포맷"
+  },
+  {
+   "handle": "_ssohyun",
+   "cat": "아이랑 갈 곳",
+   "note": "전직 매거진 에디터의 아이와 갈 곳 (콘셉트 최근접)"
+  },
+  {
+   "handle": "29cm.kids",
+   "cat": "아이랑 갈 곳",
+   "note": "성수·서울숲 키즈 팝업/웰컴키즈존 소스"
+  },
+  {
+   "handle": "moms.map",
+   "cat": "아이랑 갈 곳",
+   "note": "나들이 큐레이션 1위 채널, 웰컴키즈존 기준"
+  },
+  {
+   "handle": "twoyu._.mom",
+   "cat": "아이랑 갈 곳",
+   "note": "무료·최초·예약 꿀팁형 바이럴 공식"
+  },
+  {
+   "handle": "seoul.of.doha",
+   "cat": "아이랑 갈 곳",
+   "note": "조건형 모음 (지하철+도보10분) 바이럴"
+  },
+  {
+   "handle": "momdadmap_seoul",
+   "cat": "아이랑 갈 곳",
+   "note": "이번 주말 서울 무료 축제 주간 정보"
+  },
+  {
+   "handle": "gwiyeon_cho",
+   "cat": "아이랑 갈 곳",
+   "note": "가족여행 최대 규모, 광고·공구 비중 높음"
+  },
+  {
+   "handle": "littlehome_insta",
+   "cat": "아이랑 갈 곳",
+   "note": "양산형 기준점"
+  },
+  {
+   "handle": "babygo__official",
+   "cat": "아이랑 갈 곳",
+   "note": "양산형 기준점"
+  },
+  {
+   "handle": "go_with_iru",
+   "cat": "아이랑 갈 곳",
+   "note": ""
+  },
+  {
+   "handle": "hellorongcho_",
+   "cat": "아이랑 갈 곳",
+   "note": ""
+  },
+  {
+   "handle": "icanddoit",
+   "cat": "아이랑 갈 곳",
+   "note": ""
+  },
+  {
+   "handle": "euntonni",
+   "cat": "아이랑 갈 곳",
+   "note": ""
+  },
+  {
+   "handle": "today_where1",
+   "cat": "아이랑 갈 곳",
+   "note": ""
+  },
+  {
+   "handle": "dikidiki.ddp",
+   "cat": "아이랑 갈 곳",
+   "note": ""
+  },
+  {
+   "handle": "1minwoo",
+   "cat": "육아 정보",
+   "note": "발달 전문가, 대화법 콘텐츠"
+  },
+  {
+   "handle": "bessa_babyscience.tv",
+   "cat": "육아 정보",
+   "note": "연구 근거 육아"
+  },
+  {
+   "handle": "mg_mom_j",
+   "cat": "육아 정보",
+   "note": "교육·독서 정리형"
+  },
+  {
+   "handle": "todak.todak.mom",
+   "cat": "육아 정보",
+   "note": "영유아 놀이 전문가"
+  },
+  {
+   "handle": "seojin_ssem",
+   "cat": "육아 정보",
+   "note": ""
+  },
+  {
+   "handle": "artist._.mom",
+   "cat": "육아 정보",
+   "note": ""
+  },
+  {
+   "handle": "hello._.mom89",
+   "cat": "육아 정보",
+   "note": ""
+  },
+  {
+   "handle": "musclemom_6a",
+   "cat": "육아 정보",
+   "note": ""
+  },
+  {
+   "handle": "joneyfam",
+   "cat": "육아 정보",
+   "note": ""
+  },
+  {
+   "handle": "kangae_eco",
+   "cat": "해설·인물",
+   "note": "레퍼런스: 인물+경제 해설"
+  },
+  {
+   "handle": "narabi_index",
+   "cat": "해설·인물",
+   "note": "레퍼런스: 가격 줄 세우기·데이터 시각화"
+  },
+  {
+   "handle": "2tan_saeng",
+   "cat": "해설·인물",
+   "note": "\"이렇게 탄생했다\" 단일 포맷 시리즈"
+  },
+  {
+   "handle": "korea_titans",
+   "cat": "해설·인물",
+   "note": "인물→기업 스토리"
+  },
+  {
+   "handle": "archcutaway",
+   "cat": "해설·인물",
+   "note": "일상 사물·장소 해부"
+  },
+  {
+   "handle": "to_be_100m",
+   "cat": "해설·인물",
+   "note": "건축 비하인드"
+  },
+  {
+   "handle": "moneygraphyworld",
+   "cat": "해설·인물",
+   "note": "\"왜\" 질문형 경제"
+  },
+  {
+   "handle": "morethan.look",
+   "cat": "해설·인물",
+   "note": "테마호 매거진형"
+  },
+  {
+   "handle": "byte._.bites",
+   "cat": "해설·인물",
+   "note": ""
+  },
+  {
+   "handle": "cheddar.ez",
+   "cat": "해설·인물",
+   "note": ""
+  },
+  {
+   "handle": "snackeconomy",
+   "cat": "해설·인물",
+   "note": ""
+  },
+  {
+   "handle": "basic_newsreader",
+   "cat": "해설·인물",
+   "note": ""
+  },
+  {
+   "handle": "economy.notes",
+   "cat": "해설·인물",
+   "note": ""
+  },
+  {
+   "handle": "careet.official",
+   "cat": "밈·트렌드",
+   "note": "월간 밈·유행 정리 (소스)"
+  },
+  {
+   "handle": "gogumafarm.kr",
+   "cat": "밈·트렌드",
+   "note": "밈 소개 (소스)"
+  },
+  {
+   "handle": "_trend_kr",
+   "cat": "밈·트렌드",
+   "note": "신상·유행 소식 (소스)"
+  },
+  {
+   "handle": "newneek.official",
+   "cat": "밈·트렌드",
+   "note": "시사 흐름 (소스)"
+  },
+  {
+   "handle": "subusunews",
+   "cat": "밈·트렌드",
+   "note": "시사·이슈 (소스)"
+  },
+  {
+   "handle": "fastpapermag",
+   "cat": "밈·트렌드",
+   "note": "트렌드·컬처 (소스)"
+  },
+  {
+   "handle": "ilil_ilsik",
+   "cat": "밈·트렌드",
+   "note": ""
+  },
+  {
+   "handle": "flow.itself",
+   "cat": "밈·트렌드",
+   "note": ""
+  },
+  {
+   "handle": "dol.mag",
+   "cat": "밈·트렌드",
+   "note": ""
+  },
+  {
+   "handle": "tomorrow.zips",
+   "cat": "밈·트렌드",
+   "note": ""
+  },
+  {
+   "handle": "trend__portal",
+   "cat": "밈·트렌드",
+   "note": ""
+  },
+  {
+   "handle": "life_fact_bot",
+   "cat": "밈·트렌드",
+   "note": ""
+  },
+  {
+   "handle": "tree_trendreader",
+   "cat": "밈·트렌드",
+   "note": ""
+  }
+ ],
+ "naver_cafes": [
+  {
+   "slug": "dochithink",
+   "id": "12843510",
+   "name": "도치맘"
+  },
+  {
+   "slug": "15668981",
+   "id": "11291786",
+   "name": "알럽맘"
+  },
+  {
+   "slug": "mom79",
+   "id": "19273921",
+   "name": "초등맘"
+  },
+  {
+   "slug": "usem",
+   "id": "12165814",
+   "name": "파주 운정맘"
+  },
+  {
+   "slug": "byungs94",
+   "id": "13276223",
+   "name": "수원맘"
+  },
+  {
+   "slug": "dongtanmom",
+   "id": "12905973",
+   "name": "동탄맘"
+  },
+  {
+   "slug": "msbabys",
+   "id": "18376548",
+   "name": "대전세종맘스베이비"
+  },
+  {
+   "slug": "pusanmom",
+   "id": "18077961",
+   "name": "부경맘"
+  },
+  {
+   "slug": "busanmam",
+   "id": "29635040",
+   "name": "부산맘"
+  },
+  {
+   "slug": "chengnamomlife",
+   "id": "22126441",
+   "name": "청라맘스"
+  },
+  {
+   "slug": "bookchildlove",
+   "id": "12251599",
+   "name": "책세상 맘수다"
+  },
+  {
+   "slug": "supermomstory",
+   "id": "22065638",
+   "name": "수퍼맘스토리"
+  },
+  {
+   "slug": "miznett",
+   "id": "15724392",
+   "name": "미즈넷"
+  },
+  {
+   "slug": "2008bunsamo",
+   "id": "15194989",
+   "name": "분따"
+  }
+ ],
+ "kid_keywords": [
+  "아이랑",
+  "아이와",
+  "가볼",
+  "나들이",
+  "놀이",
+  "유치원",
+  "키즈",
+  "체험",
+  "전시",
+  "공원",
+  "주말",
+  "축제",
+  "박물관",
+  "미술관",
+  "여행",
+  "어린이"
+ ]
+}

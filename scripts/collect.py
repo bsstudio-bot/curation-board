@@ -109,7 +109,7 @@ def collect_instagram(channels, token, ig_user_id, prev_ig=None):
             for m in media:
                 reel = m.get("media_product_type") == "REELS"
                 posts.append({
-                    "handle": u, "cat": ch["cat"], "caption": (m.get("caption") or "")[:300],
+                    "handle": u, "cat": ch["cat"], "caption": (m.get("caption") or "")[:1500],
                     "likes": m.get("like_count"), "comments": m.get("comments_count"),
                     "timestamp": m.get("timestamp"), "permalink": m.get("permalink"),
                     "media_type": "REELS" if reel else m.get("media_type"),

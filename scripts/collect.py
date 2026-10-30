@@ -113,6 +113,109 @@ def add_ratio(accounts, posts):
         p["ratio"] = round(p["likes"] / m, 1) if (m and p.get("likes") is not None) else None
 
 
+# ---------------------------------------------------------------- 오늘의 추천 (규칙 기반)
+import re
+
+AD_RE = re.compile(r"#?광고|협찬|제작지원|공구|공동구매|이벤트|당첨|추첨|댓글[^\n]{0,10}(링크|DM)|링크[^\n]{0,10}(댓글|DM)|최저가|특가|할인코드|구매링크|체험단|서평단")
+GOSSIP_RE = re.compile(r"별세|사망|숨[져진]|살인|폭행|성폭|이혼|열애|루머|논란|의혹|구속|체포|흉기|참사|사고|국정조사|대법원장|민주당|국민의힘|대통령|북한|군사|전쟁|미사일|명단 발표|평가전|플레이오프|KBO|A매치|경기 결과")
+PLACE_RE = re.compile(r"전시|팝업|축제|공원|박물관|미술관|체험|가볼|나들이|숲|도서관|놀이터|카페|오픈|개관|코스|여행")
+PLACE_BONUS_RE = re.compile(r"무료|최초|신규|새로 생|오픈|개관|예약|한정|숨은")
+EXPLAIN_RE = re.compile(r"왜|이유|어떻게|비결|탄생|역사|가격|비싼|억|만 원|기업|창업|회장|대표이사|셰프|사장|원래|유래|비교|순위|TOP")
+TREND_RE = re.compile(r"밈|유행|챌린지|화제|난리|품절|신상|요즘|트렌드|바이럴")
+KID_RE_DEFAULT = "아이랑|아이와|가볼|나들이|놀이|유치원|키즈|체험|전시|공원|주말|축제|박물관|미술관|여행|어린이"
+
+SERIES = {
+    "place": ("아이랑 갈 곳", "주말 방문·조건 모음 후보"),
+    "explain": ("왜 그럴까", "해설 숏폼 소재"),
+    "trend": ("밈·트렌드", "48시간 안에 해설하면 좋은 소재"),
+    "parent": ("육아 정보", "아빠 시선 육아 팁 소재"),
+}
+QUOTA = {"place": 3, "explain": 3, "trend": 2, "parent": 1}
+
+
+def hours_since(iso, now):
+    try:
+        return (now - datetime.fromisoformat(iso.replace("Z", "+00:00"))).total_seconds() / 3600
+    except Exception:
+        return 1e9
+
+
+def series_of(p):
+    cap, cat = p.get("caption") or "", p.get("cat")
+    if cat == "아이랑 갈 곳" or (cat == "육아 정보" and PLACE_RE.search(cap)):
+        return "place"
+    if cat == "육아 정보":
+        return "parent"
+    if cat == "밈·트렌드":
+        return "explain" if EXPLAIN_RE.search(cap) and not TREND_RE.search(cap) else "trend"
+    # 해설·인물
+    return "trend" if TREND_RE.search(cap) and not EXPLAIN_RE.search(cap) else "explain"
+
+
+def make_picks(posts, cafe_rows, kid_keywords, now):
+    """우리 채널 기준으로 오늘 볼 만한 글을 시리즈별로 몇 개만 고른다."""
+    cands = []
+    for p in posts:
+        cap = p.get("caption") or ""
+        if AD_RE.search(cap) or GOSSIP_RE.search(cap):
+            continue
+        h = hours_since(p.get("timestamp") or "", now)
+        if h > 24 * 7:
+            continue
+        s = series_of(p)
+        ratio = p.get("ratio") or 0
+        score = min(ratio, 10)
+        why = []
+        if ratio >= 1.5:
+            why.append(f"평소 대비 ×{ratio}")
+        if h <= 24:
+            score += 2; why.append("24시간 이내")
+        elif h <= 72:
+            score += 1; why.append("3일 이내")
+        if s == "place" and PLACE_BONUS_RE.search(cap):
+            m = PLACE_BONUS_RE.search(cap).group(0); score += 1.5; why.append(f"'{m}' 정보")
+        if s == "explain" and EXPLAIN_RE.search(cap):
+            m = EXPLAIN_RE.search(cap).group(0); score += 1; why.append(f"'{m}' 해설각")
+        if s == "trend" and TREND_RE.search(cap):
+            m = TREND_RE.search(cap).group(0); score += 1; why.append(f"'{m}' 키워드")
+        if ratio < 1 and h > 72:
+            continue
+        # 해설·트렌드는 우리 포맷에 맞는 키워드가 있어야 후보로 본다
+        if s == "explain" and not EXPLAIN_RE.search(cap):
+            continue
+        if s == "trend" and not TREND_RE.search(cap):
+            continue
+        cands.append({**p, "series": s, "score": round(score, 2), "why": why})
+    cands.sort(key=lambda x: x["score"], reverse=True)
+    picks, used = [], set()
+    for key, n in QUOTA.items():
+        got = 0
+        for c in cands:
+            if got >= n:
+                break
+            if c["series"] != key or c["handle"] in used:
+                continue
+            used.add(c["handle"]); got += 1
+            label, use = SERIES[key]
+            picks.append({"kind": "instagram", "series": label, "use": use, **{k: c[k] for k in (
+                "handle", "caption", "likes", "comments", "timestamp", "permalink", "thumb", "ratio", "media_type", "why", "score")}})
+    kid_re = re.compile("|".join(kid_keywords) if kid_keywords else KID_RE_DEFAULT)
+    cafe_c = [r for r in cafe_rows if kid_re.search(r["title"]) and not AD_RE.search(r["title"])
+              and hours_since(r.get("written_at") or "", now) <= 72]
+    cafe_c.sort(key=lambda r: r["reads"] + r["comments"] * 20, reverse=True)
+    seen = set()
+    for r in cafe_c:
+        if len([x for x in picks if x["kind"] == "cafe"]) >= 2:
+            break
+        if r["cafe"] in seen:
+            continue
+        seen.add(r["cafe"])
+        picks.append({"kind": "cafe", "series": "맘카페 화제", "use": "부모들이 지금 궁금해하는 것", "cafe": r["cafe"],
+                      "title": r["title"], "reads": r["reads"], "comments": r["comments"], "url": r["url"],
+                      "timestamp": r.get("written_at"), "why": [f"조회 {r['reads']:,}", f"댓글 {r['comments']}"]})
+    return picks
+
+
 def main():
     channels = load(os.path.join(ROOT, "channels.json"))
     out_path = os.path.join(ROOT, "site", "data.json")
@@ -142,8 +245,11 @@ def main():
         a["note"] = notes.get(a["handle"], a.get("note", ""))
     add_ratio(accounts, posts)
 
+    picks = make_picks(posts, cafe_rows, channels.get("kid_keywords", []), now)
+
     data = {
         "updated_at": now.isoformat(),
+        "picks": picks,
         "kid_keywords": channels.get("kid_keywords", []),
         "instagram": {"source": ig_source, "collected_at": ig_at, "accounts": accounts, "posts": posts},
         "cafe": cafe_rows,
@@ -151,7 +257,7 @@ def main():
     }
     with open(out_path, "w", encoding="utf-8") as f:
         json.dump(data, f, ensure_ascii=False)
-    print(f"cafe rows={len(cafe_rows)} errors={len(cafe_errors)} | ig source={ig_source} accounts={len(accounts)} posts={len(posts)}")
+    print(f"cafe rows={len(cafe_rows)} errors={len(cafe_errors)} | ig source={ig_source} accounts={len(accounts)} posts={len(posts)} | picks={len(picks)}")
 
 
 if __name__ == "__main__":

@@ -142,6 +142,121 @@ PLACE_RE = re.compile(r"전시|팝업|축제|공원|박물관|미술관|체험|�
 PLACE_BONUS_RE = re.compile(r"무료|최초|신규|새로 생|오픈|개관|예약|한정|숨은")
 EXPLAIN_RE = re.compile(r"왜|이유|어떻게|비결|탄생|역사|가격|비싼|억|만 원|기업|창업|회장|대표이사|셰프|사장|원래|유래|비교|순위|TOP")
 TREND_RE = re.compile(r"밈|유행|챌린지|화제|난리|품절|신상|요즘|트렌드|바이럴")
+# 맘카페: 지역 한정 글 (특정 지역·특정 기관 이름) 은 추천에서 뺀다
+LOCAL_RE = re.compile(r"운정|청라|동탄|분당|판교|수원|영통|광교|수지|기흥|용인|대전|세종|부산|부경|송도|대구|김해|양산|파주|일산|고양|평택|화성|인천|구미|창원|울산|광주|천안|청주|우리 ?동네|근처|이 동네|[가-힣]{1,4}동 |[가-힣]{1,4}역 ")
+_INST_RE = re.compile(r"([가-힣A-Za-z]{2,})(유치원|어린이집|학원|소아과|병원|의원|치과|마트|센터)")
+_GENERIC = set("영어 사립 공립 국공립 병설 단설 놀이 숲 발도르프 몬테소리 동네 근처 일반 대형 소형 가정 직장 민간 국립 시립 구립 유아 어린이 종합 대학 소아 동물 피부 수학 미술 태권도 피아노 수영 발레 축구 줄넘기 보습 영재 코딩 논술 한글 키즈 문화 체험 과학 아동 발달 언어 심리 상담 주민 보건 대형마트 동네마트".split())
+
+
+class _LocalInst:
+    def search(self, t):
+        for m in _INST_RE.finditer(t or ""):
+            if m.group(1) not in _GENERIC:
+                return m
+        return None
+
+
+LOCAL_INST_RE = _LocalInst()
+CAFE_AD_RE = re.compile(r"OPEN|오픈|모집|마감|선착순|공구|\d{1,3},\d{3}원|원~|할인|체험단|서평단|이벤트|\[[^\]]*(공구|핫딜|광고|홍보)[^\]]*\]")
+JAMO_RE = re.compile(r"[ㄱ-ㅎ]{3,}")
+
+
+def cafe_flag(title):
+    f = flag_of(title)
+    if f:
+        return f
+    if CAFE_AD_RE.search(title):
+        return "광고·공구"
+    if CAFE_TRIVIAL_RE.search(title):
+        return "단순 현황"
+    if LOCAL_RE.search(title) or LOCAL_INST_RE.search(title) or JAMO_RE.search(title):
+        return "지역 한정"
+    return None
+
+
+# 엄마들 관심사 주제 사전
+TOPICS = {
+    "유치원·어린이집": r"유치원|어린이집|원비|설명회|입학|추첨|처음학교|교사|담임|등원|하원",
+    "아이 건강": r"독감|감기|열이|고열|열나|해열|기침|콧물|접종|예방주사|수족구|장염|폐렴|소아과|병원|비염|아토피|중이염|마이코",
+    "학습·교육": r"학습지|영어|수학|한글|학원|공부|교재|문제집|숙제|엄마표|책육아|독서|사고력",
+    "놀이·나들이": r"아이(랑|와)|애들(이랑|과|하고)|아기랑|가볼|나들이|체험|키즈카페|어린이 ?(전시|공연|박물관)|가족 ?여행|아이 ?데리고|숙소 추천|캠핑",
+    "육아 고민": r"훈육|떼쓰|떼를|짜증|수면교육|낮잠|밤잠|편식|형제|자매|사회성|발달|말이 늦|언어발달|분리불안|스마트폰|영상 ?노출|미디어|사춘기|아이가 .{0,12}(안 |못 |싫어)",
+    "선물·쇼핑": r"선물|크리스마스|장난감|아이 ?옷|패딩|겨울옷|아이 ?신발|책상|카시트|유모차|킥보드|레고",
+    "돈·지원금": r"지원금|수당|바우처|보험|적금|청약|대출|세금|연말정산|아동수당|부모급여",
+    "먹거리": r"간식|반찬|식단|레시피|유아식|이유식|밥|급식|과일",
+}
+TOPIC_RES = {k: re.compile(v) for k, v in TOPICS.items()}
+# 해설 각도 (캉가에처럼 '쉽게 설명'하는 숏폼으로 만들 수 있는 질문)
+ANGLES = [
+    (re.compile(r"창업|대표이사|회장|셰프|사장|CEO|임원|자퇴"), "이 사람은 어떻게 여기까지 왔을까"),
+    (re.compile(r"탄생|처음|최초|역사|원래|유래"), "처음엔 어떻게 시작됐을까"),
+    (re.compile(r"비교|순위|TOP|1위|가장 [가-힣]+ 곳"), "숫자로 줄 세우면 뭐가 보일까"),
+    (re.compile(r"밈|유행|챌린지|난리|품절|바이럴"), "왜 하필 지금 이게 유행할까"),
+    (re.compile(r"무료"), "왜 무료로 열까? 비용은 누가 낼까"),
+    (re.compile(r"오픈|개관|새로 생|신규|팝업"), "이 공간은 누가, 왜 만들었을까"),
+    (re.compile(r"가격|비싼|억 ?원|만 ?원|원짜리"), "이 가격은 어떻게 정해질까"),
+    (re.compile(r"연구|발달|전문의|의사|과학"), "연구로 보면 실제로 어떨까"),
+    (re.compile(r"면세|제도|법이|바뀐|개정|지원"), "뭐가 바뀌고 우리 집엔 어떤 영향일까"),
+    (re.compile(r"왜|이유|어떻게"), "질문 그대로 풀어 설명하기"),
+]
+
+
+def angle_of(text):
+    for rx, a in ANGLES:
+        if rx.search(text or ""):
+            return a
+    return None
+
+
+# 행사 종료일 찾기: "10.11~10.25", "~11/23", "11월 30일까지" 등
+_RANGE_RE = re.compile(r"(?:(20\d\d)[.\-/년]\s?)?(\d{1,2})[.\-/월]\s?(\d{1,2})일?\s*(?:\([^)]{1,3}\))?\s*[~\-–]\s*(?:(20\d\d)[.\-/년]\s?)?(\d{1,2})[.\-/월]\s?(\d{1,2})")
+_UNTIL_RE = re.compile(r"(?:~\s*|까지\s*)?(\d{1,2})[./월]\s?(\d{1,2})일?\s*(?:\([^)]{1,3}\))?\s*까지|~\s*(\d{1,2})[./](\d{1,2})")
+
+
+def event_end(caption, posted_iso):
+    try:
+        posted = datetime.fromisoformat((posted_iso or "").replace("Z", "+00:00")).astimezone(KST)
+    except Exception:
+        return None
+    cap = caption or ""
+    ends = []
+    for m in _RANGE_RE.finditer(cap):
+        y = int(m.group(4) or m.group(1) or posted.year)
+        mo, d = int(m.group(5)), int(m.group(6))
+        if 1 <= mo <= 12 and 1 <= d <= 31:
+            ends.append((y, mo, d))
+    if not ends:
+        for m in _UNTIL_RE.finditer(cap):
+            mo, d = (int(m.group(1)), int(m.group(2))) if m.group(1) else (int(m.group(3)), int(m.group(4)))
+            if 1 <= mo <= 12 and 1 <= d <= 31:
+                ends.append((posted.year, mo, d))
+    if not ends:
+        return None
+    y, mo, d = max(ends)
+    if mo < posted.month - 6:  # 12월 글의 '~1/15' 같은 경우
+        y += 1
+    try:
+        return datetime(y, mo, d, 23, 59, tzinfo=KST)
+    except ValueError:
+        return None
+
+
+def topics_of(rows, now):
+    """이번 주 맘카페 인기글에서 엄마들 관심사 주제를 집계한다."""
+    res = []
+    for k, rx in TOPIC_RES.items():
+        hit = [r for r in rows if rx.search(r["title"]) and not r.get("flag") and len(r["title"]) >= 8]
+        if not hit:
+            continue
+        hit.sort(key=lambda r: r["reads"] + r["comments"] * 20, reverse=True)
+        res.append({"topic": k, "count": len(hit), "reads": sum(r["reads"] for r in hit),
+                    "comments": sum(r["comments"] for r in hit),
+                    "samples": [{"title": r["title"], "cafe": r["cafe"], "url": r["url"], "reads": r["reads"],
+                                 "comments": r["comments"]} for r in hit[:5]]})
+    res.sort(key=lambda x: x["reads"] + x["comments"] * 20, reverse=True)
+    return res
+
+
 KID_RE_DEFAULT = "아이랑|아이와|가볼|나들이|놀이|유치원|키즈|체험|전시|공원|주말|축제|박물관|미술관|여행|어린이"
 
 SERIES = {
@@ -184,6 +299,8 @@ def make_picks(posts, cafe_rows, kid_keywords, now):
         h = hours_since(p.get("timestamp") or "", now)
         if h > PICK_MAX_HOURS:
             continue
+        if p.get("ended"):
+            continue
         s = series_of(p)
         ratio = p.get("ratio") or 0
         score = min(ratio, 10)
@@ -207,7 +324,12 @@ def make_picks(posts, cafe_rows, kid_keywords, now):
             continue
         if s == "trend" and not TREND_RE.search(cap):
             continue
-        cands.append({**p, "series": s, "score": round(score, 2), "why": why})
+        ang = angle_of(cap)
+        if ang:
+            score += 0.5
+        if p.get("event_end"):
+            why.append("~" + p["event_end"][5:10].replace("-", "/") + "까지")
+        cands.append({**p, "series": s, "score": round(score, 2), "why": why, "angle": ang})
     cands.sort(key=lambda x: x["score"], reverse=True)
     picks, used = [], set()
     for key, n in QUOTA.items():
@@ -220,11 +342,12 @@ def make_picks(posts, cafe_rows, kid_keywords, now):
             used.add(c["handle"]); got += 1
             label, use = SERIES[key]
             picks.append({"kind": "instagram", "series": label, "use": use, **{k: c[k] for k in (
-                "handle", "caption", "likes", "comments", "timestamp", "permalink", "thumb", "ratio", "media_type", "why", "score")}})
+                "handle", "caption", "likes", "comments", "timestamp", "permalink", "thumb", "ratio", "media_type", "why", "score", "angle")}})
     kid_re = re.compile("|".join(kid_keywords) if kid_keywords else KID_RE_DEFAULT)
-    cafe_c = [r for r in cafe_rows if kid_re.search(r["title"]) and not flag_of(r["title"])
+    cafe_c = [r for r in cafe_rows if kid_re.search(r["title"]) and not r.get("flag")
               and r["reads"] >= PICK_MIN_READS and len(r["title"]) >= 8
               and CAFE_INFO_RE.search(r["title"]) and not CAFE_TRIVIAL_RE.search(r["title"])
+              and not LOCAL_RE.search(r["title"]) and not LOCAL_INST_RE.search(r["title"])
               and hours_since(r.get("written_at") or "", now) <= PICK_MAX_HOURS]
     cafe_c.sort(key=lambda r: r["reads"] + r["comments"] * 20, reverse=True)
     seen = set()
@@ -236,12 +359,31 @@ def make_picks(posts, cafe_rows, kid_keywords, now):
         seen.add(r["cafe"])
         picks.append({"kind": "cafe", "series": "맘카페 화제", "use": "부모들이 지금 궁금해하는 것", "cafe": r["cafe"],
                       "title": r["title"], "reads": r["reads"], "comments": r["comments"], "url": r["url"],
-                      "timestamp": r.get("written_at"), "why": [f"조회 {r['reads']:,}", f"댓글 {r['comments']}"]})
+                      "timestamp": r.get("written_at"), "why": [f"조회 {r['reads']:,}", f"댓글 {r['comments']}"],
+                      "angle": angle_of(r["title"]) or "엄마들이 왜 이걸 궁금해할까"})
     return picks
 
 
+API_URL = "https://script.google.com/macros/s/AKfycbx_bxTi39uwrssjbst255QjPBY_p1KNQwRA8KAgzj_h9DNHjcw3BUpfNZntsy8ItxEw/exec"
+
+
+def load_channels():
+    base = load(os.path.join(ROOT, "channels.json"))
+    try:
+        req = urllib.request.Request(API_URL + "?action=channels", headers={"User-Agent": UA})
+        with urllib.request.urlopen(req, timeout=30) as r:
+            shared = json.loads(r.read().decode("utf-8"))
+        if shared.get("ok") and shared.get("channels"):
+            base["instagram"] = [{"handle": c["handle"], "cat": c["cat"], "note": c.get("note", ""),
+                                  "added_by": c.get("added_by", "")} for c in shared["channels"]]
+            base["_source"] = "shared"
+    except Exception as e:  # noqa: BLE001
+        base["_source"] = f"channels.json (공유 저장소 실패: {str(e)[:80]})"
+    return base
+
+
 def main():
-    channels = load(os.path.join(ROOT, "channels.json"))
+    channels = load_channels()
     out_path = os.path.join(ROOT, "site", "data.json")
     prev = load(out_path, {}) or {}
     now = datetime.now(KST)
@@ -267,17 +409,37 @@ def main():
         accounts, posts, ig_source, ig_at = seed["accounts"], seed["posts"], "seed (수동 수집)", seed.get("collected_at")
     for a in accounts:
         a["note"] = notes.get(a["handle"], a.get("note", ""))
+    # 공유 목록에서 지운 채널은 화면에서도 뺀다
+    active = {c["handle"] for c in channels["instagram"]}
+    accounts = [a for a in accounts if a["handle"] in active]
+    posts = [p for p in posts if p["handle"] in active]
     add_ratio(accounts, posts)
     for p in posts:
         p["flag"] = flag_of(p.get("caption") or "")
+        end = event_end(p.get("caption"), p.get("timestamp"))
+        p["event_end"] = end.isoformat() if end else None
+        p["ended"] = bool(end and end < now)
     for r in cafe_rows:
-        r["flag"] = flag_of(r["title"]) or ("단순 현황" if CAFE_TRIVIAL_RE.search(r["title"]) else None)
+        r["flag"] = cafe_flag(r["title"])
 
     picks = make_picks(posts, cafe_rows, channels.get("kid_keywords", []), now)
+    topics = topics_of(cafe_rows, now)
+    hist_path = os.path.join(ROOT, "site", "topics_history.json")
+    hist = load(hist_path, {}) or {}
+    hist[now.strftime("%Y-%m-%d")] = {t["topic"]: t["count"] for t in topics}
+    hist = dict(sorted(hist.items())[-60:])
+    with open(hist_path, "w", encoding="utf-8") as f:
+        json.dump(hist, f, ensure_ascii=False)
+    week_ago = (now - timedelta(days=7)).strftime("%Y-%m-%d")
+    prev_day = max([d for d in hist if d <= week_ago], default=None)
+    for t in topics:
+        t["prev_count"] = hist[prev_day].get(t["topic"]) if prev_day else None
 
     data = {
         "updated_at": now.isoformat(),
         "picks": picks,
+        "topics": topics,
+        "channels_source": channels.get("_source", "channels.json"),
         "kid_keywords": channels.get("kid_keywords", []),
         "rules": {"max_hours": PICK_MAX_HOURS, "min_likes": PICK_MIN_LIKES, "min_reads": PICK_MIN_READS},
         "instagram": {"source": ig_source, "collected_at": ig_at, "accounts": accounts, "posts": posts},

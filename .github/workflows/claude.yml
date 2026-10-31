@@ -10,7 +10,7 @@ on:
   workflow_dispatch:
     inputs:
       only:
-        description: "A=요청 B=추천 C=광고 D=검증 (비우면 전부)"
+        description: "A=요청 B=추천 C=광고 D=검증 E=큐레이션 (비우면 전부)"
         required: false
         default: ""
 
@@ -19,7 +19,7 @@ concurrency:
   cancel-in-progress: false
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   run:
@@ -39,3 +39,13 @@ jobs:
           CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
           ONLY: ${{ github.event.inputs.only }}
         run: python3 scripts/claude_tasks.py
+      - name: Save curation
+        if: always()
+        run: |
+          if [ -f .ai_updated ]; then
+            git config user.name "curation-bot"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git add site/ai.json
+            git commit -m "ai: $(TZ=Asia/Seoul date +%F) 큐레이션" || exit 0
+            for i in 1 2 3; do git pull --rebase -X theirs origin main && git push && break; sleep 5; done
+          fi

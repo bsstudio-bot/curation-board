@@ -84,6 +84,14 @@ td:first-child{white-space:nowrap}
 td.brands{font-size:12.5px}td.brands a{color:#2563EB;text-decoration:none}
 .bchips{display:flex;flex-wrap:wrap;gap:8px}.bchip{background:#fff;border:1px solid var(--line);border-radius:999px;padding:6px 12px;font-size:13px;text-decoration:none;color:var(--navy)}.bchip small{color:var(--sub);margin-left:4px}
 .why span.adt{background:#FDECE7;color:var(--coral);font-weight:700}
+.kpis{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:10px;margin-bottom:12px}
+.kpi{background:#fff;border:1px solid var(--line);border-radius:12px;padding:12px 14px}.kt{font-size:12px;color:var(--sub)}.kv{font-size:24px;font-weight:800;margin:4px 0}.ks{font-size:12px;color:var(--sub)}
+.panel{background:#fff;border:1px solid var(--line);border-radius:12px;padding:12px 14px;margin-bottom:12px}.ph{font-weight:700;font-size:14px;margin-bottom:10px}.ph small{font-weight:400;color:var(--sub);margin-left:6px}
+.panels{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:12px}
+.chart{display:flex;align-items:flex-end;gap:3px;height:140px;padding-bottom:16px}.chart .col{flex:1;display:flex;flex-direction:column-reverse;height:100%;position:relative}.chart .col i{display:block;width:100%}.chart .col span{position:absolute;bottom:-16px;font-size:10px;color:var(--sub);white-space:nowrap}
+.chart i.g,.lg.g{background:#E2674A}.chart i.s,.lg.s{background:#1B2136}.chart i.e,.lg.e{background:#E9C46A}.lg{display:inline-block;width:9px;height:9px;border-radius:2px;margin:0 3px 0 8px}
+.hbars .hb{display:flex;align-items:center;gap:8px;font-size:13px;margin:5px 0}.hk{width:96px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.hv{flex:1;background:#F4F1EA;border-radius:4px;height:12px}.hv i{display:block;height:12px;border-radius:4px;background:var(--coral)}.hb b{width:44px;text-align:right}
+.adtbl td{font-size:13px}.adtbl td.ct{max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.adt2{font-size:11px;font-weight:700;border-radius:4px;padding:2px 6px}.adt2.g{background:#FDECE7;color:#C2410C}.adt2.s{background:#EEF0F5;color:#1B2136}.adt2.e{background:#FFF6DB;color:#92400E}
 .why{display:flex;gap:5px;flex-wrap:wrap}.why span{font-size:11px;background:#F4F1EA;border-radius:4px;padding:2px 6px;color:var(--navy)}
 @media(max-width:640px){.search{width:100%;margin-left:0}.grid{grid-template-columns:1fr 1fr}.thumb{aspect-ratio:1}}
 </style>
@@ -101,8 +109,8 @@ td.brands{font-size:12.5px}td.brands a{color:#2563EB;text-decoration:none}
 const API='https://script.google.com/macros/s/AKfycbx_bxTi39uwrssjbst255QjPBY_p1KNQwRA8KAgzj_h9DNHjcw3BUpfNZntsy8ItxEw/exec';
 const CATS=['아이랑 갈 곳','육아 정보','해설·인물','밈·트렌드'];
 const CAT_DAYS={'아이랑 갈 곳':7,'육아 정보':30,'해설·인물':30,'밈·트렌드':30};
-const TABS=['오늘의 추천','반응 좋은 글',...CATS,'맘카페 인기글','광고·공구','찜한 후보','스크립트','채널 목록'];
-let SC={}, SCQ=new Set(), D=null, tab='오늘의 추천', sort='new', cafeSel='전체', kidOnly=false, q='', bmMode='week', CH=null, BM={}, LOOKUP={}, busy=false;
+const TABS=['오늘의 추천','반응 좋은 글',...CATS,'맘카페 인기글','찜한 후보','스크립트','참고) 광고·공구','채널 목록'];
+let ADS={}, SC={}, SCQ=new Set(), D=null, tab='오늘의 추천', sort='new', cafeSel='전체', kidOnly=false, q='', bmMode='week', CH=null, BM={}, LOOKUP={}, busy=false;
 const open_={};
 const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const fmt=n=>n==null?'-':n>=10000?(n/10000).toFixed(n>=100000?0:1)+'만':Math.round(n).toLocaleString();
@@ -214,18 +222,53 @@ const RX_EVENT=/이벤트|당첨|추첨|증정|초대권|댓글 ?남겨|팔로�
 function adType(t){t=t||'';if(RX_GONGGU.test(t))return '공구';if(RX_AD.test(t))return '광고·협찬';if(RX_EVENT.test(t))return '이벤트';return null}
 function brandsOf(cap,self){return [...new Set(((cap||'').match(/@[A-Za-z0-9._]{3,30}/g)||[]).map(x=>x.slice(1).replace(/\.$/,'').toLowerCase()).filter(h=>h!==self&&/[a-z]/.test(h)))]}
 let adDays=30;
+
+function adRows(days){return D.instagram.posts.filter(p=>p.timestamp&&hoursAgo(p.timestamp)<=days*24&&adType(p.caption)).map(p=>{const a=p.ad||{};const x=ADS[p.permalink]||{};
+  const brand=(x.brand||'')||(a.brands&&a.brands[0]?'@'+a.brands[0]:'');const bh=(a.brands||[])[0];const bp=bh?(D.brands||{})[bh]:null;
+  const contact=[x.contact,bp&&bp.emails&&bp.emails.join(', '),bp&&bp.website,(a.emails||[]).join(', ')].filter(Boolean)[0]||'';
+  return {p,type:x.type||adType(p.caption),brand,bh,product:x.product||'',category:x.category||a.category||'기타',price:x.price||a.price||null,discount:x.discount||a.discount||null,period:x.period||(p.event_end?('~'+day(p.event_end)):''),contact,web:bp&&bp.website,channel:x.channel||''}})}
+function bars(items,max,unit=''){return '<div class="hbars">'+items.map(([k,v])=>'<div class="hb"><span class="hk">'+esc(k)+'</span><span class="hv"><i style="width:'+Math.max(2,Math.round(v/max*100))+'%"></i></span><b>'+v+unit+'</b></div>').join('')+'</div>'}
+function adBoard(){const R30=adRows(30),R7=R30.filter(r=>hoursAgo(r.p.timestamp)<=168),Rprev=adRows(14).filter(r=>hoursAgo(r.p.timestamp)>168);
+  const all7=D.instagram.posts.filter(p=>p.timestamp&&hoursAgo(p.timestamp)<=168).length;const chg=Rprev.length?Math.round((R7.length-Rprev.length)/Rprev.length*100):null;
+  const gong=R30.filter(r=>r.type==='공구');const prices=gong.map(r=>+r.price).filter(Boolean).sort((a,b)=>a-b);const med=prices.length?prices[Math.floor(prices.length/2)]:null;
+  const chans=new Set(R30.map(r=>r.p.handle));const brandSet=new Set(R30.flatMap(r=>(r.p.ad&&r.p.ad.brands)||[]));
+  const kpi=(t,v,s)=>'<div class="kpi"><div class="kt">'+t+'</div><div class="kv">'+v+'</div><div class="ks">'+(s||'')+'</div></div>';
+  let h='<div class="kpis">'+kpi('최근 7일 광고성 글',R7.length+'개',(chg==null?'':(chg>=0?'▲ ':'▼ ')+Math.abs(chg)+'% (지난주 대비) · ')+'전체 글의 '+(all7?Math.round(R7.length/all7*100):0)+'%')+
+    kpi('30일 중 공구 비중',(R30.length?Math.round(gong.length/R30.length*100):0)+'%','공구 '+gong.length+' · 광고·협찬 '+R30.filter(r=>r.type==='광고·협찬').length+' · 이벤트 '+R30.filter(r=>r.type==='이벤트').length)+
+    kpi('광고하는 채널',chans.size+'곳','전체 '+D.instagram.accounts.length+'곳 중')+kpi('태그된 브랜드',brandSet.size+'곳','광고 글 속 @태그 기준')+
+    kpi('공구 가격 중앙값',med?fmt(med)+'원':'-',prices.length?'가격이 적힌 공구 '+prices.length+'건 기준':'캡션에 가격이 적힌 글이 적어요')+'</div>';
+  // 일별 추이
+  const days=[];for(let i=29;i>=0;i--){const d=new Date(Date.now()-i*864e5);days.push(d.toLocaleDateString('en-CA',{timeZone:'Asia/Seoul'}))}
+  const byDay={};for(const r of R30){const k=new Date(r.p.timestamp).toLocaleDateString('en-CA',{timeZone:'Asia/Seoul'});const o=byDay[k]=byDay[k]||{'공구':0,'광고·협찬':0,'이벤트':0};o[r.type]=(o[r.type]||0)+1}
+  const mx=Math.max(1,...days.map(k=>Object.values(byDay[k]||{}).reduce((a,b)=>a+b,0)));
+  h+='<div class="panel"><div class="ph">일별 추이 <small>최근 30일 · <i class="lg g"></i>공구 <i class="lg s"></i>광고·협찬 <i class="lg e"></i>이벤트</small></div><div class="chart">'+days.map(k=>{const o=byDay[k]||{};const seg=(t,c)=>o[t]?'<i class="'+c+'" style="height:'+(o[t]/mx*100)+'%"></i>':'';return '<div class="col" title="'+k+' 공구 '+(o['공구']||0)+' · 광고 '+(o['광고·협찬']||0)+' · 이벤트 '+(o['이벤트']||0)+'">'+seg('이벤트','e')+seg('광고·협찬','s')+seg('공구','g')+'<span>'+(k.slice(8)==='01'||k===days[0]||k===days[29]?(+k.slice(5,7))+'/'+(+k.slice(8)):'')+'</span></div>'}).join('')+'</div></div>';
+  const cnt=(arr,f)=>{const m={};arr.forEach(x=>{const k=f(x);m[k]=(m[k]||0)+1});return Object.entries(m).sort((a,b)=>b[1]-a[1])};
+  const byCat=cnt(R30,r=>r.category),bySer=cnt(R30,r=>r.p.cat);
+  const band=v=>v<10000?'1만 원 미만':v<30000?'1~3만':v<50000?'3~5만':v<100000?'5~10만':'10만 원 이상';
+  const order=['1만 원 미만','1~3만','3~5만','5~10만','10만 원 이상'];const pb=cnt(prices.map(band),x=>x).sort((a,b)=>order.indexOf(a[0])-order.indexOf(b[0]));
+  h+='<div class="panels"><div class="panel"><div class="ph">상품 카테고리 <small>30일 · 캡션 키워드 기준</small></div>'+bars(byCat,byCat[0]?byCat[0][1]:1)+'</div>'+
+     '<div class="panel"><div class="ph">시리즈별 <small>어느 분야 채널이 광고를 많이 하나</small></div>'+bars(bySer,bySer[0]?bySer[0][1]:1)+'</div>'+
+     '<div class="panel"><div class="ph">공구 가격대 <small>가격이 적힌 공구만</small></div>'+(pb.length?bars(pb,Math.max(...pb.map(x=>x[1])),'건'):'<div class="empty">아직 데이터가 적어요</div>')+'</div></div>';
+  // 상품 목록
+  const list=R30.filter(r=>match(r.p.caption+r.p.handle+r.brand+r.product)).sort((a,b)=>(b.p.timestamp||'').localeCompare(a.p.timestamp||'')).slice(0,80);
+  h+='<div class="sec">공구·광고 상품 목록<small>최근 30일 · 브랜드·제품·가격·컨택 · 제품명은 매일 아침 Claude가 정리해요</small><button class="chip" style="margin-left:auto" data-adcsv="1">CSV 내보내기</button></div>';
+  h+='<table class="adtbl"><tr><th>날짜</th><th>채널</th><th>유형</th><th>브랜드·업체</th><th>제품</th><th>카테고리</th><th class="n">가격</th><th class="n">할인</th><th>기간</th><th>컨택</th><th></th></tr>'+list.map(r=>'<tr><td class="n">'+day(r.p.timestamp)+'</td><td>@'+esc(r.p.handle)+'</td><td><span class="adt2 '+(r.type==='공구'?'g':r.type==='이벤트'?'e':'s')+'">'+esc(r.type)+'</span></td><td>'+(r.bh?'<a href="https://www.instagram.com/'+esc(r.bh)+'/" target="_blank" rel="noopener">'+esc(r.brand)+'</a>':esc(r.brand||'-'))+'</td><td>'+esc(r.product||'-')+'</td><td>'+esc(r.category)+'</td><td class="n">'+(r.price?fmt(+r.price)+'원':'-')+'</td><td class="n">'+(r.discount?r.discount+'%':'')+'</td><td>'+esc(r.period||'')+'</td><td class="ct">'+(r.contact?(/^https?:/.test(r.contact)?'<a href="'+esc(r.contact)+'" target="_blank" rel="noopener">웹사이트</a>':esc(r.contact)):(r.bh?'인스타 DM':'-'))+'</td><td><a href="'+esc(r.p.permalink)+'" target="_blank" rel="noopener">원문</a></td></tr>').join('')+'</table>';
+  window.__adList=list;return h}
+function adCSV(){const rows=[['날짜','채널','유형','브랜드','제품','카테고리','가격','할인','기간','컨택','원문']];for(const r of window.__adList||[])rows.push([day(r.p.timestamp),'@'+r.p.handle,r.type,r.brand,r.product,r.category,r.price||'',r.discount||'',r.period||'',r.contact||'',r.p.permalink]);
+  const csv='\ufeff'+rows.map(r=>r.map(c=>'"'+String(c??'').replace(/"/g,'""')+'"').join(',')).join('\n');const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv'}));a.download='공구광고_상품목록.csv';a.click()}
+
 function adView(A){const P=D.instagram.posts.filter(p=>hoursAgo(p.timestamp)<=adDays*24);
   const per={};for(const p of P){const t=adType(p.caption);const a=per[p.handle]=per[p.handle]||{handle:p.handle,cat:p.cat,total:0,ad:0,gonggu:0,spon:0,event:0,last:null,brands:{}};
     a.total++;if(!t)continue;a.ad++;if(t==='공구')a.gonggu++;else if(t==='광고·협찬')a.spon++;else a.event++;if(!a.last||p.timestamp>a.last)a.last=p.timestamp;for(const b of brandsOf(p.caption,p.handle))a.brands[b]=(a.brands[b]||0)+1}
   const rows=Object.values(per).filter(a=>a.ad>0).sort((x,y)=>y.ad-x.ad||y.ad/y.total-x.ad/x.total);
   const brandCount={};for(const p of P){if(!adType(p.caption))continue;for(const b of brandsOf(p.caption,p.handle)){(brandCount[b]=brandCount[b]||{n:0,by:new Set()}).n++;brandCount[b].by.add(p.handle)}}
   const topBrands=Object.entries(brandCount).sort((a,b)=>b[1].by.size-a[1].by.size||b[1].n-a[1].n).slice(0,24);
-  let h='<div class="intro">광고·공구·이벤트 글만 따로 모아 보는 곳이에요. 이 글들은 오늘의 추천과 반응 좋은 글에는 들어가지 않아요. 캡션의 문구(#광고, 협찬, 공구, 댓글로 링크, 이벤트 등)로 자동 분류해서 일부는 틀릴 수 있어요.</div>';
+  let h='<div class="sec" style="margin-top:4px">현황 보드</div>'+adBoard()+'<div class="sec">상세</div><div class="intro">광고·공구·이벤트 글만 따로 모아 보는 곳이에요. 이 글들은 오늘의 추천과 반응 좋은 글에는 들어가지 않아요. 캡션의 문구(#광고, 협찬, 공구, 댓글로 링크, 이벤트 등)로 자동 분류해서 일부는 틀릴 수 있어요.</div>';
   h+='<div class="bar"><span class="lbl">기간</span>'+[7,30].map(d=>'<button class="chip'+(adDays===d?' on':'')+'" data-addays="'+d+'">최근 '+d+'일</button>').join('')+'</div>';
   h+='<div class="sec">채널별 광고·공구 비중<small>최근 '+adDays+'일 · 수집된 게시물 기준</small></div>';
   h+='<table><tr><th>분류</th><th>계정</th><th class="n">광고성 글</th><th class="n">비중</th><th class="n">공구</th><th class="n">광고·협찬</th><th class="n">이벤트</th><th class="n">최근</th><th>자주 태그한 브랜드</th></tr>'+rows.map(a=>{const pct=Math.round(a.ad/a.total*100);const br=Object.entries(a.brands).sort((x,y)=>y[1]-x[1]).slice(0,4).map(([b,n])=>'<a href="https://www.instagram.com/'+esc(b)+'/" target="_blank" rel="noopener">@'+esc(b)+'</a>'+(n>1?' ×'+n:'')).join(', ');
     return '<tr><td>'+esc(a.cat)+'</td><td><a href="https://www.instagram.com/'+esc(a.handle)+'/" target="_blank" rel="noopener">@'+esc(a.handle)+'</a></td><td class="n">'+a.ad+'/'+a.total+'</td><td class="n"><span class="pct'+(pct>=50?' hi':pct>=25?' mid':'')+'">'+pct+'%</span></td><td class="n">'+(a.gonggu||'')+'</td><td class="n">'+(a.spon||'')+'</td><td class="n">'+(a.event||'')+'</td><td class="n">'+day(a.last)+'</td><td class="brands">'+br+'</td></tr>'}).join('')+'</table>';
-  if(topBrands.length)h+='<div class="sec">여러 채널이 같이 태그한 브랜드<small>광고·공구 글 속 @태그 기준 · 협업이 활발한 브랜드 찾기용</small></div><div class="bchips">'+topBrands.map(([b,v])=>'<a class="bchip" href="https://www.instagram.com/'+esc(b)+'/" target="_blank" rel="noopener">@'+esc(b)+' <small>채널 '+v.by.size+' · 글 '+v.n+'</small></a>').join('')+'</div>';
+  if(topBrands.length)h+='<div class="sec">여러 채널이 같이 태그한 브랜드<small>광고·공구 글 속 @태그 기준 · 협업이 활발한 브랜드 찾기용</small></div><div class="bchips">'+topBrands.map(([b,v])=>{const bp=(D.brands||{})[b]||{};return '<a class="bchip" href="'+esc(bp.website||('https://www.instagram.com/'+b+'/'))+'" target="_blank" rel="noopener">@'+esc(b)+(bp.name&&bp.name!==b?' '+esc(bp.name):'')+' <small>채널 '+v.by.size+' · 글 '+v.n+((bp.emails||[]).length?' · '+esc(bp.emails[0]):'')+'</small></a>'}).join('')+'</div>';
   const recent=P.filter(p=>adType(p.caption)&&match(p.caption+p.handle)).sort((a,b)=>(b.timestamp||'').localeCompare(a.timestamp||'')).slice(0,40);
   h+='<div class="sec">최근 광고·공구 글<small>최신순 40개</small></div><div class="grid">'+recent.map(p=>card(p,A,'<div class="why"><span class="adt">'+adType(p.caption)+'</span></div>')).join('')+'</div>';
   const cafeAd=D.cafe.filter(r=>r.flag==='광고·공구').sort((a,b)=>b.reads-a.reads).slice(0,30);
@@ -251,7 +294,7 @@ function render(){if(!D)return;const A=accMap(),P=D.instagram.posts;
     h+='<div class="sec">주간 인기글 전체</div><div class="bar">'+names.map(n=>'<button class="chip'+(cafeSel===n?' on':'')+'" data-cafe="'+esc(n)+'">'+esc(n)+'</button>').join('')+'<button class="chip'+(kidOnly?' on':'')+'" data-kid="1">정보 글만</button></div>';
     const rows=D.cafe.filter(r=>(cafeSel==='전체'||r.cafe===cafeSel)&&(!kidOnly||!r.flag)&&match(r.title)).sort((a,b)=>b.reads-a.reads).slice(0,200);
     h+=cafeTable(rows)+'<div class="note">로그인 없이 공개되는 주간 인기글 기준이에요. 맘스홀릭·레몬테라스·맘이베베는 가입해야 보여서 빠져 있어요.</div>';
-  } else if(tab==='광고·공구'){h+=adView(A)} else if(tab==='찜한 후보'){h+=bmView(A)} else if(tab==='스크립트'){h+=scriptView()} else if(tab==='채널 목록'){h+=channelView()}
+  } else if(tab==='참고) 광고·공구'){h+=adView(A)} else if(tab==='찜한 후보'){h+=bmView(A)} else if(tab==='스크립트'){h+=scriptView()} else if(tab==='채널 목록'){h+=channelView()}
   document.getElementById('main').innerHTML=h}
 document.getElementById('q').oninput=e=>{q=e.target.value.trim();render()};
 document.addEventListener('click',async e=>{const a=e.target.closest('a#chgUser');if(a){e.preventDefault();askUser(true);return}
@@ -264,6 +307,7 @@ document.addEventListener('click',async e=>{const a=e.target.closest('a#chgUser'
   if(t.dataset.kid){kidOnly=!kidOnly;render()}
   if(t.dataset.bm){bmMode=t.dataset.bm;render()}
   if(t.dataset.addays){adDays=+t.dataset.addays;render()}
+  if(t.dataset.adcsv){adCSV()}
   if(t.dataset.export){exportCSV()}
   if(t.dataset.star){e.preventDefault();toggleBM(t.dataset.star)}
   if(t.dataset.sc){openScript(t.dataset.sc)}
@@ -278,7 +322,7 @@ document.addEventListener('click',async e=>{const a=e.target.closest('a#chgUser'
   if(t.dataset.collect){if(!confirm('지금 수집을 시작할까요? 2~3분 걸려요.'))return;try{await api('collectNow');toast('수집을 시작했어요. 2~3분 뒤 새로고침해 주세요')}catch(err){toast(err.message,1)}}});
 document.addEventListener('toggle',e=>{const d=e.target;if(d.dataset&&d.dataset.fold)open_[d.dataset.fold]=d.open},true);
 renderUser();
-Promise.all([fetch('data.json?'+Date.now()).then(r=>r.json()),fetch(API+'?action=all').then(r=>r.json()).catch(()=>null)]).then(([d,s])=>{D=d;kidRe=new RegExp((d.kid_keywords||['아이랑']).join('|'));
+Promise.all([fetch('data.json?'+Date.now()).then(r=>r.json()),fetch(API+'?action=all').then(r=>r.json()).catch(()=>null),fetch(API+'?action=ads').then(r=>r.json()).catch(()=>null)]).then(([d,s,ad])=>{D=d;if(ad&&ad.ok)for(const x of ad.ads)ADS[x.id]=x;kidRe=new RegExp((d.kid_keywords||['아이랑']).join('|'));
   for(const p of d.instagram.posts)LOOKUP[p.permalink]={kind:'instagram',...p};for(const r of d.cafe)LOOKUP[r.url]={kind:'cafe',...r};
   for(const x of d.picks||[]){const id=x.permalink||x.url;LOOKUP[id]={...(LOOKUP[id]||{}),...x}}
   if(s&&s.ok){applyShared(s);if(SCQ.size)startPoll()}else toast('공유 저장소를 불러오지 못했어요',1);

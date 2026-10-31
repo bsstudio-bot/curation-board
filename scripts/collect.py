@@ -475,6 +475,35 @@ def make_picks(posts, cafe_rows, kid_keywords, now):
     return picks
 
 
+# ---------------------------------------------------------------- 검색 급상승 (구글 트렌드, 키 불필요)
+def collect_trends(prev_items, now):
+    """구글 트렌드 한국 급상승 검색어 RSS. 최근 72시간 것을 누적해 둔다."""
+    import html as _h
+    from email.utils import parsedate_to_datetime
+    items = []
+    try:
+        req = urllib.request.Request("https://trends.google.com/trending/rss?geo=KR", headers={"User-Agent": UA})
+        x = urllib.request.urlopen(req, timeout=20).read().decode("utf-8", "ignore")
+        for it in re.findall(r"<item>(.*?)</item>", x, re.S):
+            g = lambda tag: (re.search(rf"<{tag}>(.*?)</{tag}>", it, re.S) or [None, ""])[1]
+            news = [{"title": _h.unescape(t), "url": _h.unescape(u), "source": _h.unescape(sr)} for t, u, sr in re.findall(
+                r"<ht:news_item>.*?<ht:news_item_title>(.*?)</ht:news_item_title>.*?<ht:news_item_url>(.*?)</ht:news_item_url>.*?<ht:news_item_source>(.*?)</ht:news_item_source>.*?</ht:news_item>", it, re.S)]
+            try:
+                at = parsedate_to_datetime(g("pubDate")).astimezone(KST).isoformat()
+            except Exception:
+                at = now.isoformat()
+            items.append({"title": _h.unescape(g("title")), "traffic": g("ht:approx_traffic"), "at": at,
+                          "picture": _h.unescape(g("ht:picture")), "news": news[:3]})
+    except Exception as e:  # noqa: BLE001
+        print("trends failed", e)
+    seen = {i["title"] for i in items}
+    for i in prev_items or []:
+        if i["title"] not in seen and hours_since(i.get("at") or "", now) <= 72:
+            items.append(i); seen.add(i["title"])
+    items.sort(key=lambda i: i.get("at") or "", reverse=True)
+    return items[:60]
+
+
 API_URL = "https://script.google.com/macros/s/AKfycbx_bxTi39uwrssjbst255QjPBY_p1KNQwRA8KAgzj_h9DNHjcw3BUpfNZntsy8ItxEw/exec"
 
 
@@ -542,6 +571,7 @@ def main():
         except Exception as e:  # noqa: BLE001
             print("brand enrich failed", e)
     topics = topics_of(cafe_rows, now)
+    trends = collect_trends((prev.get("trends") or {}).get("items"), now)
     hist_path = os.path.join(ROOT, "site", "topics_history.json")
     hist = load(hist_path, {}) or {}
     hist[now.strftime("%Y-%m-%d")] = {t["topic"]: t["count"] for t in topics}
@@ -557,6 +587,7 @@ def main():
         "updated_at": now.isoformat(),
         "picks": picks,
         "topics": topics,
+        "trends": {"source": "google-trends-kr", "collected_at": now.isoformat(), "items": trends},
         "brands": brands,
         "channels_source": channels.get("_source", "channels.json"),
         "kid_keywords": channels.get("kid_keywords", []),

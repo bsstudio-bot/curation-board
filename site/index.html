@@ -92,6 +92,9 @@ td.brands{font-size:12.5px}td.brands a{color:#2563EB;text-decoration:none}
 .chart i.g,.lg.g{background:#E2674A}.chart i.s,.lg.s{background:#1B2136}.chart i.e,.lg.e{background:#E9C46A}.lg{display:inline-block;width:9px;height:9px;border-radius:2px;margin:0 3px 0 8px}
 .hbars .hb{display:flex;align-items:center;gap:8px;font-size:13px;margin:5px 0}.hk{width:96px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.hv{flex:1;background:#F4F1EA;border-radius:4px;height:12px}.hv i{display:block;height:12px;border-radius:4px;background:var(--coral)}.hb b{width:44px;text-align:right}
 .adtbl td{font-size:13px}.adtbl td:nth-child(1),.adtbl td:nth-child(3),.adtbl td:nth-child(6),.adtbl td:nth-child(7),.adtbl td:last-child{white-space:nowrap}.adtbl td.ct{max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.adt2{font-size:11px;font-weight:700;border-radius:4px;padding:2px 6px}.adt2.g{background:#FDECE7;color:#C2410C}.adt2.s{background:#EEF0F5;color:#1B2136}.adt2.e{background:#FFF6DB;color:#92400E}
+.aiwhy{font-size:12.5px;color:var(--ink);margin:6px 0 4px;line-height:1.45}.score{display:inline-block;font-size:11px;font-weight:800;color:#fff;background:var(--coral);border-radius:4px;padding:1px 6px;margin-right:4px}
+.angle.gm{background:#EEF0F5;margin-top:4px}
+.igrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:12px;margin-bottom:8px}.issue{background:#fff;border:1px solid var(--line);border-radius:12px;padding:12px 14px}.ih{display:flex;justify-content:space-between;align-items:center;gap:8px;font-size:15px}.is{font-size:13px;margin:6px 0}.iw{font-size:12px;color:var(--sub)}.isrc{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}.isrc a,.isrc span{font-size:12px;background:#F4F1EA;border-radius:6px;padding:2px 7px;color:var(--navy);text-decoration:none}
 .why{display:flex;gap:5px;flex-wrap:wrap}.why span{font-size:11px;background:#F4F1EA;border-radius:4px;padding:2px 6px;color:var(--navy)}
 @media(max-width:640px){.search{width:100%;margin-left:0}.grid{grid-template-columns:1fr 1fr}.thumb{aspect-ratio:1}}
 </style>
@@ -110,7 +113,7 @@ const API='https://script.google.com/macros/s/AKfycbx_bxTi39uwrssjbst255QjPBY_p1
 const CATS=['아이랑 갈 곳','육아 정보','해설·인물','밈·트렌드'];
 const CAT_DAYS={'아이랑 갈 곳':7,'육아 정보':30,'해설·인물':30,'밈·트렌드':30};
 const TABS=['오늘의 추천','반응 좋은 글',...CATS,'맘카페 인기글','찜한 후보','스크립트','참고) 광고·공구','채널 목록'];
-let ADS={}, SC={}, SCQ=new Set(), D=null, tab='오늘의 추천', sort='new', cafeSel='전체', kidOnly=false, q='', bmMode='week', CH=null, BM={}, LOOKUP={}, busy=false;
+let AI=null, ruleView=false, ADS={}, SC={}, SCQ=new Set(), D=null, tab='오늘의 추천', sort='new', cafeSel='전체', kidOnly=false, q='', bmMode='week', CH=null, BM={}, LOOKUP={}, busy=false;
 const open_={};
 const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const fmt=n=>n==null?'-':n>=10000?(n/10000).toFixed(n>=100000?0:1)+'만':Math.round(n).toLocaleString();
@@ -150,6 +153,14 @@ function card(p,A,extra=''){const r=p.ratio;const b=r==null?'':'<span class="bad
   return '<div class="card'+(p.thumb?'':' nothumb')+(p.ended?' dim':'')+'">'+starBtn(p.permalink)+th+'<div class="body"><div class="acc">@'+esc(p.handle)+' <span>'+esc((A[p.handle]||{}).name||p.name||'')+'</span></div><div class="cap">'+esc(p.caption||'(캡션 없음)')+'</div>'+extra+
   '<div class="meta">'+b+'<span>♥ '+fmt(p.likes)+'</span><span>💬 '+fmt(p.comments)+'</span><span>'+day(p.timestamp)+'</span>'+endBadge(p)+'<span class="tag">'+(p.media_type==='REELS'?'릴스':'게시물')+'</span><a class="open" href="'+esc(p.permalink)+'" target="_blank" rel="noopener">원문 →</a></div>'+scBtn(p.permalink)+'</div></div>'}
 function cafeCard(r,extra=''){return '<div class="card nothumb">'+starBtn(r.url)+'<div class="body"><div class="acc">'+esc(r.cafe)+' <span>맘카페</span></div><div class="cap" style="-webkit-line-clamp:2;font-weight:600">'+esc(r.title)+'</div>'+extra+'<div class="meta"><span>조회 '+fmt(r.reads)+'</span><span>💬 '+fmt(r.comments)+'</span><span>'+day(r.written_at||r.timestamp)+'</span><a class="open" href="'+esc(r.url)+'" target="_blank" rel="noopener">원문 →</a></div>'+scBtn(r.url)+'</div></div>'}
+
+function trendCard(x,extra=''){const n=(x.news||[])[0]||{};return '<div class="card nothumb">'+starBtn(x.id||('trend:'+x.title))+'<div class="body"><div class="acc">🔎 '+esc(x.title)+' <span>구글 급상승 · 검색 '+esc(x.traffic||'')+'</span></div><div class="cap" style="-webkit-line-clamp:3">'+(x.news||[]).map(k=>'· '+esc(k.title)+' <small>('+esc(k.source)+')</small>').join('<br>')+'</div>'+extra+'<div class="meta"><span>'+day(x.timestamp)+'</span>'+(n.url?'<a class="open" href="'+esc(n.url)+'" target="_blank" rel="noopener">기사 →</a>':'')+'</div>'+scBtn(x.id||('trend:'+x.title))+'</div></div>'}
+function anyCard(x,A,extra){return x.kind==='cafe'?cafeCard(x,extra):x.kind==='trend'?trendCard(x,extra):card(x,A,extra)}
+function aiChips(x){return '<div class="aiwhy"><span class="score">적합도 '+esc(x.score)+'</span> '+esc(x.reason||'')+'</div>'+(x.angle?'<div class="angle">💡 '+esc(x.angle)+'</div>':'')+(x.gomong_angle?'<div class="angle gm">🎬 고몽 풀이: '+esc(x.gomong_angle)+'</div>':'')}
+function issuesView(){const I=(AI&&AI.issues)||[];if(!I.length)return '';
+  return '<div class="sec">지금 뜨는 이슈<small>여러 채널·맘카페·검색어에서 같이 보이는 주제 · Claude 정리</small></div><div class="igrid">'+I.sort((a,b)=>(b.fit||0)-(a.fit||0)).map(i=>'<div class="issue"><div class="ih"><b>'+esc(i.title)+'</b><span class="score">적합도 '+esc(i.fit)+'</span></div><div class="is">'+esc(i.summary||'')+'</div><div class="iw">왜 지금: '+esc(i.why_now||'')+'</div><div class="isrc">'+(i.items||[]).map(x=>{const u=x.kind==='instagram'?x.permalink:x.url;const t=x.kind==='instagram'?'@'+x.handle:x.kind==='cafe'?x.cafe:'🔎 '+x.title;return u?'<a href="'+esc(u)+'" target="_blank" rel="noopener">'+esc(t)+'</a>':'<span>'+esc(t)+'</span>'}).join('')+'</div></div>').join('')+'</div>'}
+function trendsView(){const T=((D.trends||{}).items||[]).filter(t=>hoursAgo(t.at)<=48).slice(0,20);if(!T.length)return '';
+  return '<div class="sec">구글 급상승 검색어<small>최근 48시간 · 한국 · 스포츠·사건 포함 원본 그대로 (추천에는 Claude가 걸러서 넣어요)</small></div><table><tr><th>검색어</th><th class="n">검색량</th><th>관련 기사</th><th class="n">시각</th></tr>'+T.map(t=>'<tr><td><b>'+esc(t.title)+'</b></td><td class="n">'+esc(t.traffic)+'</td><td>'+((t.news||[])[0]?'<a href="'+esc(t.news[0].url)+'" target="_blank" rel="noopener">'+esc(t.news[0].title)+'</a> <small>'+esc(t.news[0].source)+'</small>':'')+'</td><td class="n">'+kst(t.at)+'</td></tr>').join('')+'</table>'}
 function whyChips(x){return (x.angle?'<div class="angle">💡 해설 각도: '+esc(x.angle)+'</div>':'')+'<div class="why">'+(x.why||[]).filter(w=>!(x.kind!=='cafe'&&(w.startsWith('평소')||w.endsWith('까지')))).map(w=>'<span>'+esc(w)+'</span>').join('')+'</div>'}
 function sorted(a){a=[...a];if(sort==='ratio')a.sort((x,y)=>(y.ratio||0)-(x.ratio||0));if(sort==='new')a.sort((x,y)=>(y.timestamp||'').localeCompare(x.timestamp||''));if(sort==='like')a.sort((x,y)=>(y.likes||0)-(x.likes||0));return a}
 function sortBar(extra=''){return '<div class="bar">'+[['new','최신순'],['ratio','평소 대비순'],['like','좋아요순']].map(([k,t])=>'<button class="chip'+(sort===k?' on':'')+'" data-sort="'+k+'">'+t+'</button>').join('')+extra+'</div>'}
@@ -163,7 +174,7 @@ function bmView(A){const items=Object.entries(BM).map(([id,v])=>({id,...v})).sor
   const groups={};for(const it of items){const g=(bmMode==='week'?weekKey:dateKey)(it.savedAt);(groups[g.key]=groups[g.key]||{label:g.label,items:[]}).items.push(it)}
   Object.keys(groups).sort().reverse().forEach((k,i)=>{const g=groups[k];const isOpen=open_[bmMode+k]??(i===0);
     h+='<details class="folder"'+(isOpen?' open':'')+' data-fold="'+bmMode+k+'"><summary>📁 '+esc(g.label)+' <small>'+g.items.length+'개</small></summary><div class="grid">'+
-    g.items.map(it=>{const x=it.item||{};const note='<div class="saved">'+esc(it.savedBy||'')+' · '+kst(it.savedAt)+' 찜</div>';return x.kind==='cafe'?cafeCard(x,note):card(x,A,note)}).join('')+'</div></details>'});return h}
+    g.items.map(it=>{const x=it.item||{};const note='<div class="saved">'+esc(it.savedBy||'')+' · '+kst(it.savedAt)+' 찜</div>';return anyCard(x,A,note)}).join('')+'</div></details>'});return h}
 function exportCSV(){const rows=[['찜한시각','찜한사람','종류','계정/카페','내용','좋아요/조회','댓글','게시일','링크']];
   for(const [id,v] of Object.entries(BM)){const x=v.item||{};rows.push([kst(v.savedAt),v.savedBy,x.kind==='cafe'?'맘카페':'인스타',x.kind==='cafe'?x.cafe:'@'+x.handle,(x.caption||x.title||'').replace(/\s+/g,' ').slice(0,200),x.kind==='cafe'?x.reads:x.likes,x.comments,day(x.timestamp||x.written_at),id])}
   const csv='\ufeff'+rows.map(r=>r.map(c=>'"'+String(c??'').replace(/"/g,'""')+'"').join(',')).join('\n');const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv'}));a.download='찜한후보.csv';a.click()}
@@ -281,10 +292,17 @@ function render(){if(!D)return;const A=accMap(),P=D.instagram.posts;
   const counts={};CATS.forEach(c=>counts[c]=inCat(c).length);
   document.getElementById('nav').innerHTML=TABS.map(t=>'<button class="'+(t===tab?'on':'')+'" data-tab="'+t+'">'+t+(counts[t]!=null?'<span class="cnt">'+counts[t]+'</span>':t==='찜한 후보'?'<span class="cnt">'+Object.keys(BM).length+'</span>':t==='스크립트'?'<span class="cnt">'+Object.keys(SC).length+'</span>':'')+'</button>').join('');
   let h='';
-  if(tab==='오늘의 추천'){const picks=(D.picks||[]).filter(x=>x.kind==='cafe'||!adType(x.caption));const order=['아이랑 갈 곳','왜 그럴까','밈·트렌드','육아 정보','맘카페 화제'];
+  if(tab==='오늘의 추천'){const today=new Date().toLocaleDateString('en-CA',{timeZone:'Asia/Seoul'});const useAI=AI&&AI.picks&&AI.picks.length&&!ruleView;
+    h+='<div class="bar">'+(AI&&AI.picks?'<button class="chip'+(!ruleView?' on':'')+'" data-rv="0">Claude 큐레이션'+(AI.date!==today?' ('+AI.date+')':'')+'</button><button class="chip'+(ruleView?' on':'')+'" data-rv="1">규칙 기반</button>':'')+'<span class="lbl" style="margin-left:auto">'+(useAI?'고몽 신규 채널 기준 · '+kst(AI.generated_at)+' · 후보 '+AI.pool_size+'개 중':'')+'</span></div>';
+    if(useAI){h+=issuesView();const order=['아이랑 갈 곳','왜 그럴까','밈·트렌드','화제','육아 정보','맘카페 화제'];const P2=AI.picks.filter(x=>x.kind!=='instagram'||!adType(x.caption));
+      for(const sname of [...order,...new Set(P2.map(x=>x.series).filter(x=>!order.includes(x)))]){const g=P2.filter(x=>x.series===sname).sort((a,b)=>(b.score||0)-(a.score||0));if(!g.length)continue;h+='<div class="sec">'+esc(sname)+'<small>'+g.length+'개</small></div><div class="grid">'+g.map(x=>anyCard(x,A,aiChips(x))).join('')+'</div>'}
+      h+=trendsView();
+    } else {
+    {const picks=(D.picks||[]).filter(x=>x.kind==='cafe'||!adType(x.caption));const order=['아이랑 갈 곳','왜 그럴까','밈·트렌드','육아 정보','맘카페 화제'];
     h+='<div class="intro">우리 채널 기준으로 고른 오늘의 후보예요. 최근 3일 안에 올라온 글 중 좋아요·조회 100 이상만 보고, 광고·공구·정치·가십·스포츠, 단순 현황·지역 한정 글, 이미 끝난 행사는 뺐어요. 💡는 캉가에처럼 쉽게 풀어 설명할 때 잡을 만한 질문이에요.</div>';
     if(!picks.length)h+='<div class="empty">오늘은 기준에 맞는 글이 없어요.</div>';
     for(const sname of order){const g=picks.filter(x=>x.series===sname);if(!g.length)continue;h+='<div class="sec">'+sname+'<small>'+esc(g[0].use)+'</small></div><div class="grid">'+g.map(x=>x.kind==='cafe'?cafeCard(x,whyChips(x)):card(x,A,whyChips(x))).join('')+'</div>'}
+    }}
   } else if(tab==='반응 좋은 글'){const hot=P.filter(p=>okRecent(p)&&p.ratio>=2&&match(p.caption+p.handle)).sort((a,b)=>b.ratio-a.ratio);
     h+='<div class="sec">인스타 반응 좋은 글<small>최근 3일 · 좋아요 100 이상 · 평소의 2배 이상 · 광고·정치·가십·종료 행사 제외</small></div>'+(hot.length?'<div class="grid">'+hot.slice(0,30).map(p=>card(p,A)).join('')+'</div>':'<div class="empty">조건에 맞는 글이 없어요.</div>');
     const top=D.cafe.filter(r=>kidRe.test(r.title)&&!r.flag&&r.reads>=100&&hoursAgo(r.written_at)<=72&&match(r.title)).sort((a,b)=>b.reads-a.reads).slice(0,10);
@@ -306,6 +324,7 @@ document.addEventListener('click',async e=>{const a=e.target.closest('a#chgUser'
   if(t.dataset.cafe){cafeSel=t.dataset.cafe;render()}
   if(t.dataset.kid){kidOnly=!kidOnly;render()}
   if(t.dataset.bm){bmMode=t.dataset.bm;render()}
+  if(t.dataset.rv){ruleView=t.dataset.rv==='1';render()}
   if(t.dataset.addays){adDays=+t.dataset.addays;render()}
   if(t.dataset.adcsv){adCSV()}
   if(t.dataset.export){exportCSV()}
@@ -322,7 +341,7 @@ document.addEventListener('click',async e=>{const a=e.target.closest('a#chgUser'
   if(t.dataset.collect){if(!confirm('지금 수집을 시작할까요? 2~3분 걸려요.'))return;try{await api('collectNow');toast('수집을 시작했어요. 2~3분 뒤 새로고침해 주세요')}catch(err){toast(err.message,1)}}});
 document.addEventListener('toggle',e=>{const d=e.target;if(d.dataset&&d.dataset.fold)open_[d.dataset.fold]=d.open},true);
 renderUser();
-Promise.all([fetch('data.json?'+Date.now()).then(r=>r.json()),fetch(API+'?action=all').then(r=>r.json()).catch(()=>null),fetch(API+'?action=ads').then(r=>r.json()).catch(()=>null)]).then(([d,s,ad])=>{D=d;if(ad&&ad.ok)for(const x of ad.ads)ADS[x.id]=x;kidRe=new RegExp((d.kid_keywords||['아이랑']).join('|'));
+Promise.all([fetch('data.json?'+Date.now()).then(r=>r.json()),fetch(API+'?action=all').then(r=>r.json()).catch(()=>null),fetch(API+'?action=ads').then(r=>r.json()).catch(()=>null),fetch('https://raw.githubusercontent.com/bsstudio-bot/curation-board/main/site/ai.json?'+Date.now()).then(r=>r.ok?r.json():null).catch(()=>null)]).then(([d,s,ad,ai])=>{D=d;AI=ai;if(AI)for(const x of [...(AI.picks||[]),...(AI.issues||[]).flatMap(i=>i.items||[])]){LOOKUP[x.id]={...(LOOKUP[x.id]||{}),...x}}if(ad&&ad.ok)for(const x of ad.ads)ADS[x.id]=x;kidRe=new RegExp((d.kid_keywords||['아이랑']).join('|'));
   for(const p of d.instagram.posts)LOOKUP[p.permalink]={kind:'instagram',...p};for(const r of d.cafe)LOOKUP[r.url]={kind:'cafe',...r};
   for(const x of d.picks||[]){const id=x.permalink||x.url;LOOKUP[id]={...(LOOKUP[id]||{}),...x}}
   if(s&&s.ok){applyShared(s);if(SCQ.size)startPoll()}else toast('공유 저장소를 불러오지 못했어요',1);

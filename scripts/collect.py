@@ -266,6 +266,92 @@ def event_end(caption, posted_iso):
         return None
 
 
+# ---------------------------------------------------------------- 광고·공구 구조화 (규칙 기반)
+RX_GONGGU = re.compile(r"공구|공동구매|구매\s?링크|댓글[^\n]{0,12}(링크|DM)|링크[^\n]{0,12}(댓글|DM)|마감 ?임박|오픈 ?예고|선착순|최저가|특가|할인 ?코드")
+RX_SPON = re.compile(r"#?광고|협찬|제작지원|유료 ?광고|파트너십|sponsored", re.I)
+RX_EVENT = re.compile(r"이벤트|당첨|추첨|증정|초대권|댓글 ?남겨|팔로우하고")
+RX_PRICE = re.compile(r"(\d{1,3}(?:,\d{3})+|\d{4,7})\s?원|(\d{1,3}(?:\.\d)?)\s?만\s?원")
+RX_PCT = re.compile(r"(\d{1,2})\s?%\s?(?:할인|OFF|off|세일|↓)|(?:최대|최저|단독)\s?(\d{1,2})\s?%")
+RX_EMAIL = re.compile(r"[\w.+-]+@[\w-]+\.[\w.]+")
+PRODUCT_CATS = [
+    ("먹거리·간식", r"간식|유아식|이유식|반찬|밀키트|과일|떡|빵|소스|음료|우유|고기|한우|김치|쌀 ?\d|햅쌀|도시락|식단|레시피"),
+    ("교구·도서", r"교구|책|도서|전집|학습|문제집|수학|영어|한글|퍼즐|레고|블록|교재|세이펜|태블릿"),
+    ("장난감·놀이", r"장난감|인형|놀이|킥보드|자전거|트램펄린|미끄럼틀|텐트"),
+    ("패션·잡화", r"패딩|옷|티셔츠|바지|원피스|내복|잠옷|양말|신발|운동화|부츠|가방|모자|어그|레깅스|코트|점퍼"),
+    ("생활·주방", r"수건|소창|세제|청소|주방|냄비|프라이팬|그릇|텀블러|정리|수납|매트|이불|침구|베개|가습기|청정기|건조기"),
+    ("여행·숙소·체험", r"호텔|리조트|숙소|펜션|글램핑|캠핑장|여행|항공|체험|입장권|티켓|공연|전시|키즈카페|테마파크|워터파크"),
+    ("뷰티·건강", r"화장품|크림|로션|선크림|샴푸|바디|영양제|유산균|비타민|오메가|홍삼|건강|마스크팩"),
+    ("가전·디지털", r"가전|청소기|에어컨|노트북|카메라|스피커|이어폰|워치|폰|로봇"),
+]
+PRODUCT_CAT_RES = [(k, re.compile(v)) for k, v in PRODUCT_CATS]
+
+
+def ad_type_of(cap):
+    if RX_GONGGU.search(cap or ""):
+        return "공구"
+    if RX_SPON.search(cap or ""):
+        return "광고·협찬"
+    if RX_EVENT.search(cap or ""):
+        return "이벤트"
+    return None
+
+
+def parse_ad(p):
+    cap = p.get("caption") or ""
+    prices = []
+    for m in RX_PRICE.finditer(cap):
+        try:
+            v = int(m.group(1).replace(",", "")) if m.group(1) else int(float(m.group(2)) * 10000)
+        except Exception:
+            continue
+        if 900 <= v <= 5_000_000:
+            prices.append(v)
+    pcts = [int(a or b) for a, b in RX_PCT.findall(cap) if (a or b)]
+    brands = []
+    for h in re.findall(r"@([A-Za-z0-9._]{3,30})", cap):
+        h = h.rstrip(".").lower()
+        if h != p["handle"] and re.search(r"[a-z]", h) and h not in brands:
+            brands.append(h)
+    cat = next((k for k, rx in PRODUCT_CAT_RES if rx.search(cap)), "기타")
+    return {"type": ad_type_of(cap), "brands": brands[:5], "price": min(prices) if prices else None,
+            "prices": sorted(set(prices))[:6], "discount": max(pcts) if pcts else None, "category": cat,
+            "emails": RX_EMAIL.findall(cap)[:2]}
+
+
+BD_BRAND = "business_discovery.username({u}){{username,name,biography,website,followers_count,media_count}}"
+
+
+def enrich_brands(posts, token, ig_user_id, prev_brands, now, limit=25):
+    """광고 글에 태그된 브랜드의 공개 프로필(웹사이트·소개글 이메일)을 모은다. 7일마다 갱신, 하루 최대 limit개."""
+    brands = dict(prev_brands or {})
+    count = {}
+    for p in posts:
+        for b in (p.get("ad") or {}).get("brands", []):
+            count[b] = count.get(b, 0) + 1
+    todo = [b for b, _ in sorted(count.items(), key=lambda x: -x[1])
+            if b not in brands or hours_since(brands[b].get("fetched_at", ""), now) > 24 * 7][:limit]
+    for b in todo:
+        q = urllib.parse.urlencode({"fields": BD_BRAND.format(u=b), "access_token": token})
+        try:
+            bd = get_json(f"https://graph.facebook.com/{ig_user_id}?{q}")["business_discovery"]
+            bio = bd.get("biography") or ""
+            brands[b] = {"handle": b, "name": bd.get("name") or b, "website": bd.get("website"),
+                         "emails": RX_EMAIL.findall(bio)[:2], "bio": bio[:200], "followers": bd.get("followers_count"),
+                         "fetched_at": now.isoformat()}
+        except urllib.error.HTTPError as e:
+            msg = e.read().decode("utf-8", "ignore")
+            if "request limit" in msg or '"code":4' in msg:
+                break
+            brands[b] = {"handle": b, "name": b, "website": None, "emails": [], "bio": "", "followers": None,
+                         "fetched_at": now.isoformat(), "error": "개인 계정이거나 찾을 수 없음"}
+        except Exception:
+            break
+        time.sleep(0.8)
+    for b, v in brands.items():
+        v["mentions"] = count.get(b, 0)
+    return brands
+
+
 def topics_of(rows, now):
     """이번 주 맘카페 인기글에서 엄마들 관심사 주제를 집계한다."""
     res = []
@@ -441,6 +527,7 @@ def main():
     add_ratio(accounts, posts)
     for p in posts:
         p["flag"] = flag_of(p.get("caption") or "")
+        p["ad"] = parse_ad(p) if ad_type_of(p.get("caption")) else None
         end = event_end(p.get("caption"), p.get("timestamp"))
         p["event_end"] = end.isoformat() if end else None
         p["ended"] = bool(end and end < now)
@@ -448,6 +535,12 @@ def main():
         r["flag"] = cafe_flag(r["title"])
 
     picks = make_picks(posts, cafe_rows, channels.get("kid_keywords", []), now)
+    brands = (prev.get("brands") or {})
+    if token and ig_user_id:
+        try:
+            brands = enrich_brands(posts, token, ig_user_id, brands, now)
+        except Exception as e:  # noqa: BLE001
+            print("brand enrich failed", e)
     topics = topics_of(cafe_rows, now)
     hist_path = os.path.join(ROOT, "site", "topics_history.json")
     hist = load(hist_path, {}) or {}
@@ -464,6 +557,7 @@ def main():
         "updated_at": now.isoformat(),
         "picks": picks,
         "topics": topics,
+        "brands": brands,
         "channels_source": channels.get("_source", "channels.json"),
         "kid_keywords": channels.get("kid_keywords", []),
         "rules": {"max_hours": PICK_MAX_HOURS, "min_likes": PICK_MIN_LIKES, "min_reads": PICK_MIN_READS},

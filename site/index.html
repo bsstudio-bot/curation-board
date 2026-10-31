@@ -80,6 +80,10 @@ td:first-child{white-space:nowrap}
 .mbar{display:flex;gap:8px;margin-top:18px;flex-wrap:wrap;align-items:center}.mbar input{flex:1;min-width:220px;padding:7px 10px;border:1px solid var(--line);border-radius:8px;font-size:13px}.mbar a.chip{text-decoration:none}
 .guide .gbody{font-size:14px;line-height:1.75;padding:0 6px 10px}.guide ol{padding-left:20px;margin:0}
 .sclist{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:10px}.scitem{background:#fff;border:1px solid var(--line);border-radius:10px;padding:12px 14px;cursor:pointer}.scitem .hook{margin:6px 0;font-size:14px}.scitem small{color:var(--sub)}
+.pct{font-weight:700}.pct.hi{color:#B0412B}.pct.mid{color:#B7791F}
+td.brands{font-size:12.5px}td.brands a{color:#2563EB;text-decoration:none}
+.bchips{display:flex;flex-wrap:wrap;gap:8px}.bchip{background:#fff;border:1px solid var(--line);border-radius:999px;padding:6px 12px;font-size:13px;text-decoration:none;color:var(--navy)}.bchip small{color:var(--sub);margin-left:4px}
+.why span.adt{background:#FDECE7;color:var(--coral);font-weight:700}
 .why{display:flex;gap:5px;flex-wrap:wrap}.why span{font-size:11px;background:#F4F1EA;border-radius:4px;padding:2px 6px;color:var(--navy)}
 @media(max-width:640px){.search{width:100%;margin-left:0}.grid{grid-template-columns:1fr 1fr}.thumb{aspect-ratio:1}}
 </style>
@@ -97,7 +101,7 @@ td:first-child{white-space:nowrap}
 const API='https://script.google.com/macros/s/AKfycbx_bxTi39uwrssjbst255QjPBY_p1KNQwRA8KAgzj_h9DNHjcw3BUpfNZntsy8ItxEw/exec';
 const CATS=['아이랑 갈 곳','육아 정보','해설·인물','밈·트렌드'];
 const CAT_DAYS={'아이랑 갈 곳':7,'육아 정보':30,'해설·인물':30,'밈·트렌드':30};
-const TABS=['오늘의 추천','반응 좋은 글',...CATS,'맘카페 인기글','찜한 후보','스크립트','채널 목록'];
+const TABS=['오늘의 추천','반응 좋은 글',...CATS,'맘카페 인기글','광고·공구','찜한 후보','스크립트','채널 목록'];
 let SC={}, SCQ=new Set(), D=null, tab='오늘의 추천', sort='new', cafeSel='전체', kidOnly=false, q='', bmMode='week', CH=null, BM={}, LOOKUP={}, busy=false;
 const open_={};
 const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
@@ -202,13 +206,39 @@ const GUIDE_HTML=`<ol>
 <li><b>하지 않을 것</b> 원문에 없는 사실·추측("~인가 봐요"), 출처 없는 통계, 정치·가십, 광고 같은 말투, 아이 얼굴 크게.</li>
 <li><b>촬영 전 확인</b> 스크립트마다 붙는 '촬영 전 확인할 것'은 꼭 원문·공식 안내로 확인하고 찍기.</li></ol>`;
 
-function okRecent(p){return !p.flag&&!p.ended&&(p.likes||0)>=(D.rules?.min_likes||100)&&hoursAgo(p.timestamp)<=(D.rules?.max_hours||72)}
+
+// ---------- 광고·공구 모니터링 ----------
+const RX_GONGGU=/공구|공동구매|구매\s?링크|댓글[^\n]{0,12}(링크|DM)|링크[^\n]{0,12}(댓글|DM)|마감 ?임박|오픈 ?예고|선착순|최저가|특가|할인 ?코드/;
+const RX_AD=/#?광고|협찬|제작지원|유료 ?광고|파트너십|sponsored|ad\b/i;
+const RX_EVENT=/이벤트|당첨|추첨|증정|초대권|댓글 ?남겨|팔로우하고/;
+function adType(t){t=t||'';if(RX_GONGGU.test(t))return '공구';if(RX_AD.test(t))return '광고·협찬';if(RX_EVENT.test(t))return '이벤트';return null}
+function brandsOf(cap,self){return [...new Set(((cap||'').match(/@[A-Za-z0-9._]{3,30}/g)||[]).map(x=>x.slice(1).replace(/\.$/,'').toLowerCase()).filter(h=>h!==self&&/[a-z]/.test(h)))]}
+let adDays=30;
+function adView(A){const P=D.instagram.posts.filter(p=>hoursAgo(p.timestamp)<=adDays*24);
+  const per={};for(const p of P){const t=adType(p.caption);const a=per[p.handle]=per[p.handle]||{handle:p.handle,cat:p.cat,total:0,ad:0,gonggu:0,spon:0,event:0,last:null,brands:{}};
+    a.total++;if(!t)continue;a.ad++;if(t==='공구')a.gonggu++;else if(t==='광고·협찬')a.spon++;else a.event++;if(!a.last||p.timestamp>a.last)a.last=p.timestamp;for(const b of brandsOf(p.caption,p.handle))a.brands[b]=(a.brands[b]||0)+1}
+  const rows=Object.values(per).filter(a=>a.ad>0).sort((x,y)=>y.ad-x.ad||y.ad/y.total-x.ad/x.total);
+  const brandCount={};for(const p of P){if(!adType(p.caption))continue;for(const b of brandsOf(p.caption,p.handle)){(brandCount[b]=brandCount[b]||{n:0,by:new Set()}).n++;brandCount[b].by.add(p.handle)}}
+  const topBrands=Object.entries(brandCount).sort((a,b)=>b[1].by.size-a[1].by.size||b[1].n-a[1].n).slice(0,24);
+  let h='<div class="intro">광고·공구·이벤트 글만 따로 모아 보는 곳이에요. 이 글들은 오늘의 추천과 반응 좋은 글에는 들어가지 않아요. 캡션의 문구(#광고, 협찬, 공구, 댓글로 링크, 이벤트 등)로 자동 분류해서 일부는 틀릴 수 있어요.</div>';
+  h+='<div class="bar"><span class="lbl">기간</span>'+[7,30].map(d=>'<button class="chip'+(adDays===d?' on':'')+'" data-addays="'+d+'">최근 '+d+'일</button>').join('')+'</div>';
+  h+='<div class="sec">채널별 광고·공구 비중<small>최근 '+adDays+'일 · 수집된 게시물 기준</small></div>';
+  h+='<table><tr><th>분류</th><th>계정</th><th class="n">광고성 글</th><th class="n">비중</th><th class="n">공구</th><th class="n">광고·협찬</th><th class="n">이벤트</th><th class="n">최근</th><th>자주 태그한 브랜드</th></tr>'+rows.map(a=>{const pct=Math.round(a.ad/a.total*100);const br=Object.entries(a.brands).sort((x,y)=>y[1]-x[1]).slice(0,4).map(([b,n])=>'<a href="https://www.instagram.com/'+esc(b)+'/" target="_blank" rel="noopener">@'+esc(b)+'</a>'+(n>1?' ×'+n:'')).join(', ');
+    return '<tr><td>'+esc(a.cat)+'</td><td><a href="https://www.instagram.com/'+esc(a.handle)+'/" target="_blank" rel="noopener">@'+esc(a.handle)+'</a></td><td class="n">'+a.ad+'/'+a.total+'</td><td class="n"><span class="pct'+(pct>=50?' hi':pct>=25?' mid':'')+'">'+pct+'%</span></td><td class="n">'+(a.gonggu||'')+'</td><td class="n">'+(a.spon||'')+'</td><td class="n">'+(a.event||'')+'</td><td class="n">'+day(a.last)+'</td><td class="brands">'+br+'</td></tr>'}).join('')+'</table>';
+  if(topBrands.length)h+='<div class="sec">여러 채널이 같이 태그한 브랜드<small>광고·공구 글 속 @태그 기준 · 협업이 활발한 브랜드 찾기용</small></div><div class="bchips">'+topBrands.map(([b,v])=>'<a class="bchip" href="https://www.instagram.com/'+esc(b)+'/" target="_blank" rel="noopener">@'+esc(b)+' <small>채널 '+v.by.size+' · 글 '+v.n+'</small></a>').join('')+'</div>';
+  const recent=P.filter(p=>adType(p.caption)&&match(p.caption+p.handle)).sort((a,b)=>(b.timestamp||'').localeCompare(a.timestamp||'')).slice(0,40);
+  h+='<div class="sec">최근 광고·공구 글<small>최신순 40개</small></div><div class="grid">'+recent.map(p=>card(p,A,'<div class="why"><span class="adt">'+adType(p.caption)+'</span></div>')).join('')+'</div>';
+  const cafeAd=D.cafe.filter(r=>r.flag==='광고·공구').sort((a,b)=>b.reads-a.reads).slice(0,30);
+  if(cafeAd.length)h+='<div class="sec">맘카페 광고·공구 인기글<small>이번 주 인기글 중 공구·홍보 글</small></div>'+cafeTable(cafeAd);
+  return h}
+
+function okRecent(p){return !p.flag&&!adType(p.caption)&&!p.ended&&(p.likes||0)>=(D.rules?.min_likes||100)&&hoursAgo(p.timestamp)<=(D.rules?.max_hours||72)}
 function render(){if(!D)return;const A=accMap(),P=D.instagram.posts;
   const inCat=c=>P.filter(p=>p.cat===c&&!p.ended&&hoursAgo(p.timestamp)<=CAT_DAYS[c]*24);
   const counts={};CATS.forEach(c=>counts[c]=inCat(c).length);
   document.getElementById('nav').innerHTML=TABS.map(t=>'<button class="'+(t===tab?'on':'')+'" data-tab="'+t+'">'+t+(counts[t]!=null?'<span class="cnt">'+counts[t]+'</span>':t==='찜한 후보'?'<span class="cnt">'+Object.keys(BM).length+'</span>':t==='스크립트'?'<span class="cnt">'+Object.keys(SC).length+'</span>':'')+'</button>').join('');
   let h='';
-  if(tab==='오늘의 추천'){const picks=D.picks||[];const order=['아이랑 갈 곳','왜 그럴까','밈·트렌드','육아 정보','맘카페 화제'];
+  if(tab==='오늘의 추천'){const picks=(D.picks||[]).filter(x=>x.kind==='cafe'||!adType(x.caption));const order=['아이랑 갈 곳','왜 그럴까','밈·트렌드','육아 정보','맘카페 화제'];
     h+='<div class="intro">우리 채널 기준으로 고른 오늘의 후보예요. 최근 3일 안에 올라온 글 중 좋아요·조회 100 이상만 보고, 광고·공구·정치·가십·스포츠, 단순 현황·지역 한정 글, 이미 끝난 행사는 뺐어요. 💡는 캉가에처럼 쉽게 풀어 설명할 때 잡을 만한 질문이에요.</div>';
     if(!picks.length)h+='<div class="empty">오늘은 기준에 맞는 글이 없어요.</div>';
     for(const sname of order){const g=picks.filter(x=>x.series===sname);if(!g.length)continue;h+='<div class="sec">'+sname+'<small>'+esc(g[0].use)+'</small></div><div class="grid">'+g.map(x=>x.kind==='cafe'?cafeCard(x,whyChips(x)):card(x,A,whyChips(x))).join('')+'</div>'}
@@ -221,7 +251,7 @@ function render(){if(!D)return;const A=accMap(),P=D.instagram.posts;
     h+='<div class="sec">주간 인기글 전체</div><div class="bar">'+names.map(n=>'<button class="chip'+(cafeSel===n?' on':'')+'" data-cafe="'+esc(n)+'">'+esc(n)+'</button>').join('')+'<button class="chip'+(kidOnly?' on':'')+'" data-kid="1">정보 글만</button></div>';
     const rows=D.cafe.filter(r=>(cafeSel==='전체'||r.cafe===cafeSel)&&(!kidOnly||!r.flag)&&match(r.title)).sort((a,b)=>b.reads-a.reads).slice(0,200);
     h+=cafeTable(rows)+'<div class="note">로그인 없이 공개되는 주간 인기글 기준이에요. 맘스홀릭·레몬테라스·맘이베베는 가입해야 보여서 빠져 있어요.</div>';
-  } else if(tab==='찜한 후보'){h+=bmView(A)} else if(tab==='스크립트'){h+=scriptView()} else if(tab==='채널 목록'){h+=channelView()}
+  } else if(tab==='광고·공구'){h+=adView(A)} else if(tab==='찜한 후보'){h+=bmView(A)} else if(tab==='스크립트'){h+=scriptView()} else if(tab==='채널 목록'){h+=channelView()}
   document.getElementById('main').innerHTML=h}
 document.getElementById('q').oninput=e=>{q=e.target.value.trim();render()};
 document.addEventListener('click',async e=>{const a=e.target.closest('a#chgUser');if(a){e.preventDefault();askUser(true);return}
@@ -233,6 +263,7 @@ document.addEventListener('click',async e=>{const a=e.target.closest('a#chgUser'
   if(t.dataset.cafe){cafeSel=t.dataset.cafe;render()}
   if(t.dataset.kid){kidOnly=!kidOnly;render()}
   if(t.dataset.bm){bmMode=t.dataset.bm;render()}
+  if(t.dataset.addays){adDays=+t.dataset.addays;render()}
   if(t.dataset.export){exportCSV()}
   if(t.dataset.star){e.preventDefault();toggleBM(t.dataset.star)}
   if(t.dataset.sc){openScript(t.dataset.sc)}

@@ -4,6 +4,11 @@ on:
   schedule:
     - cron: "0 22 * * *"   # 매일 07:00 KST
   workflow_dispatch:
+    inputs:
+      site_only:
+        description: "true면 수집 없이 화면만 배포"
+        required: false
+        default: "false"
   push:
     branches: [main]
     paths: ["site/index.html", "channels.json", "scripts/**", ".github/workflows/**"]
@@ -29,12 +34,14 @@ jobs:
         with:
           python-version: "3.12"
       - name: Collect
+        if: ${{ github.event.inputs.site_only != 'true' }}
         env:
           IG_TOKEN: ${{ secrets.IG_TOKEN }}
           IG_USER_ID: ${{ secrets.IG_USER_ID }}
           YT_KEY: ${{ secrets.YT_KEY }}
         run: python scripts/collect.py
       - name: Commit data
+        if: ${{ github.event.inputs.site_only != 'true' }}
         run: |
           git config user.name "curation-bot"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"

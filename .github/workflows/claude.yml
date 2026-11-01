@@ -10,7 +10,7 @@ on:
   workflow_dispatch:
     inputs:
       only:
-        description: "A=요청 B=추천 C=광고 D=검증 E=큐레이션 (비우면 전부)"
+        description: "A=요청 B=추천 C=광고 D=검증 E=큐레이션 F=일정 G=쇼츠 R=추천 스크립트 다시 쓰기 (비우면 전부)"
         required: false
         default: ""
 
@@ -24,7 +24,7 @@ permissions:
 jobs:
   run:
     runs-on: ubuntu-latest
-    timeout-minutes: 40
+    timeout-minutes: 90
     steps:
       - uses: actions/checkout@v4
         with:

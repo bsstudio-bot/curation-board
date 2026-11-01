@@ -176,7 +176,7 @@ function renderGuide(){const el=document.getElementById('guide');if(!el)return;i
   el.innerHTML='<div class="guide"><div><b>'+(u?esc(u.name)+'님으로 로그인돼 있어요.':'처음 오셨나요? 개인 아이디를 만들어 주세요.')+'</b>'+
   '<ul><li>오른쪽 위 <b>팀 로그인</b>을 누르면 아이디를 만들 수 있어요.</li><li><b>ID</b>: 본인 이름 (예: 손준호) · <b>PW</b>: <code>bs2026</code> (팀 공용)</li>'+
   '<li>로그인하면 카드의 <b>★</b>를 눌러 마음에 드는 글을 북마크로 보관할 수 있어요. 보관한 글은 <b>찜한 후보</b> 탭에 주차·날짜별로 모이고 팀 전체에 공유돼요.</li>'+
-  '<li>카드의 <b>✍️ 스크립트 쓰기</b>를 누르면 Claude가 고몽 말투로 대본을 써줘요 (보통 15~30분).</li></ul></div>'+
+  '<li>카드의 <b>✍️ 스크립트 쓰기</b>를 누르면 Claude가 고몽 말투로 대본을 써줘요 (보통 1~2분).</li></ul></div>'+
   '<div class="gbtn">'+(u?'':'<button class="chip on" data-login="1">아이디 만들기</button>')+'<button class="chip" data-gclose="1">닫기</button></div></div>'}
 function formatsView(){const F=(AI&&AI.formats)||[];if(!F.length)return '';
   return '<div class="sec">육아 쇼츠 → 고몽 버전<small>요즘 잘 되는 육아 쇼츠의 형식만 빌려 고몽이 아이들과 노는 구성으로 바꾼 아이디어 · 아이 얼굴 정면 노출 없이 · 원본 영상은 쓰지 않아요</small></div><div class="fgrid">'+
@@ -233,7 +233,7 @@ let pollH=null;function startPoll(){if(pollH)return;pollH=setInterval(async()=>{
   try{const s=await fetch(API+'?action=all').then(r=>r.json());if(s.ok)applyShared(s)}catch(e){}},60000)}
 function applyShared(s){CH=s.channels;bmFromList(s.bookmarks);const before=new Set(Object.keys(SC));SC={};for(const x of s.scripts||[])SC[x.id]={script:x.script,by:x.by,created_at:x.created_at,model:x.model,item:x.item};
   SCQ=new Set((s.queued||[]).map(q=>q.id));const fresh=Object.keys(SC).filter(id=>!before.has(id));if(fresh.length&&before.size)toast('새 스크립트 '+fresh.length+'개가 도착했어요');render()}
-function openScript(id){if(SC[id])scModal(id);else{if(!askUser(false))return;if(confirm('Claude에게 이 글의 스크립트를 부탁할까요? (보통 15~30분 안에 완성돼요)'))genScript(id)}}
+function openScript(id){if(SC[id])scModal(id);else{if(!askUser(false))return;if(confirm('Claude에게 이 글의 스크립트를 부탁할까요? (보통 1~2분 안에 완성돼요)'))genScript(id)}}
 function scriptView(){let h='<details class="folder guide" open><summary>📘 종합 가이드 <small>모든 스크립트가 이 기준으로 써져요</small></summary><div class="gbody">'+GUIDE_HTML+'</div></details>';
   const list=Object.entries(SC).map(([id,v])=>({id,...v})).sort((a,b)=>(b.created_at||'').localeCompare(a.created_at||''));
   h+='<div class="sec">작성된 스크립트<small>'+list.length+'개 · 오늘의 추천은 매일 아침 Claude가 고몽 말투로 미리 써요 · 다른 글은 카드의 ✍️ 버튼으로 요청</small></div>';

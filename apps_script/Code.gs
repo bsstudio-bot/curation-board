@@ -2,7 +2,7 @@
  * 데일리 큐레이션 보드 - 공유 저장소 (Google Sheet + Apps Script 웹앱)
  * - GET  ?action=all       : 채널 목록 + 찜 목록 (누구나 읽기)
  * - GET  ?action=channels  : 수집용 채널 목록
- * - POST {pass, action, ...}: 쓰기 (팀 비밀번호 필요)
+ * - POST {pass, action, ...}: 쓰기 (팀 비밀번호 필요) · setFeedback / deleteAds / deleteScripts 포함
  *   addChannel / removeChannel / restoreChannel / addBookmark / removeBookmark / collectNow / seedChannels / setGhToken
  */
 const SHEET_TITLE = '큐레이션 보드 DB';
@@ -68,9 +68,8 @@ function normHandle_(s) {
 }
 
 
-// ---------------------------------------------------------------- 숏폼 스크립트 (Gemini)
+// ---------------------------------------------------------------- 숏폼 스크립트 (Claude가 작성, GitHub Actions)
 const GUIDE = "너는 3살·6살 두 아이를 키우는 아빠 크리에이터의 숏폼(인스타 릴스·유튜브 쇼츠) 대본 작가다.\n채널은 '아이랑 갈 곳', '왜 그럴까(시사·경제·소비 해설)', '밈·트렌드', '육아 정보', '맘카페 화제' 시리즈를 한 계정에서 운영한다.\n레퍼런스는 인스타 @kangae_eco(캉가에 경제)처럼 어려운 이야기를 옆자리 사람에게 얘기하듯 쉽게 풀어주는 방식이다.\n\n[말투]\n- 크리에이터 본인이 카메라를 보고 말한다. 친한 지인에게 얘기하듯 자연스러운 존댓말 구어체(\"~거든요\", \"~더라고요\", \"~잖아요\", \"~래요\"). 반말 금지.\n- 한 문장은 숨 한 번에 말할 길이(대략 25자 이내). 문어체, 보도자료체, 번역투, 광고 문구 금지.\n- 기계적인 표현 금지: \"알림으로 다시 부릅니다\", \"A 사러 와서 B도 삽니다\" 같은 어색한 직역·조어를 쓰지 않는다.\n- 감탄사·이모지 남발 금지. 과장(\"역대급\", \"미쳤다\") 최소화.\n\n[구조: 30~45초, 말하는 분량 150~220자]\n1. 훅(0~3초): 의외의 사실이나 궁금증 한 줄. 결론부터.\n2. 왜?: 그 일이 생긴 이유나 배경 1~2문장.\n3. 핵심 2~3개: 정보(날짜·가격·장소·숫자)는 화면 이미지로 띄우고, 말은 짧게.\n4. 마무리: \"우리 집이라면\"이나 크리에이터 본인 경험/계획 한마디. 구독·좋아요 요청 문구는 넣지 않는다.\n\n[시리즈별 필수]\n- 아이랑 갈 곳: 기간, 가격(무료 여부), 추천 나이, 예약·주차·휴무 같은 주의점.\n- 왜 그럴까: 질문 하나에 답 하나. 숫자는 최대 2개.\n- 밈·트렌드: 어디서 시작됐는지, 왜 퍼졌는지, 우리 집(아이 키우는 집) 버전.\n- 육아 정보: 출처(전문가·연구)가 있으면 화면에 표기. 의학적 단정 금지.\n- 맘카페 화제: \"요즘 엄마들이 이걸 많이 물어보더라고요\"처럼 시작해 핵심 쟁점을 정리. 특정 지역·기관 비방 금지.\n\n[사실 규칙]\n- 원문에 없는 이유나 배경을 \"~인가 봐요\", \"~일 거예요\"처럼 추측해서 말하지 않는다. 원문에 이유가 없으면 '왜?' 단계는 원문 속 다른 사실로 채우고 checks에 '배경·이유 확인'을 넣는다.\n- 원문에 있는 사실만 쓴다. 원문에 없는 날짜·가격·통계·인용을 지어내지 않는다.\n- 확인이 필요한 내용은 대본에 단정하지 말고 checks 항목에 적는다.\n- 정치 이슈, 가십, 출처 없는 통계는 다루지 않는다.\n\n[출력: JSON만]\n{\n \"title\": \"내부 관리용 제목 (15자 이내)\",\n \"hooks\": [\"훅 후보 1\", \"훅 후보 2\", \"훅 후보 3\"],\n \"lines\": [{\"say\": \"말할 문장\", \"screen\": \"화면에 띄울 이미지/자막 지시 (없으면 빈 문자열)\"}],\n \"seconds\": 예상 길이(초, 숫자),\n \"caption\": \"게시물 캡션 초안 (2~3문장, 자연스러운 말투)\",\n \"hashtags\": [\"#해시태그\", \"...\"],\n \"checks\": [\"촬영 전 확인할 것\"],\n \"source\": \"출처 표기 문구 (예: 원문 @계정)\"\n}\nlines의 첫 문장은 hooks[0]과 같게 쓴다. lines는 6~9줄.\n";
-const MODELS = ['gemini-3.8-flash', 'gemini-3.5-flash', 'gemini-3.5-flash-lite', 'gemini-3.1-flash-lite'];
 
 function scriptsSheet_() {
   const s = ss_();
@@ -98,24 +97,26 @@ function itemText_(it) {
     '\n원문:\n' + String(it.caption || it.title || '').slice(0, 2500) + (it.extra ? '\n\n추가 요청: ' + it.extra : '');
 }
 
-function gemini_(text) {
-  const key = props_().getProperty('GEMINI_KEY');
-  if (!key) throw new Error('스크립트 기능이 아직 설정되지 않았어요');
-  const body = { systemInstruction: { parts: [{ text: GUIDE }] }, contents: [{ role: 'user', parts: [{ text: text }] }],
-    generationConfig: { responseMimeType: 'application/json', temperature: 0.7 } };
-  let last = '';
-  for (let i = 0; i < MODELS.length; i++) {
-    const r = UrlFetchApp.fetch('https://generativelanguage.googleapis.com/v1beta/models/' + MODELS[i] + ':generateContent?key=' + key,
-      { method: 'post', contentType: 'application/json', payload: JSON.stringify(body), muteHttpExceptions: true });
-    const code = r.getResponseCode();
-    if (code === 200) {
-      const j = JSON.parse(r.getContentText());
-      const t = j.candidates && j.candidates[0] && j.candidates[0].content.parts.map(function (p) { return p.text || ''; }).join('');
-      try { return { model: MODELS[i], script: JSON.parse(t) }; } catch (e) { last = '응답 형식 오류'; continue; }
-    }
-    last = code + ' ' + r.getContentText().slice(0, 120);
-  }
-  throw new Error('지금은 AI가 바빠요. 잠시 뒤 다시 눌러주세요 (' + last + ')');
+function feedbackSheet_() {
+  const s = ss_();
+  let sh = s.getSheetByName('feedback');
+  if (!sh) { sh = s.insertSheet('feedback'); sh.appendRow(['id', 'at', 'by', 'status', 'item_json']); }
+  return sh;
+}
+
+function feedback_() {
+  const v = feedbackSheet_().getDataRange().getValues(); v.shift();
+  return v.filter(function (r) { return r[0]; }).map(function (r) {
+    let it = {}; try { it = JSON.parse(r[4] || '{}'); } catch (e) {}
+    return { id: String(r[0]), at: r[1] instanceof Date ? r[1].toISOString() : r[1], by: r[2], status: r[3], item: it };
+  });
+}
+
+function deleteRowsById_(sh, ids) {
+  const want = {}; (ids || []).forEach(function (x) { want[String(x)] = 1; });
+  const rows = sh.getDataRange().getValues(); let n = 0;
+  for (let i = rows.length - 1; i >= 1; i--) { if (want[String(rows[i][0])]) { sh.deleteRow(i + 1); n++; } }
+  return n;
 }
 
 function queueSheet_() {
@@ -161,7 +162,8 @@ function doGet(e) {
   if (a === 'queue') return out_({ ok: true, queue: queue_(false).map(function (q) { return { id: q.id, by: q.by, requested_at: q.requested_at, item: q.item }; }) });
   if (a === 'guide') return out_({ ok: true, guide: GUIDE });
   if (a === 'ads') return out_({ ok: true, ads: ads_() });
-  return out_({ ok: true, channels: channels_(true), bookmarks: bookmarks_(), scripts: scripts_(),
+  if (a === 'feedback') return out_({ ok: true, feedback: feedback_() });
+  return out_({ ok: true, channels: channels_(true), bookmarks: bookmarks_(), scripts: scripts_(), feedback: feedback_(),
     queued: queue_(false).map(function (q) { return { id: q.id, by: q.by, requested_at: q.requested_at }; }) });
 }
 
@@ -258,19 +260,17 @@ function doPost(e) {
       saveScript_(b.id, b.script, b.by || 'Claude', b.model || 'claude', b.item);
       return out_({ ok: true });
     }
-    if (b.action === 'script') {
-      lock.releaseLock();
-      const g = gemini_(itemText_(b.item || {}));
-      lock.waitLock(15000);
-      const sh = scriptsSheet_();
-      const rows = sh.getDataRange().getValues();
-      for (let i = rows.length - 1; i >= 1; i--) { if (String(rows[i][0]) === String(b.id)) sh.deleteRow(i + 1); }
-      sh.appendRow([String(b.id), now, by, g.model, JSON.stringify(g.script), JSON.stringify(b.item || {}).slice(0, 40000)]);
-      return out_({ ok: true, id: b.id, model: g.model, script: g.script, by: by, created_at: now });
+    if (b.action === 'setFeedback') {  // status: '제외' | '제작함' | '' (해제)
+      const sh = feedbackSheet_();
+      deleteRowsById_(sh, [b.id]);
+      if (b.status) sh.appendRow([String(b.id), now, by, String(b.status), JSON.stringify(b.item || {}).slice(0, 20000)]);
+      return out_({ ok: true, feedback: feedback_() });
     }
-    if (b.action === 'setGeminiKey') {
-      props_().setProperty('GEMINI_KEY', String(b.key || ''));
-      return out_({ ok: true });
+    if (b.action === 'deleteAds') {
+      return out_({ ok: true, deleted: deleteRowsById_(adsSheet_(), b.ids) });
+    }
+    if (b.action === 'deleteScripts') {
+      return out_({ ok: true, deleted: deleteRowsById_(scriptsSheet_(), b.ids) });
     }
     if (b.action === 'setGhToken') {
       props_().setProperty('GH_TOKEN', String(b.token || ''));

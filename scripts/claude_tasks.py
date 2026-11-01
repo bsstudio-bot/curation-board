@@ -342,11 +342,34 @@ def make_formats(data):
     return out
 
 
+# ---------------------------------------------------------------- 계정 유형 (크리에이터 / 매거진·미디어)
+TYPE_PATH = "site/account_types.json"
+
+
+def account_types(data):
+    at = json.load(open(TYPE_PATH, encoding="utf-8")) if os.path.exists(TYPE_PATH) else {"types": {}}
+    types = at.setdefault("types", {})
+    new = [a for a in data["instagram"]["accounts"] if a["handle"] not in types and not a.get("error")]
+    if new:
+        posts = data["instagram"]["posts"]
+        body = "\n\n".join(f"[handle] {a['handle']} | 이름: {a.get('name','')} | 분류: {a.get('cat','')} | 팔로워 {a.get('followers')}\n" +
+                           "\n".join("- " + (p.get("caption") or "")[:120].replace("\n", " ") for p in posts if p["handle"] == a["handle"])[:500] for a in new[:30])
+        arr = parse_json(claude("""아래 인스타 계정이 '크리에이터'(개인이 이름·얼굴을 걸고 운영하는 엄마·아빠·전문가 계정)인지, '매거진·미디어'(편집부·큐레이션·뉴스·브랜드·기관 계정)인지 판정해라.
+각 항목 JSON: handle, type('크리에이터'|'매거진·미디어'). 출력은 JSON 배열만.\n\n""" + body), list) or []
+        for x in arr:
+            if isinstance(x, dict) and x.get("handle") in {a["handle"] for a in new} and x.get("type") in ("크리에이터", "매거진·미디어"):
+                types[x["handle"]] = x["type"]
+        at["updated_at"] = NOW.strftime("%Y-%m-%d")
+        json.dump(at, open(TYPE_PATH, "w", encoding="utf-8"), ensure_ascii=False, indent=0)
+        open(".ai_updated", "w").write("1")
+    return types
+
+
 CATS = "먹거리·간식/교구·도서/장난감·놀이/패션·잡화/생활·주방/여행·숙소·체험/뷰티·건강/가전·디지털/기타"
 ADS_PROMPT = f"""아래는 육아·키즈 인스타 계정의 광고·공구·이벤트 글이다. 각 글의 캡션만 근거로 상품 정보를 정리해라.
 캡션에 없는 내용은 빈 문자열로 둔다(추측 금지).
 필드: id(그대로), handle(그대로), type('공구'|'광고·협찬'|'이벤트'), brand(업체·브랜드 이름, @계정이 있으면 괄호로 같이. 예: '베베쿡 (@bebecook_official)'),
-product(대표 제품 1개, 여러 개면 '대표 제품 외 N종'), category({CATS} 중 하나), price(대표 판매가·공구가, 원 단위 정수. 없으면 ""),
+product(대표 제품 1개, 여러 개면 '대표 제품 외 N종'), category({CATS} 중 하나), price(대표 판매가·공구가, 원 단위 정수. 1천~50만 원 사이의 현실적인 소비자 가격만, 그 밖이거나 애매하면 ""),
 discount(할인율 숫자만), period(예 '11/3~11/7'), channel(판매처 단서: 스마트스토어·자사몰·카톡 채널·프로필 링크·댓글 DM 등), contact(캡션에 적힌 문의처: 이메일·카톡ID·전화·'DM 문의' 등).
 출력은 JSON 배열만(글 순서대로, 설명·코드블록 없이).
 """
@@ -414,7 +437,8 @@ def main():
     jobsC = []
     if not ONLY or "C" in ONLY:
         have_ads = {a["id"] for a in get("ads").get("ads", [])}
-        posts = [p for p in data["instagram"]["posts"] if p.get("ad") and p.get("permalink") not in have_ads and hours_ago(p.get("timestamp")) <= 30 * 24]
+        types = account_types(data)
+        posts = [p for p in data["instagram"]["posts"] if p.get("ad") and types.get(p["handle"]) == "크리에이터" and p.get("permalink") not in have_ads and hours_ago(p.get("timestamp")) <= 30 * 24]
         posts.sort(key=lambda p: p.get("timestamp") or "", reverse=True)
         jobsC = posts[:MAX_ADS]
 

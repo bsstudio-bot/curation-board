@@ -41,12 +41,15 @@ def post(body):
     return None
 
 
-def claude(prompt):
-    """Claude Code CLI 호출, 응답 텍스트 반환."""
+def claude(prompt, tools=None, turns=1):
+    """Claude Code CLI 호출, 응답 텍스트 반환. tools 예: ["WebSearch", "WebFetch"]"""
+    cmd = ["claude", "-p", "--model", MODEL, "--output-format", "json", "--max-turns", str(turns)]
+    if tools:
+        cmd += ["--allowedTools", ",".join(tools)]
     for attempt in range(2):
         try:
-            p = subprocess.run(["claude", "-p", "--model", MODEL, "--output-format", "json", "--max-turns", "1"],
-                               input=prompt, capture_output=True, text=True, timeout=600)
+            p = subprocess.run(cmd,
+                               input=prompt, capture_output=True, text=True, timeout=900)
             out = json.loads(p.stdout or "{}")
             if out.get("is_error") or p.returncode != 0:
                 print("  claude error:", (out.get("result") or p.stderr or "")[:300])
@@ -74,6 +77,11 @@ def item_text(it):
            else f"구글 급상승 검색어 (검색 {it.get('traffic')})" if it.get("kind") == "trend" else f"@{it.get('handle')}")
     t = [f"시리즈: {series}", f"해설 각도 힌트: {it.get('angle') or '없음'}", f"원문 출처: {src}",
          f"게시일: {str(it.get('timestamp') or it.get('written_at') or '')[:10]}", f"오늘 날짜: {NOW:%Y-%m-%d}"]
+    dc = it.get("date_check") or {}
+    if dc.get("status") in ("확인됨", "원문과 다름"):
+        t.append(f"웹 검색으로 확인한 일정({dc['status']}): {dc.get('event')} · {dc.get('period')} {dc.get('time')} · {dc.get('place')} · {dc.get('fee')} · 출처 {dc.get('source')} · {dc.get('note')}  ← 원문과 다르면 이 일정을 쓰고 checks에 '원문 일정과 다름'을 남긴다")
+    elif dc.get("status") == "확인 못함":
+        t.append("일정 웹 확인 실패: 날짜를 단정하지 말고 checks에 '일정 확인'을 넣는다")
     if it.get("gomong_angle"):
         t.append(f"고몽다운 풀이 힌트: {it['gomong_angle']}")
     if it.get("event_end"):
@@ -102,7 +110,7 @@ def write_scripts(jobs, guide, label):
 
 
 def pick_item(p):
-    keys = ["kind", "series", "handle", "cafe", "caption", "title", "permalink", "url", "timestamp", "written_at", "angle", "gomong_angle", "event_end", "reads", "comments", "cat", "traffic"]
+    keys = ["kind", "series", "handle", "cafe", "caption", "title", "permalink", "url", "timestamp", "written_at", "angle", "gomong_angle", "event_end", "date_check", "reads", "comments", "cat", "traffic"]
     return {k: p.get(k) for k in keys if p.get(k) is not None}
 
 
@@ -124,7 +132,7 @@ CURATE_PROMPT = """너는 유튜버 고몽(김웅현)의 **신규 채널** 숏�
 1) issues: 지금 뜨는 이슈 3~6개. 여러 후보가 같은 주제를 다루거나(채널 2곳 이상·맘카페·검색어가 겹침), 검색량이 큰 화제를 묶는다.
    각 이슈: title(15자 이내), summary(무슨 일인지 1~2문장, 후보 내용만 근거), ids(관련 후보 id 목록), why_now(왜 지금 다룰 만한지 1문장), fit(1~10, 우리 채널 적합도)
 2) picks: 오늘 찍을 후보 10~12개. 시리즈 배분: 아이랑 갈 곳 2~3, 왜 그럴까 2~3, 밈·트렌드 2, 화제 1~2, 육아 정보 1~2, 맘카페 화제 1~2. 같은 계정은 1개까지.
-   각 pick: id(후보 id 그대로), series, score(1~10), reason(왜 고몽 채널에 맞는지 1문장, 구체적으로), angle(시청자가 궁금해할 질문 하나), gomong_angle(고몽다운 풀이 한 줄: 이야기꾼·영화/드라마 비유, 딸 둘 아빠 시선, 자기 고백형 유머 중 자연스러운 것. 억지면 빈 문자열. 고몽이 실제로 겪은 일(병원·펫로스·육아 에피소드 등)을 사실처럼 지어내지 말고, 필요하면 '고몽 본인 경험이 있다면 ~로'처럼 조건으로 쓴다)
+   각 pick: id(후보 id 그대로), series, score(1~10), reason(왜 고몽 채널에 맞는지 1문장, 구체적으로), angle(시청자가 궁금해할 질문 하나), gomong_angle(고몽다운 풀이 한 줄: 이야기꾼·영화/드라마 비유, 딸 둘 아빠 시선, 자기 고백형 유머 중 자연스러운 것. 2년 넘은 옛날 밈은 쓰지 않는다. 억지면 빈 문자열. 고몽이 실제로 겪은 일(병원·펫로스·육아 에피소드 등)을 사실처럼 지어내지 말고, 필요하면 '고몽 본인 경험이 있다면 ~로'처럼 조건으로 쓴다)
 
 [점수 기준] 시의성(지금 이야기되는가), 반응(평소 대비 배수 lift가 높을수록, 여러 곳에서 동시에 언급될수록), 해설할 거리(왜·어떻게를 풀 수 있는가), 3·6살 아이 키우는 집과의 연결, 고몽 캐릭터와의 궁합.
 [화제·가십 원칙 — 렉카 금지] 공식 발표, 작품·방송 화제, 본인이 공개한 결혼·출산·육아 소식, 훈훈한 장면, 사회적으로 이야기할 거리는 OK.
@@ -190,6 +198,41 @@ def curate(data):
             "model": "claude-" + MODEL, "pool_size": len(pool), "issues": issues, "picks": picks}
 
 
+# ---------------------------------------------------------------- 일정 확인 (웹 검색, Claude Code 내장 검색 · 추가 API 불필요)
+DATE_RE = re.compile(r"\d{1,2}\s?[./월]\s?\d{1,2}|기간|까지|오픈|개막|축제|전시|팝업|행사|페스티벌|박람회|공연")
+
+
+def verify_dates(items):
+    """items: [{id, name, text}] → {id: {status, period, time, place, source, note}}"""
+    if not items:
+        return {}
+    body = "\n\n".join(f"### {i + 1}\nid: {x['id']}\n{x['text'][:900]}" for i, x in enumerate(items))
+    prompt = f"""오늘은 {NOW:%Y-%m-%d}이다. 아래 글들에 나오는 행사·전시·축제·팝업의 실제 일정을 웹 검색으로 확인해라.
+공식 홈페이지, 주최 기관, 언론 보도를 우선한다. 글마다 행사가 여러 개면 대표 행사 1개만.
+각 글에 대해 JSON 객체: id(그대로), event(행사 이름), period(확인된 기간, 예 '2026-11-18~2026-11-20'), time(운영 시간, 모르면 ""),
+place(장소), fee(요금·무료 여부, 모르면 ""), status('확인됨' | '원문과 다름' | '확인 못함'), source(근거 URL 1개), note(원문과 다른 점이나 주의점 한 줄, 없으면 "").
+검색으로 확인되지 않으면 추측하지 말고 status를 '확인 못함'으로.
+출력은 JSON 배열만(설명·코드블록 없이).
+
+{body}"""
+    arr = parse_json(claude(prompt, tools=["WebSearch", "WebFetch"], turns=25), list)
+    if not isinstance(arr, list):
+        print("  [일정] 파싱 실패"); return {}
+    return {a["id"]: {k: a.get(k, "") for k in ("event", "period", "time", "place", "fee", "status", "source", "note")} for a in arr if isinstance(a, dict) and a.get("id")}
+
+
+def date_targets(ai):
+    out, seen = [], set()
+    for x in ai.get("picks", []) + [it for i in ai.get("issues", []) for it in i.get("items", [])]:
+        xid = x.get("id") or x.get("permalink") or x.get("url")
+        text = x.get("caption") or x.get("title") or ""
+        if xid in seen or x.get("kind") == "trend":
+            continue
+        if x.get("series") == "아이랑 갈 곳" or x.get("cat") == "아이랑 갈 곳" or (DATE_RE.search(text) and re.search(r"축제|전시|팝업|행사|페스티벌|박람회|공연|체험|개막|오픈", text)):
+            seen.add(xid); out.append({"id": xid, "text": f"출처: {x.get('handle') or x.get('cafe') or ''}\n{text}"})
+    return out[:10]
+
+
 CATS = "먹거리·간식/교구·도서/장난감·놀이/패션·잡화/생활·주방/여행·숙소·체험/뷰티·건강/가전·디지털/기타"
 ADS_PROMPT = f"""아래는 육아·키즈 인스타 계정의 광고·공구·이벤트 글이다. 각 글의 캡션만 근거로 상품 정보를 정리해라.
 캡션에 없는 내용은 빈 문자열로 둔다(추측 금지).
@@ -214,13 +257,27 @@ def main():
     ai = json.load(open(ai_path, encoding="utf-8")) if os.path.exists(ai_path) else {}
     data_today = str(data.get("updated_at", ""))[:10] == NOW.strftime("%Y-%m-%d")
     need_e = ("E" in ONLY) or (not ONLY and ai.get("date") != NOW.strftime("%Y-%m-%d") and (data_today or NOW.hour >= 12))
+    if "F" in ONLY and ai.get("picks"):  # 기존 큐레이션에 일정 확인만 추가
+        checks = verify_dates(date_targets(ai))
+        for x in ai["picks"] + [it for i in ai.get("issues", []) for it in i.get("items", [])]:
+            if x.get("id") in checks:
+                x["date_check"] = checks[x["id"]]
+        ai["date_checked"] = len(checks)
+        json.dump(ai, open(ai_path, "w", encoding="utf-8"), ensure_ascii=False)
+        open(".ai_updated", "w").write("1")
+        report["일정 확인"] = len(checks)
     if need_e:
         new = curate(data)
         if new:
+            checks = verify_dates(date_targets(new))
+            for x in new["picks"] + [it for i in new["issues"] for it in i["items"]]:
+                if x.get("id") in checks:
+                    x["date_check"] = checks[x["id"]]
+            new["date_checked"] = len(checks)
             ai = new
             json.dump(ai, open(ai_path, "w", encoding="utf-8"), ensure_ascii=False)
             open(".ai_updated", "w").write("1")
-            report["큐레이션"] = f"이슈 {len(ai['issues'])} · 추천 {len(ai['picks'])} (후보 {ai['pool_size']})"
+            report["큐레이션"] = f"이슈 {len(ai['issues'])} · 추천 {len(ai['picks'])} (후보 {ai['pool_size']}) · 일정 확인 {ai.get('date_checked', 0)}"
 
     # A + B: 스크립트
     jobsA = [(q["id"], q.get("item") or {}) for q in queue]

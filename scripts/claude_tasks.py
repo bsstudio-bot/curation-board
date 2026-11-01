@@ -210,11 +210,32 @@ def pool_text(pool):
     return "\n\n".join(out)
 
 
+def feedback_text():
+    try:
+        fb = get("feedback").get("feedback", [])
+    except Exception:
+        fb = []
+    fb = sorted(fb, key=lambda f: f.get("at") or "", reverse=True)[:60]
+    lines = []
+    for f in fb:
+        it = f.get("item") or {}
+        src = it.get("handle") and "@" + it["handle"] or it.get("cafe") or it.get("channel") or ""
+        txt = (it.get("caption") or it.get("title") or "")[:90].replace("\n", " ")
+        lines.append(f"[{f.get('status')}] {it.get('series') or it.get('cat') or ''} · {src} · {txt}")
+    return {f["id"] for f in fb}, "\n".join(lines)
+
+
 def curate(data):
     pool = build_pool(data)
+    done_ids, fb_txt = feedback_text()
+    for i in list(pool):
+        if i in done_ids:  # 팀이 이미 제작했거나 제외한 글은 다시 올리지 않는다
+            pool.pop(i)
     if not pool:
         return None
-    res = parse_json(claude(CURATE_PROMPT.replace("@@CHANNEL_RULES@@", CHANNEL_RULES) + "\n\n오늘 날짜: " + NOW.strftime("%Y-%m-%d") + "\n\n[후보]\n" + pool_text(pool)), dict)
+    fb_block = ("\n\n[팀 반응 — 최근 팀이 표시한 소재]\n'제작함'은 팀이 실제로 찍기로 한 방향이니 비슷한 소재·각도·시리즈에 가점, "
+                "'제외'는 팀이 원치 않은 방향이니 비슷한 소재에 감점한다. 개별 글이 아니라 패턴(주제, 형식, 계정 성격)을 읽어 반영해라.\n" + fb_txt) if fb_txt else ""
+    res = parse_json(claude(CURATE_PROMPT.replace("@@CHANNEL_RULES@@", CHANNEL_RULES) + fb_block + "\n\n오늘 날짜: " + NOW.strftime("%Y-%m-%d") + "\n\n[후보]\n" + pool_text(pool)), dict)
     if not isinstance(res, dict) or not res.get("picks"):
         print("  [E] 파싱 실패"); return None
     picks = []

@@ -505,7 +505,9 @@ def collect_trends(prev_items, now):
 
 
 # ---------------------------------------------------------------- 유튜브 (YouTube Data API, YT_KEY)
-YT_KID_QUERIES = ["육아", "아이랑 가볼만한곳", "유아 놀이", "육아 꿀팁", "아빠 육아", "초등 엄마"]
+YT_KID_QUERIES = ["아빠 육아", "육아 브이로그", "아빠랑 놀이", "딸 아빠", "자매 육아", "아이랑 놀이", "육아 꿀팁", "아이랑 가볼만한곳", "육아 일상", "육아 상황극"]
+# 뉴스·CCTV·짜깁기·낭독형은 우리가 찍을 수 없는 형식이라 제외
+YT_SKIP_RE = re.compile(r"뉴스|news|NEWS|CCTV|cctv|블랙박스|썰|사연|실화|레전드|모음|판독|제보|속보|충격|경악|ai|AI|사건|사고|구조|경찰|소방")
 
 
 def _iso_dur(d):
@@ -545,18 +547,12 @@ def collect_youtube(key, now):
     if not key:
         return None
     rows, errs = {}, []
-    try:
-        d = _yt("videos", part="snippet,statistics,contentDetails", chart="mostPopular", regionCode="KR", maxResults=50, key=key)
-        for v in d.get("items", []):
-            rows[v["id"]] = _yt_row(v, "인기 급상승")
-    except Exception as e:  # noqa: BLE001
-        errs.append(f"인기: {str(e)[:80]}")
     after = (now - timedelta(days=3)).astimezone(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
     ids = {}
     for q in YT_KID_QUERIES:
         try:
             d = _yt("search", part="id", q=q, type="video", videoDuration="short", order="viewCount", publishedAfter=after,
-                    regionCode="KR", relevanceLanguage="ko", maxResults=15, key=key)
+                    regionCode="KR", relevanceLanguage="ko", maxResults=20, key=key)
             for it in d.get("items", []):
                 ids.setdefault(it["id"]["videoId"], q)
         except Exception as e:  # noqa: BLE001
@@ -566,6 +562,8 @@ def collect_youtube(key, now):
             rows[v["id"]] = _yt_row(v, "육아 검색: " + ids[v["id"]])
     except Exception as e:  # noqa: BLE001
         errs.append(f"상세: {str(e)[:80]}")
+    for r in rows.values():
+        r["skip"] = bool(YT_SKIP_RE.search((r.get("title") or "") + " " + (r.get("channel") or "")))
     items = sorted(rows.values(), key=lambda r: r["views"], reverse=True)
     for r in items:
         h = max(1.0, hours_since(r.get("published") or "", now))

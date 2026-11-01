@@ -304,7 +304,7 @@ def parse_ad(p):
             v = int(m.group(1).replace(",", "")) if m.group(1) else int(float(m.group(2)) * 10000)
         except Exception:
             continue
-        if 900 <= v <= 5_000_000:
+        if 1_000 <= v <= 500_000:  # 현실적인 소비자 판매가만 (6억 같은 오인식 제외)
             prices.append(v)
     pcts = [int(a or b) for a, b in RX_PCT.findall(cap) if (a or b)]
     brands = []

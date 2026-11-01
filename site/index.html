@@ -274,7 +274,7 @@ function adBoard(){const R30=adRows(30),R7=R30.filter(r=>hoursAgo(r.p.timestamp)
   const kpi=(t,v,s)=>'<div class="kpi"><div class="kt">'+t+'</div><div class="kv">'+v+'</div><div class="ks">'+(s||'')+'</div></div>';
   let h='<div class="kpis">'+kpi('최근 7일 광고성 글',R7.length+'개',(chg==null?'':(chg>=0?'▲ ':'▼ ')+Math.abs(chg)+'% (지난주 대비) · ')+'전체 글의 '+(all7?Math.round(R7.length/all7*100):0)+'%')+
     kpi('30일 중 공구 비중',(R30.length?Math.round(gong.length/R30.length*100):0)+'%','공구 '+gong.length+' · 광고·협찬 '+R30.filter(r=>r.type==='광고·협찬').length+' · 이벤트 '+R30.filter(r=>r.type==='이벤트').length)+
-    kpi('광고하는 채널',chans.size+'곳','크리에이터 '+D.instagram.accounts.filter(a=>isCreator(a.handle)).length+'곳 중')+kpi('태그된 브랜드',brandSet.size+'곳','광고 글 속 @태그 기준')+
+    kpi('광고하는 채널',chans.size+'곳','크리에이터 '+D.instagram.accounts.filter(a=>isCreator(a.handle)).length+'곳 중')+
     kpi('공구 가격 중앙값',med?fmt(med)+'원':'-',prices.length?'가격이 적힌 공구 '+prices.length+'건 기준':'캡션에 가격이 적힌 글이 적어요')+'</div>';
   // 일별 추이
   const days=[];for(let i=29;i>=0;i--){const d=new Date(Date.now()-i*864e5);days.push(d.toLocaleDateString('en-CA',{timeZone:'Asia/Seoul'}))}

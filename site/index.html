@@ -233,10 +233,10 @@ let pollH=null;function startPoll(){if(pollH)return;pollH=setInterval(async()=>{
   try{const s=await fetch(API+'?action=all').then(r=>r.json());if(s.ok)applyShared(s)}catch(e){}},60000)}
 function applyShared(s){CH=s.channels;bmFromList(s.bookmarks);const before=new Set(Object.keys(SC));SC={};for(const x of s.scripts||[])SC[x.id]={script:x.script,by:x.by,created_at:x.created_at,model:x.model,item:x.item};
   SCQ=new Set((s.queued||[]).map(q=>q.id));const fresh=Object.keys(SC).filter(id=>!before.has(id));if(fresh.length&&before.size)toast('새 스크립트 '+fresh.length+'개가 도착했어요');render()}
-function openScript(id){if(SC[id])scModal(id);else{if(!askUser(false))return;if(confirm('Claude에게 이 글의 스크립트를 부탁할까요? (보통 1시간 안에 완성돼요)'))genScript(id)}}
+function openScript(id){if(SC[id])scModal(id);else{if(!askUser(false))return;if(confirm('Claude에게 이 글의 스크립트를 부탁할까요? (보통 15~30분 안에 완성돼요)'))genScript(id)}}
 function scriptView(){let h='<details class="folder guide" open><summary>📘 종합 가이드 <small>모든 스크립트가 이 기준으로 써져요</small></summary><div class="gbody">'+GUIDE_HTML+'</div></details>';
   const list=Object.entries(SC).map(([id,v])=>({id,...v})).sort((a,b)=>(b.created_at||'').localeCompare(a.created_at||''));
-  h+='<div class="sec">작성된 스크립트<small>'+list.length+'개 · 오늘의 추천은 매일 아침 Claude가 미리 써요 · 다른 글은 카드의 ✍️ 버튼으로 요청</small></div>';
+  h+='<div class="sec">작성된 스크립트<small>'+list.length+'개 · 오늘의 추천은 매일 아침 Claude가 고몽 말투로 미리 써요 · 다른 글은 카드의 ✍️ 버튼으로 요청</small></div>';
   if(!list.length)return h+'<div class="empty">아직 없어요. 오늘의 추천이나 찜한 후보 카드에서 ✍️ 스크립트 쓰기를 눌러보세요.</div>';
   return h+'<div class="sclist">'+list.map(x=>{const sc=x.script||{};const it=x.item||{};return '<div class="scitem" data-sc="'+esc(x.id)+'"><b>'+esc(sc.title||'(제목 없음)')+'</b><div class="hook">“'+esc((sc.hooks||[])[0]||'')+'”</div><small>'+esc(it.kind==='cafe'?it.cafe:'@'+(it.handle||''))+' · '+esc(x.by||'')+' · '+kst(x.created_at)+'</small></div>'}).join('')+'</div>'}
 const GUIDE_HTML=`<ol>

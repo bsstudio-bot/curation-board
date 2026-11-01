@@ -74,7 +74,8 @@ def parse_json(text, want=list):
 def item_text(it):
     series = it.get("series") or {"해설·인물": "왜 그럴까"}.get(it.get("cat"), it.get("cat")) or ("맘카페 화제" if it.get("kind") == "cafe" else "왜 그럴까")
     src = (f"{it.get('cafe')} 맘카페 인기글 (조회 {it.get('reads')}, 댓글 {it.get('comments')})" if it.get("kind") == "cafe"
-           else f"구글 급상승 검색어 (검색 {it.get('traffic')})" if it.get("kind") == "trend" else f"@{it.get('handle')}")
+           else f"구글 급상승 검색어 (검색 {it.get('traffic')})" if it.get("kind") == "trend"
+           else f"유튜브 {it.get('channel')} (조회 {it.get('views')})" if it.get("kind") == "youtube" else f"@{it.get('handle')}")
     t = [f"시리즈: {series}", f"해설 각도 힌트: {it.get('angle') or '없음'}", f"원문 출처: {src}",
          f"게시일: {str(it.get('timestamp') or it.get('written_at') or '')[:10]}", f"오늘 날짜: {NOW:%Y-%m-%d}"]
     dc = it.get("date_check") or {}
@@ -110,7 +111,7 @@ def write_scripts(jobs, guide, label):
 
 
 def pick_item(p):
-    keys = ["kind", "series", "handle", "cafe", "caption", "title", "permalink", "url", "timestamp", "written_at", "angle", "gomong_angle", "event_end", "date_check", "reads", "comments", "cat", "traffic"]
+    keys = ["kind", "series", "handle", "cafe", "caption", "title", "permalink", "url", "timestamp", "written_at", "angle", "gomong_angle", "event_end", "date_check", "reads", "comments", "cat", "traffic", "channel", "views"]
     return {k: p.get(k) for k in keys if p.get(k) is not None}
 
 
@@ -127,7 +128,7 @@ CURATE_PROMPT = """너는 유튜버 고몽(김웅현)의 **신규 채널** 숏�
 신규 채널은 일상·화제·트렌드·육아 정보를 쉽게 풀어주는 숏폼 채널이다(레퍼런스: @kangae_eco처럼 옆자리 사람에게 얘기하듯 해설).
 시리즈: 아이랑 갈 곳 / 왜 그럴까(시사·경제·소비 해설) / 밈·트렌드 / 화제 / 육아 정보 / 맘카페 화제
 
-아래 후보(인스타 글, 맘카페 인기글, 구글 급상승 검색어)를 보고 두 가지를 해라.
+아래 후보(인스타 글, 맘카페 인기글, 유튜브 인기·육아 쇼츠, 구글 급상승 검색어)를 보고 두 가지를 해라.
 
 1) issues: 지금 뜨는 이슈 3~6개. 여러 후보가 같은 주제를 다루거나(채널 2곳 이상·맘카페·검색어가 겹침), 검색량이 큰 화제를 묶는다.
    각 이슈: title(15자 이내), summary(무슨 일인지 1~2문장, 후보 내용만 근거), ids(관련 후보 id 목록), why_now(왜 지금 다룰 만한지 1문장), fit(1~10, 우리 채널 적합도)
@@ -137,7 +138,7 @@ CURATE_PROMPT = """너는 유튜버 고몽(김웅현)의 **신규 채널** 숏�
 [점수 기준] 시의성(지금 이야기되는가), 반응(평소 대비 배수 lift가 높을수록, 여러 곳에서 동시에 언급될수록), 해설할 거리(왜·어떻게를 풀 수 있는가), 3·6살 아이 키우는 집과의 연결, 고몽 캐릭터와의 궁합.
 [화제·가십 원칙 — 렉카 금지] 공식 발표, 작품·방송 화제, 본인이 공개한 결혼·출산·육아 소식, 훈훈한 장면, 사회적으로 이야기할 거리는 OK.
 사생활 폭로, 루머·열애설·이혼설, 사건·사고 피해자, 논란 몰이, 특정인 비난, 사망·범죄, 정치, 해외 스포츠 경기 결과는 고르지 않는다. 화제 픽은 사람보다 현상을 이야기할 수 있어야 한다.
-[제외] 광고·공구, 지역 한정 정보, 이미 끝난 행사, 내용 없는 근황.
+[제외] 광고·공구, 지역 한정 정보, 이미 끝난 행사, 내용 없는 근황. 유튜브는 음악·게임·스포츠 중계, 남의 영상 짜깁기('썰' 재업로드·AI 낭독)는 소재 참고만 하고, 원본 출처가 분명한 것을 우선한다.
 
 출력은 JSON 객체만: {"issues":[...], "picks":[...]}
 """
@@ -154,6 +155,13 @@ def build_pool(data):
     cafes.sort(key=lambda r: (r.get("reads") or 0) + (r.get("comments") or 0) * 20, reverse=True)
     for r in cafes[:20]:
         pool[r["url"]] = {"kind": "cafe", **{k: r.get(k) for k in ("cafe", "title", "reads", "comments", "written_at", "url")}, "timestamp": r.get("written_at")}
+    yt = (data.get("youtube") or {}).get("items") or []
+    kids = sorted([v for v in yt if v["src"].startswith("육아") and hours_ago(v.get("published")) <= 72], key=lambda v: v.get("views_per_hour", 0), reverse=True)[:15]
+    pop = [v for v in yt if v["src"] == "인기 급상승" and v.get("category") not in ("10", "17", "20")][:12]
+    for v in kids + pop:
+        pool["yt:" + v["id"]] = {"kind": "youtube", "title": v["title"], "channel": v["channel"], "views": v["views"], "likes": v["likes"],
+                                 "comments": v["comments"], "short": v["short"], "src": v["src"], "thumb": v.get("thumb"), "url": v["url"],
+                                 "timestamp": v.get("published"), "caption": f"{v['title']}\n{v.get('desc', '')[:300]}"}
     for t in ((data.get("trends") or {}).get("items") or [])[:25]:
         if hours_ago(t.get("at")) > 48:
             continue
@@ -171,6 +179,8 @@ def pool_text(pool):
             out.append(f"[id] {pid}\n인스타 @{x['handle']} ({x['cat']}) · 좋아요 {x['likes']} · 평소 대비 ×{x.get('ratio')} · {str(x['timestamp'])[:10]}\n{(x['caption'] or '')[:350]}")
         elif x["kind"] == "cafe":
             out.append(f"[id] {pid}\n맘카페 {x['cafe']} · 조회 {x['reads']} · 댓글 {x['comments']} · {str(x['timestamp'])[:10]}\n{x['title']}")
+        elif x["kind"] == "youtube":
+            out.append(f"[id] {pid}\n유튜브 {'쇼츠' if x['short'] else '영상'} ({x['src']}) · {x['channel']} · 조회 {x['views']} · 좋아요 {x['likes']} · {str(x['timestamp'])[:10]}\n{x['caption'][:350]}")
         else:
             out.append(f"[id] {pid}\n{x['caption']}")
     return "\n\n".join(out)

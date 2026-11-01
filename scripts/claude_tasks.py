@@ -16,7 +16,7 @@ PASS = os.environ.get("BOARD_PASS", "bs2026")
 KST = timezone(timedelta(hours=9))
 NOW = datetime.now(KST)
 MODEL = os.environ.get("CLAUDE_MODEL", "sonnet")
-MAX_PICKS, MAX_ADS, ADS_BATCH, SCRIPT_BATCH = 12, 40, 20, 4
+MAX_PICKS, MAX_ADS, ADS_BATCH, SCRIPT_BATCH = 18, 40, 20, 4
 ONLY = set(filter(None, os.environ.get("ONLY", "").split(",")))  # 예: ONLY=A  (요청만)
 
 
@@ -132,7 +132,7 @@ CURATE_PROMPT = """너는 유튜버 고몽(김웅현)의 **신규 채널** 숏�
 
 1) issues: 지금 뜨는 이슈 3~6개. 여러 후보가 같은 주제를 다루거나(채널 2곳 이상·맘카페·검색어가 겹침), 검색량이 큰 화제를 묶는다.
    각 이슈: title(15자 이내), summary(무슨 일인지 1~2문장, 후보 내용만 근거), ids(관련 후보 id 목록), why_now(왜 지금 다룰 만한지 1문장), fit(1~10, 우리 채널 적합도)
-2) picks: 오늘 찍을 후보 10~12개. 시리즈 배분: 아이랑 갈 곳 2~3, 왜 그럴까 2~3, 밈·트렌드 2, 화제 1~2, 육아 정보 1~2, 맘카페 화제 1~2. 같은 계정은 1개까지.
+2) picks: 오늘 찍을 후보 15~18개. 시리즈 배분: 아이랑 갈 곳 4~5, 왜 그럴까 4~5, 밈·트렌드 2~3, 화제 1~2, 육아 정보 2~3, 맘카페 화제 1~2. 후보가 모자란 시리즈는 억지로 채우지 않는다. 같은 계정은 시리즈당 1개까지.
    각 pick: id(후보 id 그대로), series, score(1~10), reason(왜 고몽 채널에 맞는지 1문장, 구체적으로), angle(시청자가 궁금해할 질문 하나), gomong_angle(고몽다운 풀이 한 줄: 이야기꾼·영화/드라마 비유, 딸 둘 아빠 시선, 자기 고백형 유머 중 자연스러운 것. 2년 넘은 옛날 밈은 쓰지 않는다. 억지면 빈 문자열. 고몽이 실제로 겪은 일(병원·펫로스·육아 에피소드 등)을 사실처럼 지어내지 말고, 필요하면 '고몽 본인 경험이 있다면 ~로'처럼 조건으로 쓴다)
 
 [점수 기준] 시의성(지금 이야기되는가), 반응(평소 대비 배수 lift가 높을수록, 여러 곳에서 동시에 언급될수록), 해설할 거리(왜·어떻게를 풀 수 있는가), 3·6살 아이 키우는 집과의 연결, 고몽 캐릭터와의 궁합.
@@ -141,25 +141,31 @@ CURATE_PROMPT = """너는 유튜버 고몽(김웅현)의 **신규 채널** 숏�
 @@CHANNEL_RULES@@
 [제외] 광고·공구, 지역 한정 정보, 이미 끝난 행사, 내용 없는 근황. 유튜브는 음악·게임·스포츠 중계, 남의 영상 짜깁기('썰' 재업로드·AI 낭독)는 소재 참고만 하고, 원본 출처가 분명한 것을 우선한다.
 
-출력은 JSON 객체만: {"issues":[...], "picks":[...]}
+3) trends: 후보 중 '구글 급상승' 검색어마다 우리 채널 카테고리(육아·가족, 아이랑 갈 곳, 생활 경제·소비, 밈·트렌드, 화제)와의 관련도를 매겨라.
+   관련도 6 이상인 것만: title(검색어 그대로), fit(1~10), category(위 카테고리 중 하나), note(우리 채널에서 어떻게 다룰 수 있는지 1문장). 스포츠 경기, 사건·사고, 정치, 해외 연예 가십은 넣지 않는다. 없으면 빈 배열.
+
+출력은 JSON 객체만: {"issues":[...], "picks":[...], "trends":[...]}
 """
 
 
 def build_pool(data):
     pool = {}
-    posts = [p for p in data["instagram"]["posts"] if not p.get("flag") and not p.get("ad") and not p.get("ended")
-             and (p.get("likes") or 0) >= 100 and len((p.get("caption") or "").strip()) >= 30 and hours_ago(p.get("timestamp")) <= 72]
-    posts.sort(key=lambda p: ((p.get("ratio") or 0) * 2 + max(0, 3 - hours_ago(p.get("timestamp")) / 24)), reverse=True)
-    for p in posts[:55]:
-        pool[p["permalink"]] = {"kind": "instagram", **{k: p.get(k) for k in ("handle", "cat", "caption", "likes", "comments", "ratio", "timestamp", "permalink", "thumb", "media_type", "event_end")}}
+    def ok(p):
+        lim = 168 if p.get("cat") == "아이랑 갈 곳" else 72
+        return (not p.get("flag") and not p.get("ad") and not p.get("ended") and (p.get("likes") or 0) >= 100
+                and len((p.get("caption") or "").strip()) >= 30 and hours_ago(p.get("timestamp")) <= lim)
+    rank = lambda p: (p.get("ratio") or 0) * 2 + max(0, 3 - hours_ago(p.get("timestamp")) / 24)
+    per_cat = {"아이랑 갈 곳": 30, "해설·인물": 25, "밈·트렌드": 20, "육아 정보": 20}
+    for cat, n in per_cat.items():
+        for p in sorted([p for p in data["instagram"]["posts"] if p.get("cat") == cat and ok(p)], key=rank, reverse=True)[:n]:
+            pool[p["permalink"]] = {"kind": "instagram", **{k: p.get(k) for k in ("handle", "cat", "caption", "likes", "comments", "ratio", "timestamp", "permalink", "thumb", "media_type", "event_end")}}
     cafes = [r for r in data.get("cafe", []) if not r.get("flag") and (r.get("reads") or 0) >= 100 and hours_ago(r.get("written_at")) <= 72]
     cafes.sort(key=lambda r: (r.get("reads") or 0) + (r.get("comments") or 0) * 20, reverse=True)
     for r in cafes[:20]:
         pool[r["url"]] = {"kind": "cafe", **{k: r.get(k) for k in ("cafe", "title", "reads", "comments", "written_at", "url")}, "timestamp": r.get("written_at")}
     yt = (data.get("youtube") or {}).get("items") or []
-    kids = sorted([v for v in yt if v["src"].startswith("육아") and hours_ago(v.get("published")) <= 72], key=lambda v: v.get("views_per_hour", 0), reverse=True)[:15]
-    pop = [v for v in yt if v["src"] == "인기 급상승" and v.get("category") not in ("10", "17", "20")][:12]
-    for v in kids + pop:
+    kids = sorted([v for v in yt if v["src"].startswith("육아") and v.get("shootable") and hours_ago(v.get("published")) <= 96], key=lambda v: v.get("views_per_hour", 0), reverse=True)[:8]
+    for v in kids:
         pool["yt:" + v["id"]] = {"kind": "youtube", "title": v["title"], "channel": v["channel"], "views": v["views"], "likes": v["likes"],
                                  "comments": v["comments"], "short": v["short"], "src": v["src"], "thumb": v.get("thumb"), "url": v["url"],
                                  "timestamp": v.get("published"), "caption": f"{v['title']}\n{v.get('desc', '')[:300]}"}
@@ -205,8 +211,15 @@ def curate(data):
     for it in res.get("issues", []):
         ids = [i for i in it.get("ids", []) if i in pool]
         issues.append({**{k: it.get(k) for k in ("title", "summary", "why_now", "fit")}, "items": [{"id": i, **pool[i]} for i in ids]})
+    tmap = {t["title"]: t for t in ((data.get("trends") or {}).get("items") or [])}
+    trends = []
+    for t in res.get("trends", []) or []:
+        src = tmap.get(t.get("title"))
+        if src and (t.get("fit") or 0) >= 6:
+            trends.append({**src, "fit": t.get("fit"), "category": t.get("category"), "note": t.get("note")})
+    trends.sort(key=lambda t: t.get("fit") or 0, reverse=True)
     return {"date": NOW.strftime("%Y-%m-%d"), "generated_at": NOW.isoformat(), "source_updated_at": data.get("updated_at"),
-            "model": "claude-" + MODEL, "pool_size": len(pool), "issues": issues, "picks": picks}
+            "model": "claude-" + MODEL, "pool_size": len(pool), "issues": issues, "picks": picks, "trends": trends}
 
 
 # ---------------------------------------------------------------- 일정 확인 (웹 검색, Claude Code 내장 검색 · 추가 API 불필요)
@@ -252,24 +265,51 @@ CHANNEL_RULES = """[신규 채널 촬영 원칙 — 아이 등장]
 - 정보·설명 파트는 고몽이 직접 말하거나 화면 그래픽으로 처리하고, 아이는 그 앞뒤의 일상 장면에 자연스럽게 나온다.
 - 아이 이름, 다니는 기관, 사는 동네 같은 개인 정보는 넣지 않는다. 아이를 놀리거나 우는 모습을 웃음 소재로 쓰지 않는다. 남의 영상을 퍼오거나 '썰' 낭독 형식은 쓰지 않는다."""
 
+CLASSIFY_PROMPT = """아래는 유튜브 육아 쇼츠 목록이다. 우리 채널은 크리에이터(아빠 고몽)와 아이들이 영상 전체를 직접 끌고 가는 형식만 찍는다.
+각 영상이 우리가 **같은 구도로 직접 찍을 수 있는 형식**인지 판정해라.
+- shootable=true: 부모(크리에이터)가 직접 출연해 아이와 일상·놀이·상황극·꿀팁을 보여주는 영상
+- shootable=false: 뉴스·방송 클립 재가공, CCTV·블랙박스, 남의 영상 짜깁기·모음, 썰·사연 낭독, AI 생성, 동물·연예인 방송 클립, 아이 단독 출연(부모 없음)
+각 항목 JSON: id(그대로), shootable(true/false), format(형식 한 줄, 예: '아빠 시점 상황극', '엄마 꿀팁 토크+시연'), reason(판정 이유 짧게)
+출력은 JSON 배열만."""
+
 FORMAT_PROMPT = """너는 유튜버 고몽(김웅현)의 신규 채널 숏폼 기획 PD다. 고몽은 영화·드라마 해설 10년차 '스토리 중독자'이고 3살·6살 두 딸 아빠다.
 유튜브 10년은 해설 채널 경력이고 육아는 첫째 기준 약 6년이다. '육아 10년차' 같은 경력이나 고몽이 실제 겪은 일을 지어내지 말고, 기획은 '이렇게 찍어보자'는 제안으로 쓴다.
-아래는 요즘 조회가 잘 나오는 육아 쇼츠들이다. 이 영상을 그대로 쓰거나 따라 찍지 않는다. **왜 잘 됐는지(형식·감정·훅)만 뽑아서** 고몽 채널 버전으로 다시 기획해라.
+아래는 부모가 직접 출연하는, 요즘 조회가 잘 나오는 육아 쇼츠들이다. 그대로 따라 찍지 않는다. **왜 잘 됐는지(형식·감정·훅)만 뽑아서** 고몽 채널 버전으로 다시 기획해라.
+핵심: 고몽과 아이들이 영상 처음부터 끝까지 직접 끌고 간다. 뉴스 화면, CCTV, 남의 영상, 자료 화면에 기대는 구성은 쓰지 않는다. 집·동네·차 안·놀이터처럼 실제로 찍을 수 있는 장소와 구도로 짠다.
 
 """ + CHANNEL_RULES + """
 
-좋은 레퍼런스 6~8개를 골라(짜깁기·낭독 채널이어도 '형식'이 좋으면 골라도 되지만 원본을 쓰지 않는다) 각각 JSON 객체로:
+좋은 레퍼런스 6~8개를 골라 각각 JSON 객체로:
 id(그대로), why_it_works(잘 된 이유 1문장: 훅·공감 포인트·형식), gomong_title(고몽 버전 제목 15자 이내),
-gomong_idea(고몽이 아이들과 노는 형태의 기획 1~2문장), hook(첫 2초 대사 또는 자막 한 줄, 고몽 말투, 옛날 밈 금지),
-shots(촬영 구성 3~5컷 배열. 정보 파트는 고몽 토크나 그래픽, 아이는 자연스러운 일상 장면으로), privacy(아이 등장 방식 한 줄: 어떤 장면에 자연스럽게 나오는지, 설명 배경으로 쓰지 않는 방법),
+gomong_idea(고몽이 아이들과 직접 찍는 기획 1~2문장), hook(첫 2초 대사 또는 자막 한 줄, 고몽 말투, 옛날 밈 금지),
+shots(촬영 구성 3~5컷 배열: 장소·구도·누가 무엇을 하는지. 정보 파트는 고몽 토크), privacy(아이 등장 방식 한 줄),
 props(필요한 소품·장소, 없으면 ""), series(아이랑 갈 곳/육아 정보/밈·트렌드 중 가장 가까운 것)
 출력은 JSON 배열만.
 """
 
 
+def classify_shorts(data):
+    yt = (data.get("youtube") or {}).get("items") or []
+    cand = sorted([v for v in yt if v["src"].startswith("육아") and not v.get("skip") and hours_ago(v.get("published")) <= 96],
+                  key=lambda v: v.get("views_per_hour", 0), reverse=True)[:45]
+    if not cand:
+        return {}
+    body = "\n".join(f"[id] yt:{v['id']} | {v['channel']} | {v['title']} | {(v.get('desc') or '')[:120]}" for v in cand)
+    arr = parse_json(claude(CLASSIFY_PROMPT + "\n\n" + body), list)
+    if not isinstance(arr, list):
+        print("  [분류] 파싱 실패"); return {}
+    return {a["id"]: {"shootable": bool(a.get("shootable")), "format": a.get("format", ""), "reason": a.get("reason", "")} for a in arr if isinstance(a, dict) and a.get("id")}
+
+
+def apply_review(data, review):
+    for v in (data.get("youtube") or {}).get("items") or []:
+        r = review.get("yt:" + v["id"])
+        v["shootable"] = bool(r and r["shootable"])
+
+
 def make_formats(data):
     yt = (data.get("youtube") or {}).get("items") or []
-    kids = sorted([v for v in yt if v["src"].startswith("육아") and hours_ago(v.get("published")) <= 96], key=lambda v: v.get("views_per_hour", 0), reverse=True)[:18]
+    kids = sorted([v for v in yt if v["src"].startswith("육아") and v.get("shootable") and hours_ago(v.get("published")) <= 96], key=lambda v: v.get("views_per_hour", 0), reverse=True)[:14]
     if not kids:
         return []
     body = "\n\n".join(f"[id] yt:{v['id']}\n{v['channel']} · 조회 {v['views']} · 좋아요 {v['likes']} · 댓글 {v['comments']} · {v.get('duration')}초\n제목: {v['title']}\n설명: {(v.get('desc') or '')[:200]}" for v in kids)
@@ -318,12 +358,16 @@ def main():
         json.dump(ai, open(ai_path, "w", encoding="utf-8"), ensure_ascii=False)
         open(".ai_updated", "w").write("1")
         report["일정 확인"] = len(checks)
-    if "G" in ONLY and ai.get("picks"):  # 육아 쇼츠 포맷만 다시
+    if "G" in ONLY and ai.get("picks"):  # 육아 쇼츠 분류·포맷만 다시
+        ai["yt_review"] = classify_shorts(data)
+        apply_review(data, ai["yt_review"])
         ai["formats"] = make_formats(data)
         json.dump(ai, open(ai_path, "w", encoding="utf-8"), ensure_ascii=False)
         open(".ai_updated", "w").write("1")
         report["포맷"] = len(ai["formats"])
     if need_e:
+        review = classify_shorts(data)
+        apply_review(data, review)
         new = curate(data)
         if new:
             checks = verify_dates(date_targets(new))
@@ -331,6 +375,7 @@ def main():
                 if x.get("id") in checks:
                     x["date_check"] = checks[x["id"]]
             new["date_checked"] = len(checks)
+            new["yt_review"] = review
             new["formats"] = make_formats(data)
             ai = new
             json.dump(ai, open(ai_path, "w", encoding="utf-8"), ensure_ascii=False)

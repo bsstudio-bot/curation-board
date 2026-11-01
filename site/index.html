@@ -99,6 +99,7 @@ td.brands{font-size:12.5px}td.brands a{color:#2563EB;text-decoration:none}
 .igrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:12px;margin-bottom:8px}.issue{background:#fff;border:1px solid var(--line);border-radius:12px;padding:12px 14px}.ih{display:flex;justify-content:space-between;align-items:center;gap:8px;font-size:15px}.is{font-size:13px;margin:6px 0}.iw{font-size:12px;color:var(--sub)}.isrc{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}.isrc a,.isrc span{font-size:12px;background:#F4F1EA;border-radius:6px;padding:2px 7px;color:var(--navy);text-decoration:none}
 .guide{display:flex;gap:16px;justify-content:space-between;align-items:flex-start;background:#FFF6E8;border:1px solid #F3D9B1;border-radius:12px;padding:12px 16px;margin:12px 0 4px;font-size:13.5px}.guide ul{margin:6px 0 0;padding-left:18px;line-height:1.7}.gbtn{display:flex;gap:6px;flex-shrink:0}
 .fgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));gap:12px}.fmt{background:#fff;border:1px solid var(--line);border-radius:12px;padding:12px 14px;font-size:13px}.fref{display:flex;gap:10px;text-decoration:none;color:var(--sub);font-size:12px;align-items:center}.fth{width:54px;height:72px;border-radius:6px;background:#eee center/cover;flex-shrink:0}.fwhy{color:var(--sub);font-size:12px;margin:8px 0}.ftitle{font-weight:800;font-size:15px}.fidea{margin:4px 0 6px}.fshots{margin:6px 0;padding-left:18px;line-height:1.6}.fpriv{font-size:12px;background:#EEF0F5;border-radius:6px;padding:5px 8px}
+.fbrow{display:flex;gap:6px;align-items:center;margin-top:6px;flex-wrap:wrap}.fbb{font-size:11.5px;border:1px solid var(--line);background:#fff;border-radius:6px;padding:3px 8px;cursor:pointer;color:var(--sub)}.fbb.on{background:var(--navy);color:#fff;border-color:var(--navy)}.fbtag{font-size:11.5px;font-weight:700;border-radius:4px;padding:2px 6px}.fbtag.ex{background:#F4F1EA;color:#6B6458}.fbtag.mk{background:#E8F5EC;color:#14532D}
 .why{display:flex;gap:5px;flex-wrap:wrap}.why span{font-size:11px;background:#F4F1EA;border-radius:4px;padding:2px 6px;color:var(--navy)}
 @media(max-width:640px){.search{width:100%;margin-left:0}.grid{grid-template-columns:1fr 1fr}.thumb{aspect-ratio:1}}
 </style>
@@ -118,7 +119,7 @@ const API='https://script.google.com/macros/s/AKfycbx_bxTi39uwrssjbst255QjPBY_p1
 const CATS=['아이랑 갈 곳','육아 정보','해설·인물','밈·트렌드'];
 const CAT_DAYS={'아이랑 갈 곳':7,'육아 정보':30,'해설·인물':30,'밈·트렌드':30};
 const TABS=['오늘의 추천','반응 좋은 글',...CATS,'맘카페 인기글','찜한 후보','스크립트','참고) 광고·공구','채널 목록'];
-let AT={}, AI=null, ruleView=false, ADS={}, SC={}, SCQ=new Set(), D=null, tab='오늘의 추천', sort='new', cafeSel='전체', kidOnly=false, q='', bmMode='week', CH=null, BM={}, LOOKUP={}, busy=false;
+let FB={}, showEx=false, bmTab='찜', AT={}, AI=null, ruleView=false, ADS={}, SC={}, SCQ=new Set(), D=null, tab='오늘의 추천', sort='new', cafeSel='전체', kidOnly=false, q='', bmMode='week', CH=null, BM={}, LOOKUP={}, busy=false;
 const open_={};
 const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const fmt=n=>n==null?'-':n>=10000?(n/10000).toFixed(n>=100000?0:1)+'만':Math.round(n).toLocaleString();
@@ -191,7 +192,14 @@ function cafeTable(rows){if(!rows.length)return '<div class="empty">없음</div>
 function topicsView(){const T=D.topics||[];if(!T.length)return '';
   return '<div class="sec">요즘 엄마들 관심사<small>이번 주 맘카페 인기글 주제별 집계 · 광고·지역·단순 현황 글 제외</small></div><div class="tgrid">'+T.map(t=>{const ch=t.prev_count==null?'':(t.count>t.prev_count?'<span class="up">▲'+(t.count-t.prev_count)+'</span>':t.count<t.prev_count?'<span class="down">▼'+(t.prev_count-t.count)+'</span>':'<span class="flat">-</span>');
     return '<div class="topic"><div class="th">'+esc(t.topic)+' <b>'+t.count+'건</b> '+ch+'<small>조회 '+fmt(t.reads)+'</small></div><ul>'+t.samples.slice(0,4).map(x=>'<li><a href="'+esc(x.url)+'" target="_blank" rel="noopener">'+esc(x.title)+'</a> <small>'+esc(x.cafe)+' · 조회 '+fmt(x.reads)+' · 댓글 '+x.comments+'</small></li>').join('')+'</ul></div>'}).join('')+'</div>'}
-function bmView(A){const items=Object.entries(BM).map(([id,v])=>({id,...v})).sort((a,b)=>(b.savedAt||'').localeCompare(a.savedAt||''));
+function fbList(A,status){const L=Object.values(FB).filter(f=>f.status===status).sort((a,b)=>(b.at||'').localeCompare(a.at||''));
+  if(!L.length)return '<div class="empty">'+(status==='제작함'?'카드의 ✅ 제작함을 누르면 여기에 모여요.':'카드의 🚫 제외를 누르면 여기에 모여요. 제외한 소재는 Claude가 참고해서 비슷한 건 덜 추천해요.')+'</div>';
+  return '<div class="grid">'+L.map(f=>{const x={...(f.item||{}),id:f.id};const note='<div class="saved">'+esc(f.by||'')+' · '+kst(f.at)+' '+status+'</div>';return anyCard(x,A,note)}).join('')+'</div>'}
+function bmView(A){const nMk=Object.values(FB).filter(f=>f.status==='제작함').length,nEx=Object.values(FB).filter(f=>f.status==='제외').length;
+  const tabs='<div class="bar">'+[['찜','★ 찜 '+Object.keys(BM).length],['제작함','✅ 제작함 '+nMk],['제외','🚫 제외 '+nEx]].map(([k,t])=>'<button class="chip'+(bmTab===k?' on':'')+'" data-bmtab="'+k+'">'+t+'</button>').join('')+'</div>';
+  if(bmTab!=='찜')return tabs+fbList(A,bmTab);
+  return tabs+bmView0(A)}
+function bmView0(A){const items=Object.entries(BM).map(([id,v])=>({id,...v})).sort((a,b)=>(b.savedAt||'').localeCompare(a.savedAt||''));
   let h='<div class="bar"><span class="lbl">폴더 기준</span>'+[['week','주차별'],['date','날짜별']].map(([k,t])=>'<button class="chip'+(bmMode===k?' on':'')+'" data-bm="'+k+'">'+t+'</button>').join('')+'<span class="lbl" style="margin-left:auto">찜한 날 기준 · 팀 전체 공유</span><button class="chip" data-export="1">CSV 내보내기</button></div>';
   if(!items.length)return h+'<div class="empty">카드나 표의 ★를 누르면 찜한 날짜·주차 폴더로 모여요. 팀원 모두에게 보여요.</div>';
   const groups={};for(const it of items){const g=(bmMode==='week'?weekKey:dateKey)(it.savedAt);(groups[g.key]=groups[g.key]||{label:g.label,items:[]}).items.push(it)}
@@ -211,7 +219,13 @@ function channelView(){const A=accMap();const list=CH||D.instagram.accounts.map(
   const ce=D.errors.cafe||[];if(ce.length)h+='<div class="note">맘카페 수집 메모: '+ce.map(e=>esc(e.cafe+' '+e.error)).join(' / ')+'</div>';return h}
 
 // ---------- 숏폼 스크립트 ----------
-const scBtn=id=>SCQ.has(id)&&!SC[id]?'<button class="scbtn wait" disabled>⏳ Claude가 쓰는 중 · 완료되면 바뀌어요</button>':'<button class="scbtn'+(SC[id]?' has':'')+'" data-sc="'+esc(id)+'">'+(SC[id]?'📄 스크립트 보기'+(SCQ.has(id)?' (다시 쓰는 중)':''):'✍️ 스크립트 쓰기')+'</button>';
+const scBtn0=id=>SCQ.has(id)&&!SC[id]?'<button class="scbtn wait" disabled>⏳ Claude가 쓰는 중 · 완료되면 바뀌어요</button>':'<button class="scbtn'+(SC[id]?' has':'')+'" data-sc="'+esc(id)+'">'+(SC[id]?'📄 스크립트 보기'+(SCQ.has(id)?' (다시 쓰는 중)':''):'✍️ 스크립트 쓰기')+'</button>';
+const fbBtns=id=>{const f=FB[id];return '<div class="fbrow">'+(f?'<span class="fbtag '+(f.status==='제외'?'ex':'mk')+'">'+(f.status==='제외'?'🚫 제외':'✅ 제작함')+' · '+esc(f.by||'')+'</span>':'')+'<button class="fbb'+(f&&f.status==='제작함'?' on':'')+'" data-fb="'+esc(id)+'" data-fbs="제작함">✅ 제작함</button><button class="fbb'+(f&&f.status==='제외'?' on':'')+'" data-fb="'+esc(id)+'" data-fbs="제외">🚫 제외</button></div>'};
+const scBtn=id=>scBtn0(id)+fbBtns(id);
+async function setFB(id,status){if(busy)return;const item=LOOKUP[id]||(FB[id]&&FB[id].item)||(BM[id]&&BM[id].item)||{};const cur=FB[id];const next=cur&&cur.status===status?'':status;
+  if(!askUser(false))return;busy=true;const prev=cur;if(next)FB[id]={status:next,by:(getUser()||{}).name,at:new Date().toISOString(),item};else delete FB[id];render();
+  try{const j=await api('setFeedback',{id,status:next,item});FB={};for(const x of j.feedback||[])FB[x.id]=x;toast(next==='제외'?'제외했어요. 내일 큐레이션부터 비슷한 소재가 덜 올라와요':next==='제작함'?'제작함으로 표시했어요 (팀 전체 공유)':'표시를 해제했어요')}
+  catch(e){if(prev)FB[id]=prev;else delete FB[id];toast('저장 실패: '+e.message,1)}finally{busy=false;render()}}
 function scText(sc){return (sc.lines||[]).map(l=>l.say).join('\n')}
 function scFull(sc){return '['+(sc.title||'')+']\n'+(sc.title_bar?'상단 제목: '+sc.title_bar+'\n':'')+'\n'+(sc.lines||[]).map(l=>'- '+l.say+(l.screen?'   [화면: '+l.screen+']':'')).join('\n')+'\n\n캡션: '+(sc.caption||'')+'\n'+(sc.hashtags||[]).join(' ')+'\n\n촬영 전 확인: '+(sc.checks||[]).join(' / ')+'\n출처: '+(sc.source||'')+((sc.research||[]).length?'\n\n조사한 정보:\n'+sc.research.map(r=>'- '+(r.fact||'')+' ('+(r.source||'')+')').join('\n'):'')}
 function scModal(id,loading){const m=document.getElementById('modal');const it=SC[id]||{};const sc=it.script;const src=LOOKUP[id]||it.item||{};
@@ -234,7 +248,7 @@ async function genScript(id){const item=LOOKUP[id]||(SC[id]&&SC[id].item);if(!it
     toast('Claude에게 요청했어요. 끝나면 버튼이 \'스크립트 보기\'로 바뀌어요')}catch(e){toast(e.message,1)}}
 let pollH=null;function startPoll(){if(pollH)return;pollH=setInterval(async()=>{if(!SCQ.size){clearInterval(pollH);pollH=null;return}
   try{const s=await fetch(API+'?action=all').then(r=>r.json());if(s.ok)applyShared(s)}catch(e){}},60000)}
-function applyShared(s){CH=s.channels;bmFromList(s.bookmarks);const before=new Set(Object.keys(SC));SC={};for(const x of s.scripts||[])SC[x.id]={script:x.script,by:x.by,created_at:x.created_at,model:x.model,item:x.item};
+function applyShared(s){CH=s.channels;bmFromList(s.bookmarks);FB={};for(const x of s.feedback||[])FB[x.id]=x;const before=new Set(Object.keys(SC));SC={};for(const x of s.scripts||[])SC[x.id]={script:x.script,by:x.by,created_at:x.created_at,model:x.model,item:x.item};
   SCQ=new Set((s.queued||[]).map(q=>q.id));const fresh=Object.keys(SC).filter(id=>!before.has(id));if(fresh.length&&before.size)toast('새 스크립트 '+fresh.length+'개가 도착했어요');render()}
 function openScript(id){if(SC[id])scModal(id);else{if(!askUser(false))return;if(confirm('Claude에게 이 글의 스크립트를 부탁할까요? (웹 조사 포함 보통 2~4분)'))genScript(id)}}
 function scriptView(){let h='<details class="folder guide" open><summary>📘 종합 가이드 <small>모든 스크립트가 이 기준으로 써져요</small></summary><div class="gbody">'+GUIDE_HTML+'</div></details>';
@@ -320,7 +334,7 @@ function render(){if(!D)return;const A=accMap(),P=D.instagram.posts;
   let h='';
   if(tab==='오늘의 추천'){const today=new Date().toLocaleDateString('en-CA',{timeZone:'Asia/Seoul'});const useAI=AI&&AI.picks&&AI.picks.length&&!ruleView;
     h+='<div class="bar">'+(AI&&AI.picks?'<button class="chip'+(!ruleView?' on':'')+'" data-rv="0">Claude 큐레이션'+(AI.date!==today?' ('+AI.date+')':'')+'</button><button class="chip'+(ruleView?' on':'')+'" data-rv="1">규칙 기반</button>':'')+'<span class="lbl" style="margin-left:auto">'+(useAI?'고몽 신규 채널 기준 · '+kst(AI.generated_at)+' · 후보 '+AI.pool_size+'개 중':'')+'</span></div>';
-    if(useAI){h+=issuesView();const order=['아이랑 갈 곳','왜 그럴까','밈·트렌드','화제','육아 정보','맘카페 화제'];const P2=AI.picks.filter(x=>x.kind!=='instagram'||!adType(x.caption));
+    if(useAI){h+=issuesView();const order=['아이랑 갈 곳','왜 그럴까','밈·트렌드','화제','육아 정보','맘카페 화제'];const P2all=AI.picks.filter(x=>x.kind!=='instagram'||!adType(x.caption));const exN=P2all.filter(x=>FB[x.id]&&FB[x.id].status==='제외').length;const P2=showEx?P2all:P2all.filter(x=>!(FB[x.id]&&FB[x.id].status==='제외'));if(exN)h+='<div class="note" style="margin:8px 0">팀이 제외한 '+exN+'개는 숨겼어요. <a href="#" data-showex="1">'+(showEx?'다시 숨기기':'보기')+'</a></div>';
       for(const sname of [...order,...new Set(P2.map(x=>x.series).filter(x=>!order.includes(x)))]){const g=P2.filter(x=>x.series===sname).sort((a,b)=>(b.score||0)-(a.score||0));if(!g.length)continue;h+='<div class="sec">'+esc(sname)+'<small>'+g.length+'개</small></div><div class="grid">'+g.map(x=>anyCard(x,A,aiChips(x))).join('')+'</div>'}
       h+=formatsView()+ytView()+trendsView();
     } else {
@@ -357,6 +371,9 @@ document.addEventListener('click',async e=>{const a=e.target.closest('a#chgUser'
   if(t.dataset.adcsv){adCSV()}
   if(t.dataset.export){exportCSV()}
   if(t.dataset.star){e.preventDefault();toggleBM(t.dataset.star)}
+  if(t.dataset.fb){e.preventDefault();setFB(t.dataset.fb,t.dataset.fbs)}
+  if(t.dataset.showex){e.preventDefault();showEx=!showEx;render()}
+  if(t.dataset.bmtab){bmTab=t.dataset.bmtab;render()}
   if(t.dataset.sc){openScript(t.dataset.sc)}
   if(t.dataset.scgen){genScript(t.dataset.scgen)}
   if(t.dataset.mclose){document.getElementById('modal').className='modal'}

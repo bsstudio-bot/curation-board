@@ -138,6 +138,7 @@ CURATE_PROMPT = """너는 유튜버 고몽(김웅현)의 **신규 채널** 숏�
 [점수 기준] 시의성(지금 이야기되는가), 반응(평소 대비 배수 lift가 높을수록, 여러 곳에서 동시에 언급될수록), 해설할 거리(왜·어떻게를 풀 수 있는가), 3·6살 아이 키우는 집과의 연결, 고몽 캐릭터와의 궁합.
 [화제·가십 원칙 — 렉카 금지] 공식 발표, 작품·방송 화제, 본인이 공개한 결혼·출산·육아 소식, 훈훈한 장면, 사회적으로 이야기할 거리는 OK.
 사생활 폭로, 루머·열애설·이혼설, 사건·사고 피해자, 논란 몰이, 특정인 비난, 사망·범죄, 정치, 해외 스포츠 경기 결과는 고르지 않는다. 화제 픽은 사람보다 현상을 이야기할 수 있어야 한다.
+@@CHANNEL_RULES@@
 [제외] 광고·공구, 지역 한정 정보, 이미 끝난 행사, 내용 없는 근황. 유튜브는 음악·게임·스포츠 중계, 남의 영상 짜깁기('썰' 재업로드·AI 낭독)는 소재 참고만 하고, 원본 출처가 분명한 것을 우선한다.
 
 출력은 JSON 객체만: {"issues":[...], "picks":[...]}
@@ -190,7 +191,7 @@ def curate(data):
     pool = build_pool(data)
     if not pool:
         return None
-    res = parse_json(claude(CURATE_PROMPT + "\n\n오늘 날짜: " + NOW.strftime("%Y-%m-%d") + "\n\n[후보]\n" + pool_text(pool)), dict)
+    res = parse_json(claude(CURATE_PROMPT.replace("@@CHANNEL_RULES@@", CHANNEL_RULES) + "\n\n오늘 날짜: " + NOW.strftime("%Y-%m-%d") + "\n\n[후보]\n" + pool_text(pool)), dict)
     if not isinstance(res, dict) or not res.get("picks"):
         print("  [E] 파싱 실패"); return None
     picks = []
@@ -243,6 +244,45 @@ def date_targets(ai):
     return out[:10]
 
 
+# ---------------------------------------------------------------- G. 육아 쇼츠 → 고몽 버전 포맷 (그대로 쓰지 않고 형식만 빌린다)
+CHANNEL_RULES = """[신규 채널 촬영 원칙]
+- 화자는 고몽. 고몽이 아이들과 노는 장면이 중심이고, 아이는 '함께 노는 상대'로만 등장한다.
+- 아이 얼굴이 정면으로 그대로 나오는 구성은 피한다. 뒷모습, 손·발, 아이 시점(POV)이나 아빠 1인칭 시점, 목소리·웃음소리, 실루엣, 소품 클로즈업, 얼굴 가림(스티커·모자) 중 하나로 처리한다.
+- 아이 이름, 다니는 기관, 사는 동네 같은 개인 정보는 넣지 않는다.
+- 아이를 놀리거나 우는 모습을 웃음 소재로 쓰지 않는다. 남의 영상을 퍼오거나 '썰' 낭독 형식은 쓰지 않는다."""
+
+FORMAT_PROMPT = """너는 유튜버 고몽(김웅현)의 신규 채널 숏폼 기획 PD다. 고몽은 영화·드라마 해설 10년차 '스토리 중독자'이고 3살·6살 두 딸 아빠다.
+아래는 요즘 조회가 잘 나오는 육아 쇼츠들이다. 이 영상을 그대로 쓰거나 따라 찍지 않는다. **왜 잘 됐는지(형식·감정·훅)만 뽑아서** 고몽 채널 버전으로 다시 기획해라.
+
+""" + CHANNEL_RULES + """
+
+좋은 레퍼런스 6~8개를 골라(짜깁기·낭독 채널이어도 '형식'이 좋으면 골라도 되지만 원본을 쓰지 않는다) 각각 JSON 객체로:
+id(그대로), why_it_works(잘 된 이유 1문장: 훅·공감 포인트·형식), gomong_title(고몽 버전 제목 15자 이내),
+gomong_idea(고몽이 아이들과 노는 형태의 기획 1~2문장), hook(첫 2초 대사 또는 자막 한 줄, 고몽 말투, 옛날 밈 금지),
+shots(촬영 구성 3~5컷 배열, 각 컷에 아이 노출 방식 포함. 예: '고몽 얼굴 정면 + 아이는 손만'), privacy(아이 노출 처리 방법 한 줄),
+props(필요한 소품·장소, 없으면 ""), series(아이랑 갈 곳/육아 정보/밈·트렌드 중 가장 가까운 것)
+출력은 JSON 배열만.
+"""
+
+
+def make_formats(data):
+    yt = (data.get("youtube") or {}).get("items") or []
+    kids = sorted([v for v in yt if v["src"].startswith("육아") and hours_ago(v.get("published")) <= 96], key=lambda v: v.get("views_per_hour", 0), reverse=True)[:18]
+    if not kids:
+        return []
+    body = "\n\n".join(f"[id] yt:{v['id']}\n{v['channel']} · 조회 {v['views']} · 좋아요 {v['likes']} · 댓글 {v['comments']} · {v.get('duration')}초\n제목: {v['title']}\n설명: {(v.get('desc') or '')[:200]}" for v in kids)
+    arr = parse_json(claude(FORMAT_PROMPT + "\n\n" + body), list)
+    if not isinstance(arr, list):
+        print("  [G] 파싱 실패"); return []
+    ref = {"yt:" + v["id"]: v for v in kids}
+    out = []
+    for f in arr:
+        v = ref.get(f.get("id"))
+        if isinstance(f, dict) and v:
+            out.append({**f, "ref": {"title": v["title"], "channel": v["channel"], "views": v["views"], "url": v["url"], "thumb": v.get("thumb"), "published": v.get("published")}})
+    return out
+
+
 CATS = "먹거리·간식/교구·도서/장난감·놀이/패션·잡화/생활·주방/여행·숙소·체험/뷰티·건강/가전·디지털/기타"
 ADS_PROMPT = f"""아래는 육아·키즈 인스타 계정의 광고·공구·이벤트 글이다. 각 글의 캡션만 근거로 상품 정보를 정리해라.
 캡션에 없는 내용은 빈 문자열로 둔다(추측 금지).
@@ -276,6 +316,11 @@ def main():
         json.dump(ai, open(ai_path, "w", encoding="utf-8"), ensure_ascii=False)
         open(".ai_updated", "w").write("1")
         report["일정 확인"] = len(checks)
+    if "G" in ONLY and ai.get("picks"):  # 육아 쇼츠 포맷만 다시
+        ai["formats"] = make_formats(data)
+        json.dump(ai, open(ai_path, "w", encoding="utf-8"), ensure_ascii=False)
+        open(".ai_updated", "w").write("1")
+        report["포맷"] = len(ai["formats"])
     if need_e:
         new = curate(data)
         if new:
@@ -284,10 +329,11 @@ def main():
                 if x.get("id") in checks:
                     x["date_check"] = checks[x["id"]]
             new["date_checked"] = len(checks)
+            new["formats"] = make_formats(data)
             ai = new
             json.dump(ai, open(ai_path, "w", encoding="utf-8"), ensure_ascii=False)
             open(".ai_updated", "w").write("1")
-            report["큐레이션"] = f"이슈 {len(ai['issues'])} · 추천 {len(ai['picks'])} (후보 {ai['pool_size']}) · 일정 확인 {ai.get('date_checked', 0)}"
+            report["큐레이션"] = f"이슈 {len(ai['issues'])} · 추천 {len(ai['picks'])} (후보 {ai['pool_size']}) · 일정 확인 {ai.get('date_checked', 0)} · 포맷 {len(ai.get('formats', []))}"
 
     # A + B: 스크립트
     jobsA = [(q["id"], q.get("item") or {}) for q in queue]

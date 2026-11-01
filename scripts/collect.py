@@ -504,6 +504,75 @@ def collect_trends(prev_items, now):
     return items[:60]
 
 
+# ---------------------------------------------------------------- 유튜브 (YouTube Data API, YT_KEY)
+YT_KID_QUERIES = ["육아", "아이랑 가볼만한곳", "유아 놀이", "육아 꿀팁", "아빠 육아", "초등 엄마"]
+
+
+def _iso_dur(d):
+    m = re.match(r"P(?:(\d+)D)?T?(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?", d or "")
+    if not m:
+        return None
+    dd, h, mi, se = (int(x or 0) for x in m.groups())
+    return dd * 86400 + h * 3600 + mi * 60 + se
+
+
+def _yt(path, **q):
+    q = {k: v for k, v in q.items() if v is not None}
+    return get_json("https://www.googleapis.com/youtube/v3/" + path + "?" + urllib.parse.urlencode(q), timeout=30)
+
+
+def _yt_videos(ids, key):
+    out = []
+    for i in range(0, len(ids), 50):
+        d = _yt("videos", part="snippet,statistics,contentDetails", id=",".join(ids[i:i + 50]), key=key)
+        out += d.get("items", [])
+    return out
+
+
+def _yt_row(v, src):
+    sn, st = v["snippet"], v.get("statistics", {})
+    dur = _iso_dur(v.get("contentDetails", {}).get("duration"))
+    short = dur is not None and dur <= 180
+    th = sn.get("thumbnails", {})
+    return {"id": v["id"], "src": src, "title": sn.get("title"), "channel": sn.get("channelTitle"), "published": sn.get("publishedAt"),
+            "views": int(st.get("viewCount", 0) or 0), "likes": int(st.get("likeCount", 0) or 0), "comments": int(st.get("commentCount", 0) or 0),
+            "duration": dur, "short": short, "category": sn.get("categoryId"), "desc": (sn.get("description") or "")[:500],
+            "thumb": (th.get("high") or th.get("medium") or th.get("default") or {}).get("url"),
+            "url": ("https://www.youtube.com/shorts/" if short else "https://www.youtube.com/watch?v=") + v["id"]}
+
+
+def collect_youtube(key, now):
+    if not key:
+        return None
+    rows, errs = {}, []
+    try:
+        d = _yt("videos", part="snippet,statistics,contentDetails", chart="mostPopular", regionCode="KR", maxResults=50, key=key)
+        for v in d.get("items", []):
+            rows[v["id"]] = _yt_row(v, "인기 급상승")
+    except Exception as e:  # noqa: BLE001
+        errs.append(f"인기: {str(e)[:80]}")
+    after = (now - timedelta(days=3)).astimezone(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+    ids = {}
+    for q in YT_KID_QUERIES:
+        try:
+            d = _yt("search", part="id", q=q, type="video", videoDuration="short", order="viewCount", publishedAfter=after,
+                    regionCode="KR", relevanceLanguage="ko", maxResults=15, key=key)
+            for it in d.get("items", []):
+                ids.setdefault(it["id"]["videoId"], q)
+        except Exception as e:  # noqa: BLE001
+            errs.append(f"{q}: {str(e)[:80]}")
+    try:
+        for v in _yt_videos([i for i in ids if i not in rows], key):
+            rows[v["id"]] = _yt_row(v, "육아 검색: " + ids[v["id"]])
+    except Exception as e:  # noqa: BLE001
+        errs.append(f"상세: {str(e)[:80]}")
+    items = sorted(rows.values(), key=lambda r: r["views"], reverse=True)
+    for r in items:
+        h = max(1.0, hours_since(r.get("published") or "", now))
+        r["views_per_hour"] = round(r["views"] / h)
+    return {"source": "youtube-data-api", "collected_at": now.isoformat(), "items": items, "errors": errs}
+
+
 API_URL = "https://script.google.com/macros/s/AKfycbx_bxTi39uwrssjbst255QjPBY_p1KNQwRA8KAgzj_h9DNHjcw3BUpfNZntsy8ItxEw/exec"
 
 
@@ -571,6 +640,7 @@ def main():
         except Exception as e:  # noqa: BLE001
             print("brand enrich failed", e)
     topics = topics_of(cafe_rows, now)
+    youtube = collect_youtube(os.environ.get("YT_KEY"), now) or prev.get("youtube")
     trends = collect_trends((prev.get("trends") or {}).get("items"), now)
     hist_path = os.path.join(ROOT, "site", "topics_history.json")
     hist = load(hist_path, {}) or {}
@@ -587,6 +657,7 @@ def main():
         "updated_at": now.isoformat(),
         "picks": picks,
         "topics": topics,
+        "youtube": youtube,
         "trends": {"source": "google-trends-kr", "collected_at": now.isoformat(), "items": trends},
         "brands": brands,
         "channels_source": channels.get("_source", "channels.json"),

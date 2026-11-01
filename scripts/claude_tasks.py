@@ -95,22 +95,31 @@ def item_text(it):
     return "\n".join(t)
 
 
-def write_scripts(jobs, guide, label):
-    """jobs: [(id, item)] → 묶어서 작성·저장. 저장 개수 반환."""
-    saved = 0
-    for i in range(0, len(jobs), SCRIPT_BATCH):
-        chunk = jobs[i:i + SCRIPT_BATCH]
-        body = "\n\n".join(f"### 글 {k + 1}\n{item_text(it)}" for k, (_, it) in enumerate(chunk))
-        prompt = (guide + "\n\n아래 글 " + str(len(chunk)) + "개 각각에 대해 위 형식의 대본 JSON을 하나씩 써라. "
-                  "lines[0].say는 hooks[0]과 같게. 출력은 JSON 배열만(글 순서대로, 설명·코드블록 없이).\n\n" + body)
-        arr = parse_json(claude(prompt), list)
-        if not isinstance(arr, list) or len(arr) != len(chunk):
-            print(f"  [{label}] 파싱 실패, 건너뜀 ({len(chunk)}개)"); continue
-        for (id_, it), sc in zip(chunk, arr):
-            if isinstance(sc, dict) and sc.get("lines") and post({"action": "saveScript", "id": id_, "script": sc, "by": "Claude", "model": "claude-" + MODEL, "item": it}):
-                saved += 1
-    return saved
+RESEARCH_TASK = """
+[작업 순서]
+1) 먼저 웹 검색으로 이 소재의 추가 정보를 조사한다: 배경과 전후 맥락, 관련 인물의 사연, 탄생 비화, 비슷한 사례나 비교, 사람들이 몰랐던 사실. 공식 사이트·언론 보도·백과사전 같은 믿을 만한 출처만 쓴다.
+2) 원문 사실 + 조사한 사실 3~5개를 **인과로 이어서** 하나의 이야기로 엮는다. 사실 1, 사실 2, 사실 3을 나열하지 말고, 앞 문장이 다음 문장의 이유나 결과가 되게("근데 여기서", "알고 보니", "그래서") 쓴다.
+3) 고몽의 시선으로 각색한다: 이야기꾼답게 긴장과 반전을 살리고, 마무리는 고몽다운 한 줄.
+4) 출처로 확인되지 않은 내용은 쓰지 않는다. 애매하면 checks에 남긴다.
+5) 출력 JSON에 "research": [{"fact": "조사로 더한 사실", "source": "출처 URL"}] 를 추가한다(대본에 실제로 쓴 것만).
+출력은 대본 JSON 객체 하나만(설명·코드블록 없이).
+"""
 
+
+def write_one(id_, it, guide):
+    prompt = guide + "\n" + RESEARCH_TASK + "\n[소재]\n" + item_text(it)
+    sc = parse_json(claude(prompt, tools=["WebSearch", "WebFetch"], turns=20), dict)
+    if isinstance(sc, dict) and sc.get("lines") and post({"action": "saveScript", "id": id_, "script": sc, "by": "Claude", "model": "claude-" + MODEL + "+web", "item": it}):
+        return 1
+    print("  스크립트 실패:", str(id_)[:60])
+    return 0
+
+
+def write_scripts(jobs, guide, label):
+    """jobs: [(id, item)] → 하나씩 웹 조사 후 작성·저장(3개 동시). 저장 개수 반환."""
+    from concurrent.futures import ThreadPoolExecutor
+    with ThreadPoolExecutor(max_workers=3) as ex:
+        return sum(ex.map(lambda j: write_one(j[0], j[1], guide), jobs))
 
 def pick_item(p):
     keys = ["kind", "series", "handle", "cafe", "caption", "title", "permalink", "url", "timestamp", "written_at", "angle", "story", "gomong_angle", "event_end", "date_check", "reads", "comments", "cat", "traffic", "channel", "views"]
@@ -392,12 +401,12 @@ def main():
     # A + B: 스크립트
     jobsA = [(q["id"], q.get("item") or {}) for q in queue]
     jobsB = []
-    if not ONLY or "B" in ONLY:
+    if not ONLY or "B" in ONLY or "R" in ONLY:
         qids = {i for i, _ in jobsA}
         src_picks = ai.get("picks") if ai.get("date") == NOW.strftime("%Y-%m-%d") else (data.get("picks") or [])
         for p in (src_picks or [])[:MAX_PICKS]:
             pid = p.get("id") or p.get("permalink") or p.get("url")
-            if pid and pid not in have_scripts and pid not in qids:
+            if pid and (pid not in have_scripts or "R" in ONLY) and pid not in qids:
                 jobsB.append((pid, pick_item(p)))
 
     # C: 광고 정리

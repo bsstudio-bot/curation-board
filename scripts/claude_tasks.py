@@ -98,7 +98,7 @@ def item_text(it):
 RESEARCH_TASK = """
 [작업 순서]
 1) 먼저 웹 검색으로 이 소재의 추가 정보를 조사한다: 배경과 전후 맥락, 관련 인물의 사연, 탄생 비화, 비슷한 사례나 비교, 사람들이 몰랐던 사실. 공식 사이트·언론 보도·백과사전 같은 믿을 만한 출처만 쓴다.
-2) 원문 사실 + 조사한 사실 3~5개를 **인과로 이어서** 하나의 이야기로 엮는다. 사실 1, 사실 2, 사실 3을 나열하지 말고, 앞 문장이 다음 문장의 이유나 결과가 되게("근데 여기서", "알고 보니", "그래서") 쓴다.
+2) 쓰기 전에 question_chain(질문 사다리 3~5개)을 먼저 설계한다. 그다음 원문 사실 + 조사한 사실 3~6개를 **인과로 이어서** 하나의 이야기로 엮는다. 사실 1, 사실 2, 사실 3을 나열하지 말고, 앞 문장이 다음 문장의 이유나 결과가 되게("근데 여기서", "알고 보니", "그래서") 쓴다.
 3) 고몽의 시선으로 각색한다: 이야기꾼답게 긴장과 반전을 살리고, 마무리는 고몽다운 한 줄.
 4) 출처로 확인되지 않은 내용은 쓰지 않는다. 애매하면 checks에 남긴다.
 5) 출력 JSON에 "research": [{"fact": "조사로 더한 사실", "source": "출처 URL"}] 를 추가한다(대본에 실제로 쓴 것만).
@@ -107,8 +107,9 @@ RESEARCH_TASK = """
 
 
 def write_one(id_, it, guide):
-    prompt = guide + "\n" + RESEARCH_TASK + "\n[소재]\n" + item_text(it)
-    sc = parse_json(claude(prompt, tools=["WebSearch", "WebFetch"], turns=20), dict)
+    ref = open("prompts/story_reference.md", encoding="utf-8").read() if os.path.exists("prompts/story_reference.md") else ""
+    prompt = guide + "\n\n" + ref + "\n" + RESEARCH_TASK + "\n[소재]\n" + item_text(it)
+    sc = parse_json(claude(prompt, tools=["WebSearch", "WebFetch"], turns=25), dict)
     if isinstance(sc, dict) and sc.get("lines") and post({"action": "saveScript", "id": id_, "script": sc, "by": "Claude", "model": "claude-" + MODEL + "+web", "item": it}):
         return 1
     print("  스크립트 실패:", str(id_)[:60])

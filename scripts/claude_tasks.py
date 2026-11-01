@@ -259,7 +259,7 @@ def date_targets(ai):
         text = x.get("caption") or x.get("title") or ""
         if xid in seen or x.get("kind") == "trend":
             continue
-        if x.get("series") == "아이랑 갈 곳" or x.get("cat") == "아이랑 갈 곳" or (DATE_RE.search(text) and re.search(r"축제|전시|팝업|행사|페스티벌|박람회|공연|체험|개막|오픈", text)):
+        if x.get("series") == "아이랑 갈 곳" or x.get("cat") == "아이랑 갈 곳" or (x.get("series") in (None, "화제", "밈·트렌드") and DATE_RE.search(text) and re.search(r"축제|전시|팝업|페스티벌|박람회|공연|개막|기간", text)):
             seen.add(xid); out.append({"id": xid, "text": f"출처: {x.get('handle') or x.get('cafe') or ''}\n{text}"})
     return out[:10]
 

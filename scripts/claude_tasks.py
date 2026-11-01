@@ -83,6 +83,8 @@ def item_text(it):
         t.append(f"웹 검색으로 확인한 일정({dc['status']}): {dc.get('event')} · {dc.get('period')} {dc.get('time')} · {dc.get('place')} · {dc.get('fee')} · 출처 {dc.get('source')} · {dc.get('note')}  ← 원문과 다르면 이 일정을 쓰고 checks에 '원문 일정과 다름'을 남긴다")
     elif dc.get("status") == "확인 못함":
         t.append("일정 웹 확인 실패: 날짜를 단정하지 말고 checks에 '일정 확인'을 넣는다")
+    if it.get("story"):
+        t.append(f"이야기 뼈대: {it['story']}")
     if it.get("gomong_angle"):
         t.append(f"고몽다운 풀이 힌트: {it['gomong_angle']}")
     if it.get("event_end"):
@@ -111,7 +113,7 @@ def write_scripts(jobs, guide, label):
 
 
 def pick_item(p):
-    keys = ["kind", "series", "handle", "cafe", "caption", "title", "permalink", "url", "timestamp", "written_at", "angle", "gomong_angle", "event_end", "date_check", "reads", "comments", "cat", "traffic", "channel", "views"]
+    keys = ["kind", "series", "handle", "cafe", "caption", "title", "permalink", "url", "timestamp", "written_at", "angle", "story", "gomong_angle", "event_end", "date_check", "reads", "comments", "cat", "traffic", "channel", "views"]
     return {k: p.get(k) for k in keys if p.get(k) is not None}
 
 
@@ -130,12 +132,17 @@ CURATE_PROMPT = """너는 유튜버 고몽(김웅현)의 **신규 채널** 숏�
 
 아래 후보(인스타 글, 맘카페 인기글, 유튜브 인기·육아 쇼츠, 구글 급상승 검색어)를 보고 두 가지를 해라.
 
-1) issues: 지금 뜨는 이슈 3~6개. 여러 후보가 같은 주제를 다루거나(채널 2곳 이상·맘카페·검색어가 겹침), 검색량이 큰 화제를 묶는다.
+1) issues: 지금 뜨는 이슈 3~6개. 이야기로 풀 수 있는 주제를 우선한다(랭킹·통계 묶음은 제외). 여러 후보가 같은 주제를 다루거나(채널 2곳 이상·맘카페·검색어가 겹침), 검색량이 큰 화제를 묶는다.
    각 이슈: title(15자 이내), summary(무슨 일인지 1~2문장, 후보 내용만 근거), ids(관련 후보 id 목록), why_now(왜 지금 다룰 만한지 1문장), fit(1~10, 우리 채널 적합도)
 2) picks: 오늘 찍을 후보 15~18개. 시리즈 배분: 아이랑 갈 곳 4~5, 왜 그럴까 4~5, 밈·트렌드 2~3, 화제 1~2, 육아 정보 2~3, 맘카페 화제 1~2. 후보가 모자란 시리즈는 억지로 채우지 않는다. 같은 계정은 시리즈당 1개까지.
-   각 pick: id(후보 id 그대로), series, score(1~10), reason(왜 고몽 채널에 맞는지 1문장, 구체적으로), angle(시청자가 궁금해할 질문 하나), gomong_angle(고몽다운 풀이 한 줄: 이야기꾼·영화/드라마 비유, 딸 둘 아빠 시선, 자기 고백형 유머 중 자연스러운 것. 2년 넘은 옛날 밈은 쓰지 않는다. 억지면 빈 문자열. 고몽이 실제로 겪은 일(병원·펫로스·육아 에피소드 등)을 사실처럼 지어내지 말고, 필요하면 '고몽 본인 경험이 있다면 ~로'처럼 조건으로 쓴다)
+   각 pick: id(후보 id 그대로), series, score(1~10), reason(왜 고몽 채널에 맞는지 1문장, 구체적으로), story(이야기 뼈대 한 줄: '발단 → 전개 → 반전/결말', 후보 내용 안에서만), angle(시청자가 궁금해할 질문 하나), gomong_angle(고몽다운 풀이 한 줄: 이야기꾼·영화/드라마 비유, 딸 둘 아빠 시선, 자기 고백형 유머 중 자연스러운 것. 2년 넘은 옛날 밈은 쓰지 않는다. 억지면 빈 문자열. 고몽이 실제로 겪은 일(병원·펫로스·육아 에피소드 등)을 사실처럼 지어내지 말고, 필요하면 '고몽 본인 경험이 있다면 ~로'처럼 조건으로 쓴다)
 
-[점수 기준] 시의성(지금 이야기되는가), 반응(평소 대비 배수 lift가 높을수록, 여러 곳에서 동시에 언급될수록), 해설할 거리(왜·어떻게를 풀 수 있는가), 3·6살 아이 키우는 집과의 연결, 고몽 캐릭터와의 궁합.
+[가장 중요한 기준 — 고몽이 '이야기'로 풀 수 있는가]
+고몽은 정보를 나열하는 사람이 아니라 이야기꾼이다. 사람·사건·사연에 발단 → 전개 → 반전/결말이 있고, 고몽이 자기 말투로 30~45초 안에 이야기처럼 들려줄 수 있는 소재를 고른다.
+- 좋은 소재: 인물의 선택과 사연, 탄생 비화·뒷이야기, 의외의 반전이 있는 현상, 사람들이 왜 열광하는지 감정이 보이는 트렌드, 아이 키우는 집에서 벌어질 법한 에피소드, 영화·드라마 한 장면처럼 풀 수 있는 일, 고몽 가족이 직접 가서 겪을 수 있는 장소(아이랑 갈 곳).
+- 빼는 소재: 랭킹·순위표(학생 수 많은 학교 순위 등), 수익률·연봉·금액 계산(1억 투자하면 얼마 등), 통계·비교표 나열, 체크리스트형 정보 카드. 1차 정보로 단순히 흥미로운 것만으로는 고르지 않는다. 숫자는 이야기를 돕는 양념일 때만 OK.
+- '왜 그럴까'는 숫자 해설이 아니라 '그 뒤에 숨은 이야기'(누가, 왜, 어떻게 그렇게 됐나)다.
+[점수 기준] 스토리텔링 가능성(가장 중요) > 시의성 > 반응(평소 대비 배수, 여러 곳 동시 언급) > 고몽 캐릭터·가족과의 연결.
 [화제·가십 원칙 — 렉카 금지] 공식 발표, 작품·방송 화제, 본인이 공개한 결혼·출산·육아 소식, 훈훈한 장면, 사회적으로 이야기할 거리는 OK.
 사생활 폭로, 루머·열애설·이혼설, 사건·사고 피해자, 논란 몰이, 특정인 비난, 사망·범죄, 정치, 해외 스포츠 경기 결과는 고르지 않는다. 화제 픽은 사람보다 현상을 이야기할 수 있어야 한다.
 @@CHANNEL_RULES@@
@@ -206,7 +213,7 @@ def curate(data):
         if not x:
             continue
         picks.append({**x, "id": pk["id"], "series": pk.get("series"), "score": pk.get("score"), "reason": pk.get("reason"),
-                      "angle": pk.get("angle"), "gomong_angle": pk.get("gomong_angle", "")})
+                      "angle": pk.get("angle"), "story": pk.get("story", ""), "gomong_angle": pk.get("gomong_angle", "")})
     issues = []
     for it in res.get("issues", []):
         ids = [i for i in it.get("ids", []) if i in pool]

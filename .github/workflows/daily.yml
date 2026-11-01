@@ -32,6 +32,7 @@ jobs:
         env:
           IG_TOKEN: ${{ secrets.IG_TOKEN }}
           IG_USER_ID: ${{ secrets.IG_USER_ID }}
+          YT_KEY: ${{ secrets.YT_KEY }}
         run: python scripts/collect.py
       - name: Commit data
         run: |

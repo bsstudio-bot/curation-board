@@ -176,7 +176,7 @@ function renderGuide(){const el=document.getElementById('guide');if(!el)return;i
   el.innerHTML='<div class="guide"><div><b>'+(u?esc(u.name)+'님으로 로그인돼 있어요.':'처음 오셨나요? 개인 아이디를 만들어 주세요.')+'</b>'+
   '<ul><li>오른쪽 위 <b>팀 로그인</b>을 누르면 아이디를 만들 수 있어요.</li><li><b>ID</b>: 본인 이름 (예: 손준호) · <b>PW</b>: <code>bs2026</code> (팀 공용)</li>'+
   '<li>로그인하면 카드의 <b>★</b>를 눌러 마음에 드는 글을 북마크로 보관할 수 있어요. 보관한 글은 <b>찜한 후보</b> 탭에 주차·날짜별로 모이고 팀 전체에 공유돼요.</li>'+
-  '<li>카드의 <b>✍️ 스크립트 쓰기</b>를 누르면 Claude가 고몽 말투로 대본을 써줘요 (보통 1~2분).</li></ul></div>'+
+  '<li>카드의 <b>✍️ 스크립트 쓰기</b>를 누르면 Claude가 고몽 말투로 대본을 써줘요. 관련 정보를 웹에서 더 찾아 엮어서 보통 2~4분 걸려요.</li></ul></div>'+
   '<div class="gbtn">'+(u?'':'<button class="chip on" data-login="1">아이디 만들기</button>')+'<button class="chip" data-gclose="1">닫기</button></div></div>'}
 function formatsView(){const F=(AI&&AI.formats)||[];if(!F.length)return '';
   return '<div class="sec">육아 쇼츠 → 고몽 버전<small>부모가 직접 출연하는 인기 육아 쇼츠의 형식만 빌려, 고몽과 아이들이 처음부터 끝까지 끌고 가는 구성으로 바꾼 아이디어 · 아이는 일상 장면에 자연스럽게, 설명 배경·상업적 사용은 피해요 · 원본 영상은 쓰지 않아요</small></div><div class="fgrid">'+
@@ -213,7 +213,7 @@ function channelView(){const A=accMap();const list=CH||D.instagram.accounts.map(
 // ---------- 숏폼 스크립트 ----------
 const scBtn=id=>SCQ.has(id)&&!SC[id]?'<button class="scbtn wait" disabled>⏳ Claude가 쓰는 중 · 완료되면 바뀌어요</button>':'<button class="scbtn'+(SC[id]?' has':'')+'" data-sc="'+esc(id)+'">'+(SC[id]?'📄 스크립트 보기'+(SCQ.has(id)?' (다시 쓰는 중)':''):'✍️ 스크립트 쓰기')+'</button>';
 function scText(sc){return (sc.lines||[]).map(l=>l.say).join('\n')}
-function scFull(sc){return '['+(sc.title||'')+']\n\n'+(sc.lines||[]).map(l=>'- '+l.say+(l.screen?'   [화면: '+l.screen+']':'')).join('\n')+'\n\n캡션: '+(sc.caption||'')+'\n'+(sc.hashtags||[]).join(' ')+'\n\n촬영 전 확인: '+(sc.checks||[]).join(' / ')+'\n출처: '+(sc.source||'')}
+function scFull(sc){return '['+(sc.title||'')+']\n\n'+(sc.lines||[]).map(l=>'- '+l.say+(l.screen?'   [화면: '+l.screen+']':'')).join('\n')+'\n\n캡션: '+(sc.caption||'')+'\n'+(sc.hashtags||[]).join(' ')+'\n\n촬영 전 확인: '+(sc.checks||[]).join(' / ')+'\n출처: '+(sc.source||'')+((sc.research||[]).length?'\n\n조사한 정보:\n'+sc.research.map(r=>'- '+(r.fact||'')+' ('+(r.source||'')+')').join('\n'):'')}
 function scModal(id,loading){const m=document.getElementById('modal');const it=SC[id]||{};const sc=it.script;const src=LOOKUP[id]||it.item||{};
   let h='<div class="mbox"><button class="mclose" data-mclose="1">✕</button><div class="mhead">✍️ 숏폼 스크립트 <small>'+esc(src.kind==='cafe'?src.cafe+' 맘카페':'@'+(src.handle||''))+'</small></div>';
   if(SCQ.has(id))h+='<div class="note" style="margin-top:6px">⏳ 다시 쓰기를 요청해 둔 상태예요. 완료되면 이 내용이 바뀌어요.</div>';
@@ -222,6 +222,7 @@ function scModal(id,loading){const m=document.getElementById('modal');const it=S
     h+='<div class="msec">훅 후보</div><ol class="hooks">'+(sc.hooks||[]).map(x=>'<li>'+esc(x)+'</li>').join('')+'</ol>';
     h+='<div class="msec">대본</div><table class="sctable"><tr><th>말할 것</th><th>화면</th></tr>'+(sc.lines||[]).map(l=>'<tr><td>'+esc(l.say)+'</td><td class="scr">'+esc(l.screen||'')+'</td></tr>').join('')+'</table>';
     h+='<div class="msec">캡션</div><div class="capbox">'+esc(sc.caption||'')+'<div class="tags">'+esc((sc.hashtags||[]).join(' '))+'</div></div>';
+    if((sc.research||[]).length)h+='<div class="msec">조사해서 더한 정보</div><ul class="checks">'+sc.research.map(r=>'<li>'+esc(r.fact||'')+(r.source?' <a href="'+esc(r.source)+'" target="_blank" rel="noopener">출처</a>':'')+'</li>').join('')+'</ul>';
     if((sc.checks||[]).length)h+='<div class="msec">촬영 전 확인할 것</div><ul class="checks">'+sc.checks.map(x=>'<li>'+esc(x)+'</li>').join('')+'</ul>';
     h+='<div class="mmeta">'+esc(sc.source||'')+'</div>';}
   h+='<div class="mbar"><input id="scExtra" placeholder="다시 쓸 때 요청 (선택) 예: 더 짧게, 첫째 시점으로, 질문으로 시작"><button class="chip" data-scgen="'+esc(id)+'">'+(sc?'다시 쓰기 요청':'쓰기 요청')+'</button>'+(sc?'<button class="chip" data-sccopy="'+esc(id)+'">대본만 복사</button><button class="chip on" data-sccopyall="'+esc(id)+'">전체 복사</button>':'')+'<a class="chip" href="'+esc(src.permalink||src.url||'#')+'" target="_blank" rel="noopener">원문</a></div></div>';
@@ -233,7 +234,7 @@ let pollH=null;function startPoll(){if(pollH)return;pollH=setInterval(async()=>{
   try{const s=await fetch(API+'?action=all').then(r=>r.json());if(s.ok)applyShared(s)}catch(e){}},60000)}
 function applyShared(s){CH=s.channels;bmFromList(s.bookmarks);const before=new Set(Object.keys(SC));SC={};for(const x of s.scripts||[])SC[x.id]={script:x.script,by:x.by,created_at:x.created_at,model:x.model,item:x.item};
   SCQ=new Set((s.queued||[]).map(q=>q.id));const fresh=Object.keys(SC).filter(id=>!before.has(id));if(fresh.length&&before.size)toast('새 스크립트 '+fresh.length+'개가 도착했어요');render()}
-function openScript(id){if(SC[id])scModal(id);else{if(!askUser(false))return;if(confirm('Claude에게 이 글의 스크립트를 부탁할까요? (보통 1~2분 안에 완성돼요)'))genScript(id)}}
+function openScript(id){if(SC[id])scModal(id);else{if(!askUser(false))return;if(confirm('Claude에게 이 글의 스크립트를 부탁할까요? (웹 조사 포함 보통 2~4분)'))genScript(id)}}
 function scriptView(){let h='<details class="folder guide" open><summary>📘 종합 가이드 <small>모든 스크립트가 이 기준으로 써져요</small></summary><div class="gbody">'+GUIDE_HTML+'</div></details>';
   const list=Object.entries(SC).map(([id,v])=>({id,...v})).sort((a,b)=>(b.created_at||'').localeCompare(a.created_at||''));
   h+='<div class="sec">작성된 스크립트<small>'+list.length+'개 · 오늘의 추천은 매일 아침 Claude가 고몽 말투로 미리 써요 · 다른 글은 카드의 ✍️ 버튼으로 요청</small></div>';

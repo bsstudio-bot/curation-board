@@ -412,7 +412,7 @@ PEOPLE_PROMPT = """오늘은 {today}이다. 지금 한국에서 이야기되는 
 
 [A. 일반인 화제 인물] 최근 4주 사이 SNS로 갑자기 뜬 시장 상인·자영업자·장인·평범한 사람.
  기준 예: 남대문 스카프 아저씨 — (1) 캐릭터(반복되는 말투·행동) (2) 볼거리(본인 영상 여러 개, 큰 조회수) (3) 손에 잡히는 정보(6장 1만원, 남대문시장)는 필수, (4) 확장성(비슷한 사례·사회 현상) (5) 진행 중인 판(후속 소식, 의견 갈림) 중 하나 이상.
- 제외: 한 번의 선행·미담·감동 사연, 합격·성공 사연 단발, 기사 한 줄뿐인 사람.
+ 제외: 한 번의 선행·미담·감동 사연, 합격·성공 사연 단발, 기사 한 줄뿐인 사람, 논란·갈등·피해 호소로 화제가 된 사람(예: 방송 출연 논란).
  검색어 예: SNS 화제 사장님, 입담 상인, 인터넷 스타 된, 알고리즘 점령, 줄 서는 가게 사장, 화제의 할머니·할아버지.
 
 [B. 유명인의 선택·커리어 이야기] 최근 2주 뉴스에 나온 셰프·기업인·운동선수·크리에이터·배우·작가 등의 '결정의 순간'.
@@ -445,10 +445,25 @@ def hot_people(prev=None):
                         "extra_value": x.get("extra_value"), "visuals": x.get("visuals"), "debate": x.get("debate"), "url": src[0] if src else "", "timestamp": NOW.isoformat()})
     print("  [인물] 후보:", [(x["title"], x.get("fit"), bool(x.get("intro_point")), bool(x.get("extra_value"))) for x in out])
     out = [x for x in out if (x.get("fit") or 0) >= 6 and x.get("intro_point") and x.get("extra_value")]
+    def _key(n):
+        return re.sub(r"[^가-힣A-Za-z0-9]", "", n or "")
+    def _same(a, b):
+        a, b = _key(a), _key(b)
+        if not a or not b:
+            return False
+        if a in b or b in a:
+            return True
+        ga = {a[i:i + 2] for i in range(len(a) - 1)}; gb = {b[i:i + 2] for i in range(len(b) - 1)}
+        return len(ga & gb) / max(1, min(len(ga), len(gb))) >= 0.6
+    dedup = []
+    for x in sorted(out, key=lambda x: x.get("fit") or 0, reverse=True):
+        if not any(_same(x["title"], y["title"]) for y in dedup):
+            dedup.append(x)
+    out = dedup
     names = {x["title"] for x in out}
     for x in prev or []:  # 전에 기준을 통과한 인물은 2주 동안 유지 (검색 결과가 날마다 흔들려도 빠지지 않게)
         first = x.get("first_seen") or x.get("timestamp") or ""
-        if x.get("title") not in names and (x.get("fit") or 0) >= 6 and x.get("intro_point") and hours_ago(first) <= 14 * 24:
+        if not any(_same(x.get("title"), n) for n in names) and (x.get("fit") or 0) >= 6 and x.get("intro_point") and hours_ago(first) <= 14 * 24:
             out.append(dict(x, carried=True)); names.add(x["title"])
     for x in out:
         x.setdefault("first_seen", x.get("timestamp"))

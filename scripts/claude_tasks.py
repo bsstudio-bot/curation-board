@@ -408,7 +408,7 @@ def account_types(data):
 
 
 # ---------------------------------------------------------------- P. 요즘 뜨는 인물 (웹 검색)
-PEOPLE_PROMPT = """오늘은 {today}이다. 최근 7일 사이 한국 SNS·뉴스에서 갑자기 화제가 된 '인물'을 웹 검색으로 찾아라.
+PEOPLE_PROMPT = """오늘은 {today}이다. 최근 2주 사이 한국 SNS·뉴스에서 갑자기 화제가 됐고 지금도 이야기되는 '인물'을 웹 검색으로 찾아라.
 기준이 되는 좋은 예: 남대문 스카프 아저씨. 왜 좋은가 —
  (1) 캐릭터: 반복되는 말투·행동이 있어 '이 사람다움'이 분명하다("너네 지금 과소비야").
  (2) 볼거리: 본인 영상·SNS 장면이 여러 개 있고 조회수가 크다(89만, 81만).
@@ -427,9 +427,10 @@ PEOPLE_PROMPT = """오늘은 {today}이다. 최근 7일 사이 한국 SNS·뉴�
 
 
 def hot_people():
-    arr = parse_json(claude(PEOPLE_PROMPT.replace("{today}", NOW.strftime("%Y-%m-%d")), tools=["WebSearch", "WebFetch"], turns=25), list)
+    raw = claude(PEOPLE_PROMPT.replace("{today}", NOW.strftime("%Y-%m-%d")), tools=["WebSearch", "WebFetch"], turns=30)
+    arr = parse_json(raw, list)
     if not isinstance(arr, list):
-        print("  [인물] 파싱 실패"); return []
+        print("  [인물] 파싱 실패:", (raw or "")[:300]); return []
     out = []
     for x in arr:
         if isinstance(x, dict) and x.get("name"):
@@ -440,6 +441,7 @@ def hot_people():
                         "since": x.get("since"), "signals": x.get("signals"), "sources": src, "story_seed": x.get("story_seed"),
                         "caution": x.get("caution"), "fit": x.get("fit"), "caption": cap, "character": x.get("character"), "intro_point": x.get("intro_point"),
                         "extra_value": x.get("extra_value"), "visuals": x.get("visuals"), "debate": x.get("debate"), "url": src[0] if src else "", "timestamp": NOW.isoformat()})
+    print("  [인물] 후보:", [(x["title"], x.get("fit"), bool(x.get("intro_point")), bool(x.get("extra_value"))) for x in out])
     out = [x for x in out if (x.get("fit") or 0) >= 7 and x.get("intro_point") and x.get("extra_value")]
     return sorted(out, key=lambda x: x.get("fit") or 0, reverse=True)
 

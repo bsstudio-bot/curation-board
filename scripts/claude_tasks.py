@@ -161,7 +161,7 @@ CURATE_PROMPT = """너는 유튜버 고몽(김웅현)의 **신규 채널** 숏�
 
 1) issues: 지금 뜨는 이슈 3~6개. 이야기로 풀 수 있는 주제를 우선한다(랭킹·통계 묶음은 제외). 여러 후보가 같은 주제를 다루거나(채널 2곳 이상·맘카페·검색어가 겹침), 검색량이 큰 화제를 묶는다.
    각 이슈: title(15자 이내), summary(무슨 일인지 1~2문장, 후보 내용만 근거), ids(관련 후보 id 목록), why_now(왜 지금 다룰 만한지 1문장), fit(1~10, 우리 채널 적합도)
-2) picks: 오늘 찍을 후보 15~18개. 시리즈 배분: 아이랑 갈 곳 4~5, 왜 그럴까 4~5, 화제 인물 0~3('요즘 뜨는 인물' 후보에서, 기준을 통과한 사람만), 밈·트렌드 2~3, 화제 1~2, 육아 정보 2~3, 맘카페 화제 1~2. 후보가 모자란 시리즈는 억지로 채우지 않는다. 같은 계정은 시리즈당 1개까지.
+2) picks: 오늘 찍을 후보 15~18개. 시리즈 배분: 아이랑 갈 곳 4~5, 왜 그럴까 4~5, 화제 인물 2~4('요즘 뜨는 인물' 후보에서, 일반인 A와 유명인 선택·커리어 B를 섞어서), 밈·트렌드 2~3, 화제 1~2, 육아 정보 2~3, 맘카페 화제 1~2. 후보가 모자란 시리즈는 억지로 채우지 않는다. 같은 계정은 시리즈당 1개까지.
    각 pick: id(후보 id 그대로), series, score(1~10), reason(왜 고몽 채널에 맞는지 1문장, 구체적으로), story(이야기 뼈대 한 줄: '발단 → 전개 → 반전/결말', 후보 내용 안에서만), angle(시청자가 궁금해할 질문 하나), gomong_angle(고몽다운 풀이 한 줄: 이야기꾼·영화/드라마 비유, 딸 둘 아빠 시선, 자기 고백형 유머 중 자연스러운 것. 2년 넘은 옛날 밈은 쓰지 않는다. 억지면 빈 문자열. 고몽이 실제로 겪은 일(병원·펫로스·육아 에피소드 등)을 사실처럼 지어내지 말고, 필요하면 '고몽 본인 경험이 있다면 ~로'처럼 조건으로 쓴다)
 
 [가장 중요한 기준 — 고몽이 '이야기'로 풀 수 있는가]
@@ -408,22 +408,24 @@ def account_types(data):
 
 
 # ---------------------------------------------------------------- P. 요즘 뜨는 인물 (웹 검색)
-PEOPLE_PROMPT = """오늘은 {today}이다. 최근 2주 사이 한국 SNS·뉴스에서 갑자기 화제가 됐고 지금도 이야기되는 '인물'을 웹 검색으로 찾아라.
-기준이 되는 좋은 예: 남대문 스카프 아저씨. 왜 좋은가 —
- (1) 캐릭터: 반복되는 말투·행동이 있어 '이 사람다움'이 분명하다("너네 지금 과소비야").
- (2) 볼거리: 본인 영상·SNS 장면이 여러 개 있고 조회수가 크다(89만, 81만).
- (3) 손에 잡히는 정보: 가격·장소·파는 방식처럼 시청자가 얻어갈 구체적 정보가 있다(6장 1만원, 남대문시장).
- (4) 확장성: 비슷한 사례(입담 상인, 반짝 스타)와 사회 현상(과소비 피로, 시장의 정)으로 이야기를 넓힐 수 있다.
- (5) 진행 중인 판: 후속 소식(방문 자제 공지, 휴무)이 이어지고, 의견이 갈릴 지점(정겹다 vs 무례하다)이 있다.
-먼저 후보를 8~12명 폭넓게 찾는다(검색어 예: SNS 화제 사장님, 입담 상인, 인터넷 스타 된, 알고리즘 점령, 조회수 폭발 인물, 화제의 할머니·할아버지, 줄 서는 가게 사장). 그다음 다섯 기준으로 거른다: (1)(2)(3)은 반드시, (4)(5) 중 하나 이상.
-제외: 한 번의 선행·미담·감동 사연(예: 배달기사 손편지, 직원의 친절), 개인 합격·성공 사연 단발, 장면이 기사 한 줄뿐인 사람, 정치인, 사건·사고 당사자, 열애·이혼 같은 사생활, 논란·비난으로 뜬 사람.
-스스로 점검: '이 사람을 정확히 무엇으로 소개하나(intro_point)'와 '시청자가 얻어갈 것(extra_value)'을 한 줄씩 못 쓰면 고르지 않는다. 맞는 사람이 없으면 빈 배열, 많아도 4명까지.
-각 JSON 객체:
- name(호칭), who(누구인지 한 줄), character(이 사람다움: 대표 말투·행동), why(왜 떴는지: 대표 장면·숫자), since(언제부터),
- signals(화제 근거: 조회수·기사 수), visuals(쓸 수 있는 장면·자료: 본인 채널, 영상 등), intro_point(정확히 무엇으로 소개하나), extra_value(시청자가 얻어갈 정보·재미),
- sources(근거 URL 2~3개), story_seed(비슷하게 흥한 사례 후보 / 반짝 뒤 무너진 사례 후보 / 열광 이유 / 사회적 의미), debate(의견이 갈릴 지점),
- caution(당사자 요청·주의할 점), fit(1~10: 위 다섯 기준으로 매김)
-검색으로 확인된 사실만 쓴다. 출력은 JSON 배열만."""
+PEOPLE_PROMPT = """오늘은 {today}이다. 지금 한국에서 이야기되는 '인물'을 웹 검색으로 찾아 두 종류로 후보를 넓게 모아라. 팀이 이 중에서 골라 다룬다.
+
+[A. 일반인 화제 인물] 최근 4주 사이 SNS로 갑자기 뜬 시장 상인·자영업자·장인·평범한 사람.
+ 기준 예: 남대문 스카프 아저씨 — (1) 캐릭터(반복되는 말투·행동) (2) 볼거리(본인 영상 여러 개, 큰 조회수) (3) 손에 잡히는 정보(6장 1만원, 남대문시장)는 필수, (4) 확장성(비슷한 사례·사회 현상) (5) 진행 중인 판(후속 소식, 의견 갈림) 중 하나 이상.
+ 제외: 한 번의 선행·미담·감동 사연, 합격·성공 사연 단발, 기사 한 줄뿐인 사람.
+ 검색어 예: SNS 화제 사장님, 입담 상인, 인터넷 스타 된, 알고리즘 점령, 줄 서는 가게 사장, 화제의 할머니·할아버지.
+
+[B. 유명인의 선택·커리어 이야기] 최근 2주 뉴스에 나온 셰프·기업인·운동선수·크리에이터·배우·작가 등의 '결정의 순간'.
+ 기준 예: 캉가에 경제 「손종원은 어떻게 신세계그룹 임원이 됐을까」 — 임원 발탁·이적·은퇴·창업·복귀·방송 거절·사업 전환처럼 결정이 있고, 그 뒤에 '어떻게 거기까지 갔나'를 파고들 배경(경력, 비하인드, 숫자)이 있으며, 시청자가 자기 삶에 대입해 의견을 낼 수 있는 것.
+ 제외: 열애·결혼·이혼 등 사생활, 사건·사고·논란·구설, 정치인, 단순 작품 홍보·컴백 소식, 해외 인물만의 소식.
+ 검색어 예: 임원 발탁 셰프, 은퇴 선언, 창업한 선수, 방송 거절, 연봉 포기, 깜짝 이적, 인생 2막.
+
+A는 있는 만큼(없으면 0명, 최대 4명), B는 4~6명. 각 JSON 객체:
+ type('A 일반인'|'B 선택·커리어'), name(호칭), who(누구인지 한 줄), character(이 사람다움 또는 결정의 핵심 한 줄), why(왜 지금 화제인지: 장면·숫자), since(언제부터),
+ signals(화제 근거: 조회수·기사 수), visuals(쓸 수 있는 장면·자료), intro_point(정확히 무엇으로 소개하나), extra_value(시청자가 얻어갈 정보·재미·생각할 거리),
+ sources(근거 URL 2~3개), story_seed(이야기 씨앗: A는 비슷하게 흥한 사례/반짝 뒤 무너진 사례/열광 이유/사회적 의미, B는 과거 경력·전환점/비슷한 선택을 한 사람들/이 결정이 말해주는 것),
+ debate(의견이 갈릴 지점), caution(주의할 점), fit(1~10: 고몽 채널에서 이야기로 풀기 좋은 정도)
+'intro_point'와 'extra_value'를 한 줄씩 못 쓰면 넣지 않는다. 검색으로 확인된 사실만 쓴다. 출력은 JSON 배열만."""
 
 
 def hot_people(prev=None):
@@ -437,16 +439,16 @@ def hot_people(prev=None):
             src = x.get("sources") or []
             cap = (f"화제 인물: {x['name']} — {x.get('who','')}\n캐릭터: {x.get('character','')}\n왜 떴나: {x.get('why','')}\n언제부터: {x.get('since','')} · 화제 근거: {x.get('signals','')}\n"
                    f"소개 포인트: {x.get('intro_point','')}\n시청자가 얻어갈 것: {x.get('extra_value','')}\n쓸 수 있는 장면: {x.get('visuals','')}\n이야기 씨앗: {x.get('story_seed','')}\n의견 갈림: {x.get('debate','')}\n주의: {x.get('caution','')}\n출처: " + " ".join(src))
-            out.append({"kind": "person", "id": "person:" + x["name"], "title": x["name"], "who": x.get("who"), "why": x.get("why"),
+            out.append({"kind": "person", "ptype": x.get("type") or "", "id": "person:" + x["name"], "title": x["name"], "who": x.get("who"), "why": x.get("why"),
                         "since": x.get("since"), "signals": x.get("signals"), "sources": src, "story_seed": x.get("story_seed"),
                         "caution": x.get("caution"), "fit": x.get("fit"), "caption": cap, "character": x.get("character"), "intro_point": x.get("intro_point"),
                         "extra_value": x.get("extra_value"), "visuals": x.get("visuals"), "debate": x.get("debate"), "url": src[0] if src else "", "timestamp": NOW.isoformat()})
     print("  [인물] 후보:", [(x["title"], x.get("fit"), bool(x.get("intro_point")), bool(x.get("extra_value"))) for x in out])
-    out = [x for x in out if (x.get("fit") or 0) >= 7 and x.get("intro_point") and x.get("extra_value")]
+    out = [x for x in out if (x.get("fit") or 0) >= 6 and x.get("intro_point") and x.get("extra_value")]
     names = {x["title"] for x in out}
     for x in prev or []:  # 전에 기준을 통과한 인물은 2주 동안 유지 (검색 결과가 날마다 흔들려도 빠지지 않게)
         first = x.get("first_seen") or x.get("timestamp") or ""
-        if x.get("title") not in names and (x.get("fit") or 0) >= 7 and x.get("intro_point") and hours_ago(first) <= 14 * 24:
+        if x.get("title") not in names and (x.get("fit") or 0) >= 6 and x.get("intro_point") and hours_ago(first) <= 14 * 24:
             out.append(dict(x, carried=True)); names.add(x["title"])
     for x in out:
         x.setdefault("first_seen", x.get("timestamp"))
@@ -490,7 +492,7 @@ def main():
         people = hot_people(ai.get("people"))
         ai["people"] = people
         keep = [x for x in ai["picks"] if x.get("kind") != "person"]
-        add = [dict(x, series="화제 인물", score=x.get("fit"), reason=x.get("intro_point") or x.get("why"), story=x.get("story_seed", "")) for x in people[:3]]
+        add = [dict(x, series="화제 인물", score=x.get("fit"), reason=x.get("intro_point") or x.get("why"), story=x.get("story_seed", "")) for x in people[:4]]
         ai["picks"] = add + keep
         json.dump(ai, open(ai_path, "w", encoding="utf-8"), ensure_ascii=False)
         open(".ai_updated", "w").write("1")

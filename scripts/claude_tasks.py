@@ -107,10 +107,24 @@ RESEARCH_TASK = """
 """
 
 
+REVIEW_PROMPT = """너는 숏폼 대본 검수자다. 아래 대본(JSON)을 원문과 research(조사 사실·출처)에 대조해서 고쳐라.
+1. 정확성: 각 문장이 원문·research와 맞는지 본다. 과장·단정·왜곡(예: '잠시 중단 후 재개'를 '결국 문 닫았다'로 쓰는 것)은 사실대로 고친다. 근거 없는 문장은 빼거나 checks로 옮긴다.
+2. 흐름: 가이드의 흐름 단계(화제 인물이면 왜 떴나→예전 사례→몰락 사례→열광 이유→사회의 바람→댓글 질문)가 빠지거나 억지로 이어진 곳이 있으면 다듬는다. 몰락 사례는 실제로 보도된 '반짝 뒤 무너진' 사례여야 하고, 맞는 사례가 research에 없으면 그 단계를 억지로 채우지 말고 checks에 '몰락 사례 조사 보강'을 남긴다.
+3. 댓글: 마지막 질문과 comment_prompt가 공감 댓글과 다른 의견이 둘 다 나올 수 있는 질문인지 본다.
+4. 말투·길이·형식은 유지한다. 출력은 고친 대본 JSON 객체 하나만(같은 필드 구조, 설명 없이)."""
+
+
+def review_one(sc, it):
+    fixed = parse_json(claude(REVIEW_PROMPT + "\n\n[원문]\n" + item_text(it) + "\n\n[대본]\n" + json.dumps(sc, ensure_ascii=False)), dict)
+    return fixed if isinstance(fixed, dict) and fixed.get("lines") else sc
+
+
 def write_one(id_, it, guide):
     ref = open("prompts/story_reference.md", encoding="utf-8").read() if os.path.exists("prompts/story_reference.md") else ""
     prompt = guide + "\n\n" + ref + "\n" + RESEARCH_TASK + "\n[소재]\n" + item_text(it)
     sc = parse_json(claude(prompt, tools=["WebSearch", "WebFetch"], turns=25), dict)
+    if isinstance(sc, dict) and sc.get("lines"):
+        sc = review_one(sc, it)
     if isinstance(sc, dict) and sc.get("lines") and post({"action": "saveScript", "id": id_, "script": sc, "by": "Claude", "model": "claude-" + MODEL + "+web", "item": it}):
         return 1
     print("  스크립트 실패:", str(id_)[:60])

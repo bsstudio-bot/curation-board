@@ -415,7 +415,7 @@ PEOPLE_PROMPT = """오늘은 {today}이다. 최근 2주 사이 한국 SNS·뉴�
  (3) 손에 잡히는 정보: 가격·장소·파는 방식처럼 시청자가 얻어갈 구체적 정보가 있다(6장 1만원, 남대문시장).
  (4) 확장성: 비슷한 사례(입담 상인, 반짝 스타)와 사회 현상(과소비 피로, 시장의 정)으로 이야기를 넓힐 수 있다.
  (5) 진행 중인 판: 후속 소식(방문 자제 공지, 휴무)이 이어지고, 의견이 갈릴 지점(정겹다 vs 무례하다)이 있다.
-이 다섯 가지 중 (1)(2)(3)은 반드시 갖추고 (4)(5) 중 하나 이상을 갖춘 사람만 고른다.
+먼저 후보를 8~12명 폭넓게 찾는다(검색어 예: SNS 화제 사장님, 입담 상인, 인터넷 스타 된, 알고리즘 점령, 조회수 폭발 인물, 화제의 할머니·할아버지, 줄 서는 가게 사장). 그다음 다섯 기준으로 거른다: (1)(2)(3)은 반드시, (4)(5) 중 하나 이상.
 제외: 한 번의 선행·미담·감동 사연(예: 배달기사 손편지, 직원의 친절), 개인 합격·성공 사연 단발, 장면이 기사 한 줄뿐인 사람, 정치인, 사건·사고 당사자, 열애·이혼 같은 사생활, 논란·비난으로 뜬 사람.
 스스로 점검: '이 사람을 정확히 무엇으로 소개하나(intro_point)'와 '시청자가 얻어갈 것(extra_value)'을 한 줄씩 못 쓰면 고르지 않는다. 맞는 사람이 없으면 빈 배열, 많아도 4명까지.
 각 JSON 객체:
@@ -426,7 +426,7 @@ PEOPLE_PROMPT = """오늘은 {today}이다. 최근 2주 사이 한국 SNS·뉴�
 검색으로 확인된 사실만 쓴다. 출력은 JSON 배열만."""
 
 
-def hot_people():
+def hot_people(prev=None):
     raw = claude(PEOPLE_PROMPT.replace("{today}", NOW.strftime("%Y-%m-%d")), tools=["WebSearch", "WebFetch"], turns=30)
     arr = parse_json(raw, list)
     if not isinstance(arr, list):
@@ -443,6 +443,13 @@ def hot_people():
                         "extra_value": x.get("extra_value"), "visuals": x.get("visuals"), "debate": x.get("debate"), "url": src[0] if src else "", "timestamp": NOW.isoformat()})
     print("  [인물] 후보:", [(x["title"], x.get("fit"), bool(x.get("intro_point")), bool(x.get("extra_value"))) for x in out])
     out = [x for x in out if (x.get("fit") or 0) >= 7 and x.get("intro_point") and x.get("extra_value")]
+    names = {x["title"] for x in out}
+    for x in prev or []:  # 전에 기준을 통과한 인물은 2주 동안 유지 (검색 결과가 날마다 흔들려도 빠지지 않게)
+        first = x.get("first_seen") or x.get("timestamp") or ""
+        if x.get("title") not in names and (x.get("fit") or 0) >= 7 and x.get("intro_point") and hours_ago(first) <= 14 * 24:
+            out.append(dict(x, carried=True)); names.add(x["title"])
+    for x in out:
+        x.setdefault("first_seen", x.get("timestamp"))
     return sorted(out, key=lambda x: x.get("fit") or 0, reverse=True)
 
 
@@ -480,7 +487,7 @@ def main():
         open(".ai_updated", "w").write("1")
         report["일정 확인"] = len(checks)
     if "P" in ONLY and ai.get("picks"):  # 요즘 뜨는 인물만 찾아서 오늘 추천에 더하기
-        people = hot_people()
+        people = hot_people(ai.get("people"))
         ai["people"] = people
         keep = [x for x in ai["picks"] if x.get("kind") != "person"]
         add = [dict(x, series="화제 인물", score=x.get("fit"), reason=x.get("intro_point") or x.get("why"), story=x.get("story_seed", "")) for x in people[:3]]
@@ -498,7 +505,7 @@ def main():
     if need_e:
         review = classify_shorts(data)
         apply_review(data, review)
-        people = hot_people()
+        people = hot_people(ai.get("people"))
         new = curate(data, people)
         if new:
             checks = verify_dates(date_targets(new))

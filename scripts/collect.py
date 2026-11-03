@@ -571,6 +571,62 @@ def collect_youtube(key, now):
     return {"source": "youtube-data-api", "collected_at": now.isoformat(), "items": items, "errors": errs}
 
 
+# ---------------------------------------------------------------- 팝콘 리서치 (고몽 팝콘 PB)
+POP_YT_QUERIES = ["편의점 팝콘", "팝콘 신상", "팝콘 리뷰", "팝콘 먹방", "트러플 팝콘", "gourmet popcorn"]
+POP_TAGS = ["팝콘", "편의점신상", "편의점과자"]
+
+
+def collect_popcorn(yt_key, token, ig_user_id, prev, now):
+    out = {"collected_at": now.isoformat(), "youtube": [], "instagram": [], "errors": []}
+    if yt_key:
+        after = (now - timedelta(days=30)).astimezone(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+        ids = {}
+        for q in POP_YT_QUERIES:
+            try:
+                d = _yt("search", part="id", q=q, type="video", order="viewCount", publishedAfter=after,
+                        regionCode="KR", relevanceLanguage="ko" if re.search(r"[가-힣]", q) else None, maxResults=12, key=yt_key)
+                for it in d.get("items", []):
+                    ids.setdefault(it["id"]["videoId"], q)
+            except Exception as e:  # noqa: BLE001
+                out["errors"].append(f"유튜브 {q}: {str(e)[:60]}")
+        try:
+            rows = [_yt_row(v, "팝콘: " + ids[v["id"]]) for v in _yt_videos(list(ids), yt_key)]
+            for r in rows:
+                r["views_per_hour"] = round(r["views"] / max(1.0, hours_since(r.get("published") or "", now)))
+            out["youtube"] = sorted([r for r in rows if not YT_SKIP_RE.search(r["title"] or "")], key=lambda r: r["views"], reverse=True)[:40]
+        except Exception as e:  # noqa: BLE001
+            out["errors"].append(f"유튜브 상세: {str(e)[:60]}")
+    if token and ig_user_id:
+        base = "https://graph.facebook.com/v21.0/"
+        for tag in POP_TAGS:
+            try:
+                h = get_json(base + "ig_hashtag_search?" + urllib.parse.urlencode({"user_id": ig_user_id, "q": tag, "access_token": token}))
+                hid = (h.get("data") or [{}])[0].get("id")
+                if not hid:
+                    continue
+                d = get_json(base + hid + "/top_media?" + urllib.parse.urlencode({"user_id": ig_user_id, "limit": 30, "access_token": token,
+                             "fields": "caption,like_count,comments_count,permalink,media_type,timestamp,media_url"}))
+                for m in d.get("data", []):
+                    cap = m.get("caption") or ""
+                    if "팝콘" not in cap and "popcorn" not in cap.lower():
+                        continue
+                    out["instagram"].append({"tag": tag, "caption": cap[:600], "likes": m.get("like_count"), "comments": m.get("comments_count"),
+                                             "permalink": m.get("permalink"), "media_type": m.get("media_type"), "timestamp": m.get("timestamp"),
+                                             "thumb": m.get("media_url") if m.get("media_type") == "IMAGE" else None})
+            except Exception as e:  # noqa: BLE001
+                out["errors"].append(f"인스타 #{tag}: {str(e)[:80]}")
+        seen = set(); uniq = []
+        for m in sorted(out["instagram"], key=lambda m: m.get("likes") or 0, reverse=True):
+            if m["permalink"] not in seen:
+                seen.add(m["permalink"]); uniq.append(m)
+        out["instagram"] = uniq[:40]
+    if not out["youtube"] and prev:
+        out["youtube"] = prev.get("youtube", [])
+    if not out["instagram"] and prev:
+        out["instagram"] = prev.get("instagram", [])
+    return out
+
+
 API_URL = "https://script.google.com/macros/s/AKfycbx_bxTi39uwrssjbst255QjPBY_p1KNQwRA8KAgzj_h9DNHjcw3BUpfNZntsy8ItxEw/exec"
 
 
@@ -639,6 +695,7 @@ def main():
             print("brand enrich failed", e)
     topics = topics_of(cafe_rows, now)
     youtube = collect_youtube(os.environ.get("YT_KEY"), now) or prev.get("youtube")
+    popcorn = collect_popcorn(os.environ.get("YT_KEY"), token, ig_user_id, prev.get("popcorn"), now)
     trends = collect_trends((prev.get("trends") or {}).get("items"), now)
     hist_path = os.path.join(ROOT, "site", "topics_history.json")
     hist = load(hist_path, {}) or {}
@@ -656,6 +713,7 @@ def main():
         "picks": picks,
         "topics": topics,
         "youtube": youtube,
+        "popcorn": popcorn,
         "trends": {"source": "google-trends-kr", "collected_at": now.isoformat(), "items": trends},
         "brands": brands,
         "channels_source": channels.get("_source", "channels.json"),

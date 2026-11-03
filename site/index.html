@@ -106,6 +106,7 @@ td.brands{font-size:12.5px}td.brands a{color:#2563EB;text-decoration:none}
 nav button.fav{background:#FFE9C7;border-radius:8px 8px 0 0;color:#8A4B00;font-weight:700}nav button.fav.on{background:#FFD89A}
 .posit{background:#1B2136;color:#fff;border-radius:12px;padding:12px 16px;font-size:14px;margin:8px 0}.dgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));gap:12px}.dir{background:#fff;border:2px solid #F3D9B1;border-radius:14px;padding:14px 16px;font-size:13px}.dno{font-size:11px;font-weight:800;color:#C2410C}.dname{font-size:17px;font-weight:800;margin:2px 0 4px}.dcon{margin-bottom:8px;line-height:1.5}.dir dl{margin:0;display:grid;grid-template-columns:78px 1fr;gap:4px 8px}.dir dt{color:var(--sub);font-weight:700}.dir dd{margin:0;line-height:1.45}.btab th{text-align:left;color:var(--sub);font-weight:700;width:110px}.btab td{font-size:13px}
 .anc{background:#fff;border:1px solid var(--line);border-radius:12px;padding:10px 16px;font-size:13px;line-height:1.6}.anc ul{margin:4px 0;padding-left:18px}
+.tastesec{color:#8A4B00}
 .why{display:flex;gap:5px;flex-wrap:wrap}.why span{font-size:11px;background:#F4F1EA;border-radius:4px;padding:2px 6px;color:var(--navy)}
 @media(max-width:640px){.search{width:100%;margin-left:0}.grid{grid-template-columns:1fr 1fr}.thumb{aspect-ratio:1}}
 </style>
@@ -381,7 +382,9 @@ function render(){if(!D)return;const A=accMap(),P=D.instagram.posts;
     h+='<div class="sec">인스타 반응 좋은 글<small>최근 3일 · 좋아요 100 이상 · 평소의 2배 이상 · 광고·정치·가십·종료 행사 제외</small></div>'+(hot.length?'<div class="grid">'+hot.slice(0,30).map(p=>card(p,A)).join('')+'</div>':'<div class="empty">조건에 맞는 글이 없어요.</div>');
     const top=D.cafe.filter(r=>kidRe.test(r.title)&&!r.flag&&r.reads>=100&&hoursAgo(r.written_at)<=72&&match(r.title)).sort((a,b)=>b.reads-a.reads).slice(0,10);
     h+='<div class="sec">맘카페 육아 인기글<small>최근 3일 · 조회 100 이상 · 광고·지역 한정·단순 현황 제외</small></div>'+cafeTable(top);
-  } else if(counts[tab]!=null){h+=sortBar('<span class="lbl" style="margin-left:auto">최근 '+CAT_DAYS[tab]+'일 안에 올라온 글만 · 끝난 행사 제외</span>')+'<div class="grid">'+sorted(inCat(tab).filter(p=>match(p.caption+p.handle))).map(p=>card(p,A)).join('')+'</div>';
+  } else if(counts[tab]!=null){const TM=((AI&&AI.taste_match)||{})[tab]||[];const byId=Object.fromEntries(P.map(p=>[p.permalink,p]));const TMx=TM.map(t=>({t,p:byId[t.id]})).filter(x=>x.p&&!(FB[x.p.permalink]&&FB[x.p.permalink].status==='제외'));
+    if(TMx.length)h+='<div class="sec tastesec">★ 찜 취향과 비슷한 글<small>찜한 후보를 분석한 팀 취향 기준 · Claude가 매일 아침 골라요 · '+kst(AI.taste_at)+'</small></div><div class="grid">'+TMx.map(({t,p})=>card(p,A,'<div class="aiwhy"><span class="score">취향 '+esc(t.score)+'</span> '+esc(t.reason||'')+'</div>')).join('')+'</div><div class="sec">전체 글</div>';
+    h+=sortBar('<span class="lbl" style="margin-left:auto">최근 '+CAT_DAYS[tab]+'일 안에 올라온 글만 · 끝난 행사 제외</span>')+'<div class="grid">'+sorted(inCat(tab).filter(p=>match(p.caption+p.handle))).map(p=>card(p,A)).join('')+'</div>';
   } else if(tab==='맘카페 인기글'){h+=topicsView();const names=['전체',...new Set(D.cafe.map(r=>r.cafe))];
     h+='<div class="sec">주간 인기글 전체</div><div class="bar">'+names.map(n=>'<button class="chip'+(cafeSel===n?' on':'')+'" data-cafe="'+esc(n)+'">'+esc(n)+'</button>').join('')+'<button class="chip'+(kidOnly?' on':'')+'" data-kid="1">정보 글만</button></div>';
     const rows=D.cafe.filter(r=>(cafeSel==='전체'||r.cafe===cafeSel)&&(!kidOnly||!r.flag)&&match(r.title)).sort((a,b)=>b.reads-a.reads).slice(0,200);

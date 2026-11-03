@@ -473,13 +473,14 @@ def hot_people(prev=None):
 # ---------------------------------------------------------------- K. 팝콘 리서치 뉴스 (고몽 팝콘 PB, 3일마다)
 POPCORN_PROMPT = """오늘은 {today}이다. 우리는 유튜버 고몽(영화 해설 10년차) 이름으로 PB 팝콘(봉지 125g급, 편의점 10~20대 판매·바이럴 목표, '영화 보는 사람의 팝콘')을 만든다. 콘셉트는 '좋은 물건만 골라 쓰는 고몽이 만든 팝콘' — 저당이 아니라 아주 맛있는 프리미엄, 시즈닝보다 바삭한 식감(코팅·품종·제조 방식)과 좋은 버터(앵커 등)로 승부한다. 식감·버터·프리미엄 원료 사례를 우선 찾아라.
 이미 국내에 나온 맛·형식을 따라 하면 임팩트가 없다. 그래서 '국내에 아직 없는 것'을 찾는 게 핵심이다.
+[필수 조건] 우리는 편의점·온라인에서 파는 완제품 봉지 팝콘이다. 극장·매장 현장에서 만들어 파는 메뉴, 팝콘통·버킷 같은 굿즈, 현장 행사, 즉석 조리가 필요한 것, 냉장·냉동 등 유통 제약이 있는 것은 넣지 않는다. 마트·편의점·온라인에서 파는 포장 팝콘(또는 포장 스낵)만 고른다.
 웹 검색으로 두 묶음을 찾아라.
 
 [global] 해외(미국·일본·영국·유럽·동남아 등) 팝콘 레퍼런스 10~14개: 최근 1년 안의 새 맛·시즈닝, 패키지·라인업 디자인, 대용량·한정판, 극장·OTT·영화 콜라보, 캐릭터·굿즈, 제조 방식(케틀·에어팝·코팅), 판매·바이럴 방식.
- 각 JSON: name, brand, country, when, point(무슨 일인지·숫자, 확인된 사실만), kr_status('국내 없음'|'비슷한 것 있음'|'이미 있음'), kr_note(국내에 비슷한 게 있으면 무엇인지, 없으면 ""), borrow(국내·고몽 팝콘에 어떻게 빌려올지 한 줄), tags(2~3개), src(근거 URL).
+ 각 JSON: name, brand, country, when, channel(어디서 파는지: 편의점·마트·온라인 등), point(무슨 일인지·숫자, 확인된 사실만), kr_status('국내 없음'|'비슷한 것 있음'|'이미 있음'), kr_note(국내에 비슷한 게 있으면 무엇인지, 없으면 ""), borrow(국내·고몽 팝콘에 어떻게 빌려올지 한 줄), tags(2~3개), src(근거 URL).
  kr_status는 국내 검색으로 확인한 뒤 매긴다. '국내 없음'을 우선해서 고른다.
 
-[domestic] 국내 최근 60일 팝콘·스낵 새 소식 4~6개(편의점·극장·콜라보·시즈닝). 각 JSON: name, brand, when, point, learn(고몽 팝콘이 피하거나 배울 점), tags, src.
+[domestic] 국내 최근 60일 포장 팝콘·스낵 새 소식 4~6개(편의점·온라인 판매 제품, 콜라보, 시즈닝). 극장 현장 메뉴는 제외. 각 JSON: name, brand, when, point, learn(고몽 팝콘이 피하거나 배울 점), tags, src.
  곰표 팝콘(2020), 넷플릭스 점보팝콘(2023)처럼 오래된 건 빼라.
 
 출력은 JSON 객체만: {"global":[...], "domestic":[...]}"""
@@ -509,6 +510,20 @@ def verify_kr(glob):
         if f and f.get("kr_status") in ("국내 없음", "비슷한 것 있음", "이미 있음"):
             x["kr_status"], x["kr_note"], x["kr_checked"] = f["kr_status"], f.get("kr_note", ""), True
     return glob
+
+
+YT_POP_PROMPT = """아래 유튜브 영상 목록에서 '판매되는 포장 팝콘 제품을 실제로 소개·리뷰·시식하는 영상'만 골라라.
+제외: 집에서 팝콘 만들기·레시피, 극장 팝콘통·굿즈, 팝콘이 잠깐 나오는 브이로그, 팝콘과 무관한 영상.
+출력은 통과한 id 배열만(JSON 배열)."""
+
+
+def popcorn_yt_ok(data):
+    vids = ((data.get("popcorn") or {}).get("youtube") or [])
+    if not vids:
+        return None
+    body = "\n".join(f"{v['id']} | {v['channel']} | {v['title']} | {(v.get('desc') or '')[:100]}" for v in vids)
+    arr = parse_json(claude(YT_POP_PROMPT + "\n\n" + body), list)
+    return [x for x in arr if isinstance(x, str)] if isinstance(arr, list) else None
 
 
 def popcorn_news():
@@ -574,6 +589,9 @@ def main():
         report["인물"] = f"찾음 {len(people)} · 추천 추가 {len(add)}"
     last_pop = ai.get("popcorn_news_at") or ""
     if "K" in ONLY or (not ONLY and ai.get("picks") and hours_ago(last_pop) >= 72):
+        ok_ids = popcorn_yt_ok(data)
+        if ok_ids is not None:
+            ai["popcorn_yt_ok"] = ok_ids
         news, glob = popcorn_news()
         if news or glob:
             ai["popcorn_news"] = news
@@ -600,7 +618,7 @@ def main():
                 if x.get("id") in checks:
                     x["date_check"] = checks[x["id"]]
             new["date_checked"] = len(checks)
-            for k in ("popcorn_news", "popcorn_global", "popcorn_news_at"):
+            for k in ("popcorn_news", "popcorn_global", "popcorn_news_at", "popcorn_yt_ok"):
                 if k in ai:
                     new.setdefault(k, ai[k])
             new["yt_review"] = review

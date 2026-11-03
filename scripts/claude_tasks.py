@@ -471,15 +471,27 @@ def hot_people(prev=None):
 
 
 # ---------------------------------------------------------------- K. 팝콘 리서치 뉴스 (고몽 팝콘 PB, 3일마다)
-POPCORN_PROMPT = """오늘은 {today}이다. 우리는 유튜버 고몽 이름으로 PB 팝콘(봉지 125g급, 편의점에서 10~20대 판매·바이럴 목표, 영화 보는 사람의 팝콘)을 만든다.
-웹 검색으로 최근 60일 사이 국내외 팝콘·스낵 레퍼런스를 찾아라: 편의점 팝콘 신제품, 콜라보 팝콘, 대용량·한정판, 새 시즈닝(트러플·하몽·올리브유 등), 패키지 디자인 화제, 해외 고메 팝콘 브랜드 소식, 팝콘 관련 바이럴(챌린지·리뷰).
-6~10개. 각 JSON: name(제품·사례 이름), brand, when(출시·보도 시점), point(무슨 일인지·숫자, 확인된 사실만), learn(고몽 팝콘이 배울 점 한 줄), tags(2~3개), src(근거 URL).
-이미 알려진 오래된 사례(곰표 팝콘 2020, 넷플릭스 점보팝콘 2023 등)는 빼고 새 소식 위주. 출력은 JSON 배열만."""
+POPCORN_PROMPT = """오늘은 {today}이다. 우리는 유튜버 고몽(영화 해설 10년차) 이름으로 PB 팝콘(봉지 125g급, 편의점 10~20대 판매·바이럴 목표, '영화 보는 사람의 팝콘')을 만든다.
+이미 국내에 나온 맛·형식을 따라 하면 임팩트가 없다. 그래서 '국내에 아직 없는 것'을 찾는 게 핵심이다.
+웹 검색으로 두 묶음을 찾아라.
+
+[global] 해외(미국·일본·영국·유럽·동남아 등) 팝콘 레퍼런스 10~14개: 최근 1년 안의 새 맛·시즈닝, 패키지·라인업 디자인, 대용량·한정판, 극장·OTT·영화 콜라보, 캐릭터·굿즈, 제조 방식(케틀·에어팝·코팅), 판매·바이럴 방식.
+ 각 JSON: name, brand, country, when, point(무슨 일인지·숫자, 확인된 사실만), kr_status('국내 없음'|'비슷한 것 있음'|'이미 있음'), kr_note(국내에 비슷한 게 있으면 무엇인지, 없으면 ""), borrow(국내·고몽 팝콘에 어떻게 빌려올지 한 줄), tags(2~3개), src(근거 URL).
+ kr_status는 국내 검색으로 확인한 뒤 매긴다. '국내 없음'을 우선해서 고른다.
+
+[domestic] 국내 최근 60일 팝콘·스낵 새 소식 4~6개(편의점·극장·콜라보·시즈닝). 각 JSON: name, brand, when, point, learn(고몽 팝콘이 피하거나 배울 점), tags, src.
+ 곰표 팝콘(2020), 넷플릭스 점보팝콘(2023)처럼 오래된 건 빼라.
+
+출력은 JSON 객체만: {"global":[...], "domestic":[...]}"""
 
 
 def popcorn_news():
-    arr = parse_json(claude(POPCORN_PROMPT.replace("{today}", NOW.strftime("%Y-%m-%d")), tools=["WebSearch", "WebFetch"], turns=25), list)
-    return [x for x in arr if isinstance(x, dict) and x.get("name")] if isinstance(arr, list) else []
+    res = parse_json(claude(POPCORN_PROMPT.replace("{today}", NOW.strftime("%Y-%m-%d")), tools=["WebSearch", "WebFetch"], turns=35), dict)
+    if not isinstance(res, dict):
+        return [], []
+    ok = lambda arr: [x for x in arr or [] if isinstance(x, dict) and x.get("name")]
+    order = {"국내 없음": 0, "비슷한 것 있음": 1, "이미 있음": 2}
+    return ok(res.get("domestic")), sorted(ok(res.get("global")), key=lambda x: order.get(x.get("kr_status"), 3))
 
 
 CATS = "먹거리·간식/교구·도서/장난감·놀이/패션·잡화/생활·주방/여행·숙소·체험/뷰티·건강/가전·디지털/기타"
@@ -526,13 +538,14 @@ def main():
         report["인물"] = f"찾음 {len(people)} · 추천 추가 {len(add)}"
     last_pop = ai.get("popcorn_news_at") or ""
     if "K" in ONLY or (not ONLY and ai.get("picks") and hours_ago(last_pop) >= 72):
-        news = popcorn_news()
-        if news:
+        news, glob = popcorn_news()
+        if news or glob:
             ai["popcorn_news"] = news
+            ai["popcorn_global"] = glob
             ai["popcorn_news_at"] = NOW.isoformat()
             json.dump(ai, open(ai_path, "w", encoding="utf-8"), ensure_ascii=False)
             open(".ai_updated", "w").write("1")
-            report["팝콘 뉴스"] = len(news)
+            report["팝콘 뉴스"] = f"국내 {len(news)} · 해외 {len(glob)}"
     if "G" in ONLY and ai.get("picks"):  # 육아 쇼츠 분류·포맷만 다시
         ai["yt_review"] = classify_shorts(data)
         apply_review(data, ai["yt_review"])
@@ -551,7 +564,7 @@ def main():
                 if x.get("id") in checks:
                     x["date_check"] = checks[x["id"]]
             new["date_checked"] = len(checks)
-            for k in ("popcorn_news", "popcorn_news_at"):
+            for k in ("popcorn_news", "popcorn_global", "popcorn_news_at"):
                 if k in ai:
                     new.setdefault(k, ai[k])
             new["yt_review"] = review

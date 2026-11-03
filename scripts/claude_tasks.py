@@ -41,15 +41,15 @@ def post(body):
     return None
 
 
-def claude(prompt, tools=None, turns=1):
+def claude(prompt, tools=None, turns=1, timeout=900, retries=2):
     """Claude Code CLI 호출, 응답 텍스트 반환. tools 예: ["WebSearch", "WebFetch"]"""
     cmd = ["claude", "-p", "--model", MODEL, "--output-format", "json", "--max-turns", str(turns)]
     if tools:
         cmd += ["--allowedTools", ",".join(tools)]
-    for attempt in range(2):
+    for attempt in range(retries):
         try:
             p = subprocess.run(cmd,
-                               input=prompt, capture_output=True, text=True, timeout=900)
+                               input=prompt, capture_output=True, text=True, timeout=timeout)
             out = json.loads(p.stdout or "{}")
             if out.get("is_error") or p.returncode != 0:
                 print("  claude error:", (out.get("result") or p.stderr or "")[:300])
@@ -495,9 +495,14 @@ def verify_kr(glob):
     if not glob:
         return glob
     body = "\n".join(f"- {x['name']} ({x.get('brand','')}, {x.get('country','')}): {str(x.get('point',''))[:150]}" for x in glob)
-    arr = parse_json(claude(KR_CHECK_PROMPT + "\n\n" + body, tools=["WebSearch", "WebFetch"], turns=40), list)
-    if not isinstance(arr, list):
-        return glob
+    from concurrent.futures import ThreadPoolExecutor
+    chunks = [glob[i:i + 4] for i in range(0, len(glob), 4)]
+    def run(ch):
+        b = "\n".join(f"- {x['name']} ({x.get('brand','')}, {x.get('country','')}): {str(x.get('point',''))[:150]}" for x in ch)
+        r = parse_json(claude(KR_CHECK_PROMPT + "\n\n" + b, tools=["WebSearch", "WebFetch"], turns=16, timeout=600, retries=1), list)
+        return r if isinstance(r, list) else []
+    with ThreadPoolExecutor(max_workers=4) as ex:
+        arr = [a for r in ex.map(run, chunks) for a in r]
     fix = {a.get("name"): a for a in arr if isinstance(a, dict)}
     for x in glob:
         f = fix.get(x["name"])
@@ -507,8 +512,17 @@ def verify_kr(glob):
 
 
 def popcorn_news():
-    res = parse_json(claude(POPCORN_PROMPT.replace("{today}", NOW.strftime("%Y-%m-%d")), tools=["WebSearch", "WebFetch"], turns=35), dict)
-    if not isinstance(res, dict):
+    from concurrent.futures import ThreadPoolExecutor
+    base = POPCORN_PROMPT.replace("{today}", NOW.strftime("%Y-%m-%d"))
+    parts = {"global": base + "\n\n이번에는 [global]만 찾아라. 출력은 {\"global\":[...]}",
+             "domestic": base + "\n\n이번에는 [domestic]만 찾아라. 출력은 {\"domestic\":[...]}"}
+    def run(k):
+        r = parse_json(claude(parts[k], tools=["WebSearch", "WebFetch"], turns=22, timeout=1200, retries=1), dict)
+        return (r or {}).get(k) if isinstance(r, dict) else None
+    with ThreadPoolExecutor(max_workers=2) as ex:
+        g, d = ex.map(run, ["global", "domestic"])
+    res = {"global": g or [], "domestic": d or []}
+    if not res["global"] and not res["domestic"]:
         return [], []
     ok = lambda arr: [x for x in arr or [] if isinstance(x, dict) and x.get("name")]
     order = {"국내 없음": 0, "비슷한 것 있음": 1, "이미 있음": 2}

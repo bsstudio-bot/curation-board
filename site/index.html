@@ -209,7 +209,7 @@ function popcornView(){if(!POP)return '<div class="empty">불러오는 중…</d
   const own=D.instagram.posts.filter(p=>/팝콘|popcorn/i.test(p.caption||'')).sort((a,b)=>(b.likes||0)-(a.likes||0)).slice(0,12);
   const IG=(P.instagram||[]).slice(0,16);
   if(IG.length||own.length)h+='<div class="sec">인스타 팝콘 글<small>#팝콘 #편의점신상 #편의점과자 인기 글 + 우리 수집 채널에서 팝콘이 나온 글</small></div><div class="grid">'+[...IG.map(m=>({...m,handle:'#'+m.tag})),...own].map(p=>card(p,accMap())).join('')+'</div>';
-  if((P.errors||[]).length)h+='<div class="note">수집 메모: '+P.errors.map(esc).join(' / ')+'</div>';
+  if((P.errors||[]).some(e=>/인스타/.test(e)))h+='<div class="note">인스타 해시태그(#팝콘 등) 인기 글은 Meta 앱 심사(공개 콘텐츠 접근 권한)가 필요해서 지금은 우리 수집 채널 글만 보여요.</div>';
   return h}
 function whyChips(x){return (x.angle?'<div class="angle">💡 해설 각도: '+esc(x.angle)+'</div>':'')+'<div class="why">'+(x.why||[]).filter(w=>!(x.kind!=='cafe'&&(w.startsWith('평소')||w.endsWith('까지')))).map(w=>'<span>'+esc(w)+'</span>').join('')+'</div>'}
 function sorted(a){a=[...a];if(sort==='ratio')a.sort((x,y)=>(y.ratio||0)-(x.ratio||0));if(sort==='new')a.sort((x,y)=>(y.timestamp||'').localeCompare(x.timestamp||''));if(sort==='like')a.sort((x,y)=>(y.likes||0)-(x.likes||0));return a}

@@ -430,6 +430,13 @@ A는 있는 만큼(없으면 0명, 최대 4명), B는 4~6명. 각 JSON 객체:
 'intro_point'와 'extra_value'를 한 줄씩 못 쓰면 넣지 않는다. 검색으로 확인된 사실만 쓴다. 출력은 JSON 배열만."""
 
 
+def _num(v):
+    try:
+        return float(str(v).strip().split("/")[0])
+    except Exception:
+        return 0.0
+
+
 def hot_people(prev=None):
     raw = claude(PEOPLE_PROMPT.replace("{today}", NOW.strftime("%Y-%m-%d")), tools=["WebSearch", "WebFetch"], turns=30)
     arr = parse_json(raw, list)
@@ -443,10 +450,10 @@ def hot_people(prev=None):
                    f"소개 포인트: {x.get('intro_point','')}\n시청자가 얻어갈 것: {x.get('extra_value','')}\n쓸 수 있는 장면: {x.get('visuals','')}\n이야기 씨앗: {x.get('story_seed','')}\n의견 갈림: {x.get('debate','')}\n주의: {x.get('caution','')}\n출처: " + " ".join(src))
             out.append({"kind": "person", "ptype": x.get("type") or "", "id": "person:" + x["name"], "title": x["name"], "who": x.get("who"), "why": x.get("why"),
                         "since": x.get("since"), "signals": x.get("signals"), "sources": src, "story_seed": x.get("story_seed"),
-                        "caution": x.get("caution"), "fit": x.get("fit"), "caption": cap, "character": x.get("character"), "intro_point": x.get("intro_point"),
+                        "caution": x.get("caution"), "fit": _num(x.get("fit")), "caption": cap, "character": x.get("character"), "intro_point": x.get("intro_point"),
                         "extra_value": x.get("extra_value"), "visuals": x.get("visuals"), "debate": x.get("debate"), "url": src[0] if src else "", "timestamp": NOW.isoformat()})
     print("  [인물] 후보:", [(x["title"], x.get("fit"), bool(x.get("intro_point")), bool(x.get("extra_value"))) for x in out])
-    out = [x for x in out if (x.get("fit") or 0) >= 6 and x.get("intro_point") and x.get("extra_value")]
+    out = [x for x in out if _num(x.get("fit")) >= 6 and x.get("intro_point") and x.get("extra_value")]
     def _key(n):
         return re.sub(r"[^가-힣A-Za-z0-9]", "", n or "")
     def _same(a, b):
@@ -458,18 +465,18 @@ def hot_people(prev=None):
         ga = {a[i:i + 2] for i in range(len(a) - 1)}; gb = {b[i:i + 2] for i in range(len(b) - 1)}
         return len(ga & gb) / max(1, min(len(ga), len(gb))) >= 0.6
     dedup = []
-    for x in sorted(out, key=lambda x: x.get("fit") or 0, reverse=True):
+    for x in sorted(out, key=lambda x: _num(x.get("fit")), reverse=True):
         if not any(_same(x["title"], y["title"]) for y in dedup):
             dedup.append(x)
     out = dedup
     names = {x["title"] for x in out}
     for x in prev or []:  # 전에 기준을 통과한 인물은 2주 동안 유지 (검색 결과가 날마다 흔들려도 빠지지 않게)
         first = x.get("first_seen") or x.get("timestamp") or ""
-        if not any(_same(x.get("title"), n) for n in names) and (x.get("fit") or 0) >= 6 and x.get("intro_point") and hours_ago(first) <= 14 * 24:
+        if not any(_same(x.get("title"), n) for n in names) and _num(x.get("fit")) >= 6 and x.get("intro_point") and hours_ago(first) <= 14 * 24:
             out.append(dict(x, carried=True)); names.add(x["title"])
     for x in out:
         x.setdefault("first_seen", x.get("timestamp"))
-    return sorted(out, key=lambda x: x.get("fit") or 0, reverse=True)
+    return sorted(out, key=lambda x: _num(x.get("fit")), reverse=True)
 
 
 # ---------------------------------------------------------------- K. 팝콘 리서치 뉴스 (고몽 팝콘 PB, 3일마다)

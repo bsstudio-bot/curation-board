@@ -572,7 +572,7 @@ def collect_youtube(key, now):
 
 
 # ---------------------------------------------------------------- 팝콘 리서치 (고몽 팝콘 PB)
-POP_YT_QUERIES = ["편의점 팝콘", "팝콘 신상", "팝콘 리뷰", "팝콘 먹방", "트러플 팝콘", "gourmet popcorn"]
+POP_YT_QUERIES = ["편의점 팝콘", "팝콘 신상", "팝콘 리뷰", "gourmet popcorn", "new popcorn flavor", "popcorn bucket", "ポップコーン 新作", "popcorn review"]
 POP_TAGS = ["팝콘", "편의점신상", "편의점과자"]
 
 

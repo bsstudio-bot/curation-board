@@ -254,8 +254,10 @@ def curate(data, people=None):
             pool.pop(i)
     if not pool:
         return None
-    fb_block = ("\n\n[팀 반응 — 최근 팀이 표시한 소재]\n'제작함'은 팀이 실제로 찍기로 한 방향이니 비슷한 소재·각도·시리즈에 가점, "
-                "'제외'는 팀이 원치 않은 방향이니 비슷한 소재에 감점한다. 개별 글이 아니라 패턴(주제, 형식, 계정 성격)을 읽어 반영해라.\n" + fb_txt) if fb_txt else ""
+    prof = taste_text()
+    taste_block = ("\n\n[팀 취향 프로필 — 찜한 후보 분석. 오늘의 추천과 이슈를 이 취향 쪽으로 기울여라. 단 광고·공구 글은 계속 고르지 않는다]\n" + prof) if prof else ""
+    fb_block = taste_block + (("\n\n[팀 반응 — 최근 팀이 표시한 소재]\n'제작함'은 팀이 실제로 찍기로 한 방향이니 비슷한 소재·각도·시리즈에 가점, "
+                "'제외'는 팀이 원치 않은 방향이니 비슷한 소재에 감점한다. 개별 글이 아니라 패턴(주제, 형식, 계정 성격)을 읽어 반영해라.\n" + fb_txt) if fb_txt else "")
     res = parse_json(claude(CURATE_PROMPT.replace("@@CHANNEL_RULES@@", CHANNEL_RULES) + fb_block + "\n\n오늘 날짜: " + NOW.strftime("%Y-%m-%d") + "\n\n[후보]\n" + pool_text(pool)), dict)
     if not isinstance(res, dict) or not res.get("picks"):
         print("  [E] 파싱 실패"); return None
@@ -545,6 +547,62 @@ def popcorn_news():
     return ok(res.get("domestic")), sorted(glob, key=lambda x: order.get(x.get("kr_status"), 3))
 
 
+# ---------------------------------------------------------------- T. 찜 취향 (프로필 갱신 + 카테고리별 맞춤 글)
+TASTE_PATH = "prompts/taste.md"
+TASTE_UPDATE_PROMPT = """아래는 팀이 큐레이션 보드에서 찜(★)·제작함·제외로 표시한 글 목록이다. 기존 '팀 취향 프로필'을 이 목록에 맞게 다시 써라.
+형식은 기존 프로필과 같게: 분포, 카테고리별 '팀이 고른 것'(구체적 소재와 성향), 주의할 점, 공통, 계정 선호. 제외한 글은 '피할 것'으로 정리.
+광고·공구 글이 찜돼 있으면 광고 자체가 아니라 그 '종류의 장소·소재'가 취향이라는 점을 적는다. 출력은 프로필 텍스트만."""
+
+TASTE_MATCH_PROMPT = """너는 큐레이션 보드 편집자다. 아래 '팀 취향 프로필'과 가장 잘 맞는 글을 '{cat}' 후보에서 골라라.
+광고·공구·이벤트 글은 고르지 않는다. 최대 15개, 잘 맞는 순서대로. 각 JSON: id(그대로), score(1~10), reason(어떤 찜 취향과 닮았는지 한 줄, 구체적으로).
+출력은 JSON 배열만."""
+
+
+def taste_text():
+    return open(TASTE_PATH, encoding="utf-8").read() if os.path.exists(TASTE_PATH) else ""
+
+
+def update_taste():
+    try:
+        allj = get("all")
+    except Exception:
+        return False
+    rows = []
+    for b in allj.get("bookmarks", []):
+        it = b.get("item") or {}
+        rows.append(f"[찜] {it.get('cat') or it.get('kind') or ''} · {it.get('handle') or it.get('cafe') or it.get('title') or ''} · {(it.get('caption') or it.get('title') or '')[:120]}".replace("\n", " "))
+    for f in allj.get("feedback", []):
+        it = f.get("item") or {}
+        rows.append(f"[{f.get('status')}] {it.get('cat') or it.get('series') or ''} · {it.get('handle') or it.get('cafe') or it.get('title') or ''} · {(it.get('caption') or it.get('title') or '')[:120]}".replace("\n", " "))
+    if len(rows) < 5:
+        return False
+    new = claude(TASTE_UPDATE_PROMPT + "\n\n[기존 프로필]\n" + taste_text() + "\n\n[표시한 글]\n" + "\n".join(rows[-150:]))
+    if new and len(new) > 300:
+        open(TASTE_PATH, "w", encoding="utf-8").write(new.strip() + "\n")
+        open(".ai_updated", "w").write("1")
+        return True
+    return False
+
+
+def taste_match(data):
+    from concurrent.futures import ThreadPoolExecutor
+    days = {"아이랑 갈 곳": 7, "육아 정보": 14, "해설·인물": 14, "밈·트렌드": 14}
+    prof = taste_text()
+    posts = data["instagram"]["posts"]
+    def run(cat):
+        cand = [p for p in posts if p.get("cat") == cat and not p.get("ad") and not p.get("flag") and not p.get("ended") and hours_ago(p.get("timestamp")) <= days[cat] * 24]
+        cand.sort(key=lambda p: (p.get("ratio") or 0), reverse=True)
+        cand = cand[:90]
+        if not cand:
+            return cat, []
+        body = "\n".join(f"[id] {p['permalink']} | @{p['handle']} | 좋아요 {p.get('likes')} | {(p.get('caption') or '')[:160]}".replace("\n", " ") for p in cand)
+        arr = parse_json(claude(TASTE_MATCH_PROMPT.replace("{cat}", cat) + "\n\n[팀 취향 프로필]\n" + prof + "\n\n[후보]\n" + body), list) or []
+        ids = {p["permalink"] for p in cand}
+        return cat, [x for x in arr if isinstance(x, dict) and x.get("id") in ids][:15]
+    with ThreadPoolExecutor(max_workers=4) as ex:
+        return dict(ex.map(run, list(days)))
+
+
 CATS = "먹거리·간식/교구·도서/장난감·놀이/패션·잡화/생활·주방/여행·숙소·체험/뷰티·건강/가전·디지털/기타"
 ADS_PROMPT = f"""아래는 육아·키즈 인스타 계정의 광고·공구·이벤트 글이다. 각 글의 캡션만 근거로 상품 정보를 정리해라.
 캡션에 없는 내용은 빈 문자열로 둔다(추측 금지).
@@ -614,7 +672,15 @@ def main():
         json.dump(ai, open(ai_path, "w", encoding="utf-8"), ensure_ascii=False)
         open(".ai_updated", "w").write("1")
         report["포맷"] = len(ai["formats"])
+    if "S" in ONLY and ai.get("picks"):  # 찜 취향 프로필 갱신 + 카테고리 맞춤 글만
+        update_taste()
+        ai["taste_match"] = taste_match(data)
+        ai["taste_at"] = NOW.isoformat()
+        json.dump(ai, open(ai_path, "w", encoding="utf-8"), ensure_ascii=False)
+        open(".ai_updated", "w").write("1")
+        report["찜 취향"] = {k: len(v) for k, v in ai["taste_match"].items()}
     if need_e:
+        update_taste()
         review = classify_shorts(data)
         apply_review(data, review)
         people = hot_people(ai.get("people"))
@@ -625,6 +691,8 @@ def main():
                 if x.get("id") in checks:
                     x["date_check"] = checks[x["id"]]
             new["date_checked"] = len(checks)
+            new["taste_match"] = taste_match(data)
+            new["taste_at"] = NOW.isoformat()
             for k in ("popcorn_news", "popcorn_global", "popcorn_news_at", "popcorn_yt_ok"):
                 if k in ai:
                     new.setdefault(k, ai[k])

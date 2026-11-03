@@ -470,6 +470,18 @@ def hot_people(prev=None):
     return sorted(out, key=lambda x: x.get("fit") or 0, reverse=True)
 
 
+# ---------------------------------------------------------------- K. 팝콘 리서치 뉴스 (고몽 팝콘 PB, 3일마다)
+POPCORN_PROMPT = """오늘은 {today}이다. 우리는 유튜버 고몽 이름으로 PB 팝콘(봉지 125g급, 편의점에서 10~20대 판매·바이럴 목표, 영화 보는 사람의 팝콘)을 만든다.
+웹 검색으로 최근 60일 사이 국내외 팝콘·스낵 레퍼런스를 찾아라: 편의점 팝콘 신제품, 콜라보 팝콘, 대용량·한정판, 새 시즈닝(트러플·하몽·올리브유 등), 패키지 디자인 화제, 해외 고메 팝콘 브랜드 소식, 팝콘 관련 바이럴(챌린지·리뷰).
+6~10개. 각 JSON: name(제품·사례 이름), brand, when(출시·보도 시점), point(무슨 일인지·숫자, 확인된 사실만), learn(고몽 팝콘이 배울 점 한 줄), tags(2~3개), src(근거 URL).
+이미 알려진 오래된 사례(곰표 팝콘 2020, 넷플릭스 점보팝콘 2023 등)는 빼고 새 소식 위주. 출력은 JSON 배열만."""
+
+
+def popcorn_news():
+    arr = parse_json(claude(POPCORN_PROMPT.replace("{today}", NOW.strftime("%Y-%m-%d")), tools=["WebSearch", "WebFetch"], turns=25), list)
+    return [x for x in arr if isinstance(x, dict) and x.get("name")] if isinstance(arr, list) else []
+
+
 CATS = "먹거리·간식/교구·도서/장난감·놀이/패션·잡화/생활·주방/여행·숙소·체험/뷰티·건강/가전·디지털/기타"
 ADS_PROMPT = f"""아래는 육아·키즈 인스타 계정의 광고·공구·이벤트 글이다. 각 글의 캡션만 근거로 상품 정보를 정리해라.
 캡션에 없는 내용은 빈 문자열로 둔다(추측 금지).
@@ -512,6 +524,15 @@ def main():
         json.dump(ai, open(ai_path, "w", encoding="utf-8"), ensure_ascii=False)
         open(".ai_updated", "w").write("1")
         report["인물"] = f"찾음 {len(people)} · 추천 추가 {len(add)}"
+    last_pop = ai.get("popcorn_news_at") or ""
+    if "K" in ONLY or (not ONLY and ai.get("picks") and hours_ago(last_pop) >= 72):
+        news = popcorn_news()
+        if news:
+            ai["popcorn_news"] = news
+            ai["popcorn_news_at"] = NOW.isoformat()
+            json.dump(ai, open(ai_path, "w", encoding="utf-8"), ensure_ascii=False)
+            open(".ai_updated", "w").write("1")
+            report["팝콘 뉴스"] = len(news)
     if "G" in ONLY and ai.get("picks"):  # 육아 쇼츠 분류·포맷만 다시
         ai["yt_review"] = classify_shorts(data)
         apply_review(data, ai["yt_review"])
@@ -530,6 +551,9 @@ def main():
                 if x.get("id") in checks:
                     x["date_check"] = checks[x["id"]]
             new["date_checked"] = len(checks)
+            for k in ("popcorn_news", "popcorn_news_at"):
+                if k in ai:
+                    new.setdefault(k, ai[k])
             new["yt_review"] = review
             new["people"] = people
             new["formats"] = make_formats(data)

@@ -573,7 +573,7 @@ def collect_youtube(key, now):
 
 # ---------------------------------------------------------------- 팝콘 리서치 (고몽 팝콘 PB)
 POP_YT_QUERIES = ["편의점 팝콘 리뷰", "팝콘 신상 리뷰", "팝콘 먹어보기", "팝콘 시식", "new popcorn review", "popcorn taste test", "ポップコーン 新作 食べてみた", "コンビニ ポップコーン"]
-POP_HOMEMADE_RE = re.compile(r"만들기|만드는|레시피|집에서|홈메이드|에어프라이어|전자레인지로|만들어|recipe|homemade|how to make|DIY|作り方|手作り|レシピ|popcorn machine|팝콘 기계|팝콘통|bucket|버킷", re.I)
+POP_HOMEMADE_RE = re.compile(r"만들기|만드는|레시피|집에서|홈메이드|에어프라이어|전자레인지로|만들어|recipe|homemade|how to make|DIY|作り方|手作り|レシピ|popcorn machine|팝콘 기계|팝콘통|bucket|버킷|chicken|치킨|maker|메이커|メーカー|ディズニー|disney|theater|cinema|シネマ|극장", re.I)
 POP_WORD_RE = re.compile(r"팝콘|popcorn|ポップコーン", re.I)
 POP_TAGS = ["팝콘", "편의점신상", "편의점과자"]
 

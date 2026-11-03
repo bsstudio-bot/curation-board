@@ -513,7 +513,7 @@ def verify_kr(glob):
 
 
 YT_POP_PROMPT = """아래 유튜브 영상 목록에서 '판매되는 포장 팝콘 제품을 실제로 소개·리뷰·시식하는 영상'만 골라라.
-제외: 집에서 팝콘 만들기·레시피, 극장 팝콘통·굿즈, 팝콘이 잠깐 나오는 브이로그, 팝콘과 무관한 영상.
+제외: 집에서 팝콘 만들기·레시피, 극장·테마파크 현장 팝콘과 팝콘통·굿즈, 팝콘 기계, 팝콘 치킨, 팝콘이 잠깐 나오는 브이로그, 팝콘과 무관한 영상.
 출력은 통과한 id 배열만(JSON 배열)."""
 
 
@@ -587,6 +587,13 @@ def main():
         json.dump(ai, open(ai_path, "w", encoding="utf-8"), ensure_ascii=False)
         open(".ai_updated", "w").write("1")
         report["인물"] = f"찾음 {len(people)} · 추천 추가 {len(add)}"
+    if "Y" in ONLY:
+        ok_ids = popcorn_yt_ok(data)
+        if ok_ids is not None:
+            ai["popcorn_yt_ok"] = ok_ids
+            json.dump(ai, open(ai_path, "w", encoding="utf-8"), ensure_ascii=False)
+            open(".ai_updated", "w").write("1")
+            report["팝콘 영상"] = len(ok_ids)
     last_pop = ai.get("popcorn_news_at") or ""
     if "K" in ONLY or (not ONLY and ai.get("picks") and hours_ago(last_pop) >= 72):
         ok_ids = popcorn_yt_ok(data)

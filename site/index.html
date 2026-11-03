@@ -103,6 +103,7 @@ td.brands{font-size:12.5px}td.brands a{color:#2563EB;text-decoration:none}
 .krs{font-size:11px;font-weight:800;border-radius:4px;padding:1px 6px;margin-left:4px;vertical-align:middle}.krs.no{background:#E8F5EC;color:#14532D}.krs.sim{background:#FFF6DB;color:#92400E}.krs.yes{background:#F4F1EA;color:#6B6458}
 .brief th{width:110px;text-align:left;vertical-align:top;color:var(--sub);font-weight:600}.brief td{font-size:13.5px}
 .pgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(330px,1fr));gap:12px}.pref{background:#fff;border:1px solid var(--line);border-radius:12px;padding:12px 14px;font-size:13px;display:flex;flex-direction:column;gap:6px}.ph2{display:flex;flex-direction:column;gap:2px}.ph2 b{font-size:15px}.ptags{display:flex;gap:5px;flex-wrap:wrap}.ptags span{font-size:11px;background:#FDECE7;color:#C2410C;border-radius:4px;padding:1px 6px}.pp{line-height:1.5}.insight{background:#fff;border:1px solid var(--line);border-radius:12px;padding:12px 14px 12px 30px;line-height:1.7;font-size:13.5px}
+nav button.fav{background:#FFE9C7;border-radius:8px 8px 0 0;color:#8A4B00;font-weight:700}nav button.fav.on{background:#FFD89A}
 .why{display:flex;gap:5px;flex-wrap:wrap}.why span{font-size:11px;background:#F4F1EA;border-radius:4px;padding:2px 6px;color:var(--navy)}
 @media(max-width:640px){.search{width:100%;margin-left:0}.grid{grid-template-columns:1fr 1fr}.thumb{aspect-ratio:1}}
 </style>
@@ -121,7 +122,7 @@ td.brands{font-size:12.5px}td.brands a{color:#2563EB;text-decoration:none}
 const API='https://script.google.com/macros/s/AKfycbx_bxTi39uwrssjbst255QjPBY_p1KNQwRA8KAgzj_h9DNHjcw3BUpfNZntsy8ItxEw/exec';
 const CATS=['아이랑 갈 곳','육아 정보','해설·인물','밈·트렌드'];
 const CAT_DAYS={'아이랑 갈 곳':7,'육아 정보':30,'해설·인물':30,'밈·트렌드':30};
-const TABS=['오늘의 추천','반응 좋은 글',...CATS,'맘카페 인기글','찜한 후보','스크립트','🍿 팝콘 리서치','참고) 광고·공구','채널 목록'];
+const TABS=['찜한 후보','오늘의 추천','반응 좋은 글',...CATS,'맘카페 인기글','스크립트','🍿 팝콘 리서치','참고) 광고·공구','채널 목록'];
 let POP=null, NOTES=[], FB={}, showEx=false, bmTab='찜', AT={}, AI=null, ruleView=false, ADS={}, SC={}, SCQ=new Set(), D=null, tab='오늘의 추천', sort='new', cafeSel='전체', kidOnly=false, q='', bmMode='week', CH=null, BM={}, LOOKUP={}, busy=false;
 const open_={};
 const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
@@ -199,8 +200,7 @@ async function addNote(){const url=(document.getElementById('nUrl')||{}).value||
 async function delNote(id){if(!confirm('이 글을 지울까요?'))return;try{const j=await api('removeNote',{board:'popcorn',id});NOTES=j.notes||[];render()}catch(e){toast('삭제 실패: '+e.message,1)}}
 function popRef(r){const ks=r.kr_status;return '<div class="pref"><div class="ph2"><b>'+esc(r.name)+(ks?' <span class="krs '+(ks==='국내 없음'?'no':ks==='이미 있음'?'yes':'sim')+'">'+esc(ks)+'</span>':'')+'</b><span class="lbl">'+esc(r.brand||'')+(r.country?' · '+esc(r.country):'')+' · '+esc(r.when||'')+(r.size?' · '+esc(r.size):'')+'</span></div><div class="ptags">'+(r.tags||[]).map(t=>'<span>'+esc(t)+'</span>').join('')+'</div><div class="pp">'+esc(r.point||'')+'</div>'+(r.kr_note?'<div class="lbl">국내: '+esc(r.kr_note)+'</div>':'')+(r.borrow?'<div class="angle st">🇰🇷 국내로 빌려오면: '+esc(r.borrow)+'</div>':'')+(r.learn?'<div class="angle st">🍿 고몽 팝콘에: '+esc(r.learn)+'</div>':'')+(r.src?'<a class="open" href="'+esc(r.src)+'" target="_blank" rel="noopener">출처 →</a>':'')+'</div>'}
 function popcornView(){if(!POP)return '<div class="empty">불러오는 중…</div>';const P=D.popcorn||{};
-  let h='<div class="intro">고몽 팝콘(PB) 제품 리서치 게시판이에요. 맨 위 방향 메모를 기준으로 레퍼런스를 모으고, 팀이 찾은 링크도 아래 게시판에 같이 쌓아요. 유튜브·인스타 팝콘 콘텐츠는 매일, 최신 팝콘 소식은 3일마다 Claude가 웹에서 새로 찾아와요.</div>';
-  h+='<div class="sec">방향 메모<small>사용자 메모 + 11/3 플라스머 미팅 기준</small></div><table class="brief">'+POP.brief.map(b=>'<tr><th>'+esc(b.k)+'</th><td>'+esc(b.v)+'</td></tr>').join('')+'</table>';
+  let h='<div class="intro">고몽 팝콘(PB) 제품 리서치 게시판이에요. 팀이 찾은 링크는 아래 게시판에 같이 쌓아요. 유튜브 팝콘 영상은 매일, 해외 아이디어와 국내 최신 소식은 3일마다 Claude가 웹에서 새로 찾아와요.</div>';
   h+='<div class="sec">게시판<small>팀이 찾은 레퍼런스 링크·아이디어 · 팀 전체 공유</small></div><div class="addbox"><input id="nUrl" placeholder="링크 (인스타·유튜브·기사·쇼핑몰)"><input id="nTitle" placeholder="제목 (예: 트러플 팝콘 패키지)"><input id="nNote" placeholder="메모 (왜 좋은지)" style="flex:2"><button class="chip on" data-addnote="1">올리기</button></div>';
   h+=NOTES.length?'<table><tr><th>날짜</th><th>올린 사람</th><th>제목·메모</th><th>링크</th><th></th></tr>'+NOTES.slice().reverse().map(n=>'<tr><td class="n">'+kst(n.at)+'</td><td>'+esc(n.by||'')+'</td><td><b>'+esc(n.title||'')+'</b>'+(n.note?'<br><small>'+esc(n.note)+'</small>':'')+'</td><td>'+(n.url?'<a href="'+esc(n.url)+'" target="_blank" rel="noopener">열기</a>':'')+'</td><td><button class="chip del" data-delnote="'+esc(n.id)+'">삭제</button></td></tr>').join('')+'</table>':'<div class="empty">아직 올린 글이 없어요. 위 칸에 링크와 메모를 넣고 올리기를 눌러주세요.</div>';
   h+='<div class="sec">시사점<small>레퍼런스에서 뽑은 고몽 팝콘 방향</small></div><ul class="insight">'+POP.insights.map(x=>'<li>'+esc(x)+'</li>').join('')+'</ul>';
@@ -359,7 +359,7 @@ function okRecent(p){return !p.flag&&!adType(p.caption)&&!p.ended&&(p.likes||0)>
 function render(){if(!D)return;const A=accMap(),P=D.instagram.posts;
   const inCat=c=>P.filter(p=>p.cat===c&&!p.ended&&hoursAgo(p.timestamp)<=CAT_DAYS[c]*24);
   const counts={};CATS.forEach(c=>counts[c]=inCat(c).length);
-  document.getElementById('nav').innerHTML=TABS.map(t=>'<button class="'+(t===tab?'on':'')+'" data-tab="'+t+'">'+t+(counts[t]!=null?'<span class="cnt">'+counts[t]+'</span>':t==='찜한 후보'?'<span class="cnt">'+Object.keys(BM).length+'</span>':t==='스크립트'?'<span class="cnt">'+Object.keys(SC).length+'</span>':'')+'</button>').join('');
+  document.getElementById('nav').innerHTML=TABS.map(t=>'<button class="'+(t===tab?'on':'')+(t==='찜한 후보'?' fav':'')+'" data-tab="'+t+'">'+t+(counts[t]!=null?'<span class="cnt">'+counts[t]+'</span>':t==='찜한 후보'?'<span class="cnt">'+Object.keys(BM).length+'</span>':t==='스크립트'?'<span class="cnt">'+Object.keys(SC).length+'</span>':'')+'</button>').join('');
   let h='';
   if(tab==='오늘의 추천'){const today=new Date().toLocaleDateString('en-CA',{timeZone:'Asia/Seoul'});const useAI=AI&&AI.picks&&AI.picks.length&&!ruleView;
     h+='<div class="bar">'+(AI&&AI.picks?'<button class="chip'+(!ruleView?' on':'')+'" data-rv="0">Claude 큐레이션'+(AI.date!==today?' ('+AI.date+')':'')+'</button><button class="chip'+(ruleView?' on':'')+'" data-rv="1">규칙 기반</button>':'')+'<span class="lbl" style="margin-left:auto">'+(useAI?'고몽 신규 채널 기준 · '+kst(AI.generated_at)+' · 후보 '+AI.pool_size+'개 중':'')+'</span></div>';

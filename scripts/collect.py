@@ -572,14 +572,16 @@ def collect_youtube(key, now):
 
 
 # ---------------------------------------------------------------- 팝콘 리서치 (고몽 팝콘 PB)
-POP_YT_QUERIES = ["편의점 팝콘", "팝콘 신상", "팝콘 리뷰", "gourmet popcorn", "new popcorn flavor", "popcorn bucket", "ポップコーン 新作", "popcorn review"]
+POP_YT_QUERIES = ["편의점 팝콘 리뷰", "팝콘 신상 리뷰", "팝콘 먹어보기", "팝콘 시식", "new popcorn review", "popcorn taste test", "ポップコーン 新作 食べてみた", "コンビニ ポップコーン"]
+POP_HOMEMADE_RE = re.compile(r"만들기|만드는|레시피|집에서|홈메이드|에어프라이어|전자레인지로|만들어|recipe|homemade|how to make|DIY|作り方|手作り|レシピ|popcorn machine|팝콘 기계|팝콘통|bucket|버킷", re.I)
+POP_WORD_RE = re.compile(r"팝콘|popcorn|ポップコーン", re.I)
 POP_TAGS = ["팝콘", "편의점신상", "편의점과자"]
 
 
 def collect_popcorn(yt_key, token, ig_user_id, prev, now):
     out = {"collected_at": now.isoformat(), "youtube": [], "instagram": [], "errors": []}
     if yt_key:
-        after = (now - timedelta(days=30)).astimezone(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+        after = (now - timedelta(days=120)).astimezone(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
         ids = {}
         for q in POP_YT_QUERIES:
             try:
@@ -593,7 +595,7 @@ def collect_popcorn(yt_key, token, ig_user_id, prev, now):
             rows = [_yt_row(v, "팝콘: " + ids[v["id"]]) for v in _yt_videos(list(ids), yt_key)]
             for r in rows:
                 r["views_per_hour"] = round(r["views"] / max(1.0, hours_since(r.get("published") or "", now)))
-            out["youtube"] = sorted([r for r in rows if not YT_SKIP_RE.search(r["title"] or "")], key=lambda r: r["views"], reverse=True)[:40]
+            out["youtube"] = sorted([r for r in rows if not YT_SKIP_RE.search(r["title"] or "") and not POP_HOMEMADE_RE.search((r["title"] or "") + " " + (r.get("desc") or "")[:200]) and POP_WORD_RE.search((r["title"] or "") + " " + (r.get("desc") or "")[:300])], key=lambda r: r["views"], reverse=True)[:40]
         except Exception as e:  # noqa: BLE001
             out["errors"].append(f"유튜브 상세: {str(e)[:60]}")
     if token and ig_user_id:

@@ -485,13 +485,35 @@ POPCORN_PROMPT = """오늘은 {today}이다. 우리는 유튜버 고몽(영화 �
 출력은 JSON 객체만: {"global":[...], "domestic":[...]}"""
 
 
+KR_CHECK_PROMPT = """아래 해외 팝콘 사례마다 '한국에 이미 비슷한 게 나왔는지' 국내 검색으로 다시 확인해라.
+검색은 한국어로 2~3번씩: 맛 이름 + 팝콘(예: '두바이 팝콘', '피스타치오 팝콘'), 형식 + 팝콘(예: '과자맛 팝콘', '시즈닝 동봉 팝콘', '멀티팩 팝콘', '팝콘통 굿즈'), 편의점·극장(CU, GS25, 세븐일레븐, CGV, 롯데시네마, 메가박스) 이름과 함께.
+제품명·편의점·극장 기사나 공식 SNS가 하나라도 나오면 '이미 있음', 비슷한 형식이 있으면 '비슷한 것 있음', 정말 못 찾으면 '국내 없음'.
+각 항목 JSON: name(그대로), kr_status, kr_note(찾은 국내 사례 이름·시점·출처, 없으면 ""). 출력은 JSON 배열만."""
+
+
+def verify_kr(glob):
+    if not glob:
+        return glob
+    body = "\n".join(f"- {x['name']} ({x.get('brand','')}, {x.get('country','')}): {str(x.get('point',''))[:150]}" for x in glob)
+    arr = parse_json(claude(KR_CHECK_PROMPT + "\n\n" + body, tools=["WebSearch", "WebFetch"], turns=40), list)
+    if not isinstance(arr, list):
+        return glob
+    fix = {a.get("name"): a for a in arr if isinstance(a, dict)}
+    for x in glob:
+        f = fix.get(x["name"])
+        if f and f.get("kr_status") in ("국내 없음", "비슷한 것 있음", "이미 있음"):
+            x["kr_status"], x["kr_note"], x["kr_checked"] = f["kr_status"], f.get("kr_note", ""), True
+    return glob
+
+
 def popcorn_news():
     res = parse_json(claude(POPCORN_PROMPT.replace("{today}", NOW.strftime("%Y-%m-%d")), tools=["WebSearch", "WebFetch"], turns=35), dict)
     if not isinstance(res, dict):
         return [], []
     ok = lambda arr: [x for x in arr or [] if isinstance(x, dict) and x.get("name")]
     order = {"국내 없음": 0, "비슷한 것 있음": 1, "이미 있음": 2}
-    return ok(res.get("domestic")), sorted(ok(res.get("global")), key=lambda x: order.get(x.get("kr_status"), 3))
+    glob = verify_kr(ok(res.get("global")))
+    return ok(res.get("domestic")), sorted(glob, key=lambda x: order.get(x.get("kr_status"), 3))
 
 
 CATS = "먹거리·간식/교구·도서/장난감·놀이/패션·잡화/생활·주방/여행·숙소·체험/뷰티·건강/가전·디지털/기타"

@@ -112,6 +112,20 @@ function feedback_() {
   });
 }
 
+function notesSheet_() {
+  const s = ss_();
+  let sh = s.getSheetByName('notes');
+  if (!sh) { sh = s.insertSheet('notes'); sh.appendRow(['id', 'at', 'by', 'board', 'url', 'title', 'note']); }
+  return sh;
+}
+
+function notes_(board) {
+  const v = notesSheet_().getDataRange().getValues(); v.shift();
+  return v.filter(function (r) { return r[0] && (!board || r[3] === board); }).map(function (r) {
+    return { id: String(r[0]), at: r[1] instanceof Date ? r[1].toISOString() : r[1], by: r[2], board: r[3], url: r[4], title: r[5], note: r[6] };
+  });
+}
+
 function deleteRowsById_(sh, ids) {
   const want = {}; (ids || []).forEach(function (x) { want[String(x)] = 1; });
   const rows = sh.getDataRange().getValues(); let n = 0;
@@ -163,6 +177,7 @@ function doGet(e) {
   if (a === 'guide') return out_({ ok: true, guide: GUIDE });
   if (a === 'ads') return out_({ ok: true, ads: ads_() });
   if (a === 'feedback') return out_({ ok: true, feedback: feedback_() });
+  if (a === 'notes') return out_({ ok: true, notes: notes_(e.parameter.board || '') });
   return out_({ ok: true, channels: channels_(true), bookmarks: bookmarks_(), scripts: scripts_(), feedback: feedback_(),
     queued: queue_(false).map(function (q) { return { id: q.id, by: q.by, requested_at: q.requested_at }; }) });
 }
@@ -265,6 +280,15 @@ function doPost(e) {
       deleteRowsById_(sh, [b.id]);
       if (b.status) sh.appendRow([String(b.id), now, by, String(b.status), JSON.stringify(b.item || {}).slice(0, 20000)]);
       return out_({ ok: true, feedback: feedback_() });
+    }
+    if (b.action === 'addNote') {
+      const id = 'n' + Date.now();
+      notesSheet_().appendRow([id, now, by, String(b.board || 'popcorn').slice(0, 30), String(b.url || '').slice(0, 1000), String(b.title || '').slice(0, 200), String(b.note || '').slice(0, 3000)]);
+      return out_({ ok: true, notes: notes_(String(b.board || 'popcorn')) });
+    }
+    if (b.action === 'removeNote') {
+      deleteRowsById_(notesSheet_(), [b.id]);
+      return out_({ ok: true, notes: notes_(String(b.board || 'popcorn')) });
     }
     if (b.action === 'deleteAds') {
       return out_({ ok: true, deleted: deleteRowsById_(adsSheet_(), b.ids) });

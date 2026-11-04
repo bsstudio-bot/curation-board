@@ -697,7 +697,7 @@ def main():
             print("brand enrich failed", e)
     topics = topics_of(cafe_rows, now)
     youtube = collect_youtube(os.environ.get("YT_KEY"), now) or prev.get("youtube")
-    popcorn = collect_popcorn(os.environ.get("YT_KEY"), token, ig_user_id, prev.get("popcorn"), now)
+    popcorn = None  # 팝콘 리서치 탭 삭제(2026-11-04): 수집 중단
     trends = collect_trends((prev.get("trends") or {}).get("items"), now)
     hist_path = os.path.join(ROOT, "site", "topics_history.json")
     hist = load(hist_path, {}) or {}

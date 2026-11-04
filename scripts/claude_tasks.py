@@ -622,6 +622,54 @@ discount(할인율 숫자만), period(예 '11/3~11/7'), channel(판매처 단서
 AD_RE = re.compile(r"광고|협찬|제작지원|공구|공동구매|이벤트|당첨|댓글.{0,10}(링크|DM)|최저가|특가|내돈내산|쿠팡|할인")
 
 
+def og_image(url):
+    """기사·페이지의 대표 이미지(og:image) 주소. Claude를 쓰지 않는 단순 요청."""
+    if not url:
+        return ""
+    try:
+        req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 Chrome/124 Safari/537.36"})
+        html = urllib.request.urlopen(req, timeout=10).read(400000).decode("utf-8", "ignore")
+        m = re.search(r'<meta[^>]+(?:property|name)=["\'](?:og:image|twitter:image)["\'][^>]*content=["\']([^"\']+)', html) or \
+            re.search(r'<meta[^>]+content=["\']([^"\']+)["\'][^>]*(?:property|name)=["\'](?:og:image|twitter:image)', html)
+        u = m.group(1).strip() if m else ""
+        if u.startswith("//"):
+            u = "https:" + u
+        return u if u.startswith("http") else ""
+    except Exception:  # noqa: BLE001
+        return ""
+
+
+def add_images(ai, data):
+    """추천·이슈·인물 카드에 대표 이미지를 붙인다(인스타는 이미 thumb 있음)."""
+    cafe = {r.get("url"): r.get("thumb") for r in data.get("cafe", []) if r.get("thumb")}
+    tr = (data.get("trends") or {}).get("items") or []
+    trend = {t.get("title"): t.get("picture") for t in tr if t.get("picture")}
+    cache = {}
+    def person_img(x):
+        if x.get("image"):
+            return x["image"]
+        for u in [x.get("url")] + list(x.get("sources") or []):
+            if not u:
+                continue
+            if u not in cache:
+                cache[u] = og_image(u)
+            if cache[u]:
+                return cache[u]
+        return ""
+    for x in ai.get("people") or []:
+        x["image"] = person_img(x)
+    allx = list(ai.get("picks") or []) + [it for i in ai.get("issues") or [] for it in i.get("items") or []] + list(ai.get("trends") or [])
+    for x in allx:
+        k = x.get("kind")
+        if k == "person" and not x.get("image"):
+            x["image"] = person_img(x)
+        elif k == "cafe" and not x.get("thumb"):
+            x["thumb"] = cafe.get(x.get("url"), "")
+        elif (k == "trend" or "traffic" in x) and not x.get("picture"):
+            x["picture"] = trend.get(x.get("title"), "")
+    return ai
+
+
 def main():
     data = json.load(open("site/data.json", encoding="utf-8"))
     allj = get("all")
@@ -649,9 +697,15 @@ def main():
         keep = [x for x in ai["picks"] if x.get("kind") != "person"]
         add = [dict(x, series="화제 인물", score=x.get("fit"), reason=x.get("intro_point") or x.get("why"), story=x.get("story_seed", "")) for x in people[:4]]
         ai["picks"] = add + keep
+        add_images(ai, data)
         json.dump(ai, open(ai_path, "w", encoding="utf-8"), ensure_ascii=False)
         open(".ai_updated", "w").write("1")
         report["인물"] = f"찾음 {len(people)} · 추천 추가 {len(add)}"
+    if "I" in ONLY and ai.get("picks"):  # 대표 이미지만 다시 붙이기 (Claude 안 씀)
+        add_images(ai, data)
+        json.dump(ai, open(ai_path, "w", encoding="utf-8"), ensure_ascii=False)
+        open(".ai_updated", "w").write("1")
+        report["이미지"] = sum(1 for x in ai.get("people") or [] if x.get("image"))
     if "Y" in ONLY:
         ok_ids = popcorn_yt_ok(data)
         if ok_ids is not None:
@@ -660,7 +714,7 @@ def main():
             open(".ai_updated", "w").write("1")
             report["팝콘 영상"] = len(ok_ids)
     last_pop = ai.get("popcorn_news_at") or ""
-    if "K" in ONLY or (not ONLY and ai.get("picks") and hours_ago(last_pop) >= 72):
+    if "K" in ONLY:  # 팝콘 리서치 탭 삭제(2026-11-04): 자동 실행 끔
         ok_ids = popcorn_yt_ok(data)
         if ok_ids is not None:
             ai["popcorn_yt_ok"] = ok_ids
@@ -706,7 +760,7 @@ def main():
             new["yt_review"] = review
             new["people"] = people
             new["formats"] = make_formats(data)
-            ai = new
+            ai = add_images(new, data)
             json.dump(ai, open(ai_path, "w", encoding="utf-8"), ensure_ascii=False)
             open(".ai_updated", "w").write("1")
             report["큐레이션"] = f"이슈 {len(ai['issues'])} · 추천 {len(ai['picks'])} (후보 {ai['pool_size']}) · 일정 확인 {ai.get('date_checked', 0)} · 포맷 {len(ai.get('formats', []))}"

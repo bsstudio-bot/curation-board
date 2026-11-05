@@ -31,6 +31,7 @@ main{padding:18px 0 60px}
 .thumb{aspect-ratio:4/5;background:#F1EEE7 center/cover no-repeat;display:block}
 .thumb.none{display:none}
 .thumb.wide{aspect-ratio:16/9}
+.bsec td{font-weight:800;font-size:12.5px;padding-top:12px!important;color:#C4492C;background:#FDF4F1}.bsec.b인사이트 td{color:#1F6FB2;background:#EEF5FB}
 .istrip{display:grid;gap:3px;height:120px;margin:-12px -14px 12px;border-radius:12px 12px 0 0;overflow:hidden}.istrip.n1{grid-template-columns:1fr}.istrip.n2{grid-template-columns:1fr 1fr}.istrip.n3{grid-template-columns:1fr 1fr 1fr}.istrip span{background:#F1EEE7 center/cover no-repeat}
 .tth{display:inline-block;width:44px;height:44px;border-radius:8px;background:#F1EEE7 center/cover no-repeat;vertical-align:middle;margin-right:10px}
 .body{padding:12px 14px;display:flex;flex-direction:column;gap:8px;flex:1}
@@ -280,7 +281,7 @@ function scModal(id,loading){const m=document.getElementById('modal');const it=S
     h+='<div class="msec">훅 후보</div><ol class="hooks">'+(sc.hooks||[]).map(x=>'<li>'+esc(x)+'</li>').join('')+'</ol>';
     if(sc.title_bar)h+='<div class="msec">상단 고정 제목</div><div class="capbox" style="font-weight:800">'+esc(sc.title_bar)+'</div>';
     if((sc.question_chain||[]).length)h+='<div class="msec">질문 사다리</div><ol class="hooks">'+sc.question_chain.map(x=>'<li>'+esc(x)+'</li>').join('')+'</ol>';
-    h+='<div class="msec">대본</div><table class="sctable"><tr>'+((sc.lines||[]).some(l=>l.beat)?'<th>흐름</th>':'')+'<th>말할 것</th><th>화면</th></tr>'+(sc.lines||[]).map(l=>'<tr>'+((sc.lines||[]).some(x=>x.beat)?'<td class="scr">'+esc(l.beat||'')+'</td>':'')+'<td>'+esc(l.say)+'</td><td class="scr">'+esc(l.screen||'')+'</td></tr>').join('')+'</table>';
+    h+='<div class="msec">대본</div><table class="sctable"><tr>'+((sc.lines||[]).some(l=>l.beat)?'<th>흐름</th>':'')+'<th>말할 것</th><th>화면</th></tr>'+(sc.lines||[]).map((l,i,arr)=>{const sec=['훅','정보','인사이트','마무리'].includes(l.beat);const head=sec&&(i===0||arr[i-1].beat!==l.beat)?'<tr class="bsec b'+esc(l.beat)+'"><td colspan="3">'+({'훅':'① 훅 (인트로)','정보':'② 정보 전달','인사이트':'③ 인사이트','마무리':'④ 마무리'})[l.beat]+'</td></tr>':'';return head+'<tr>'+((sc.lines||[]).some(x=>x.beat)?'<td class="scr">'+esc(l.beat||'')+'</td>':'')+'<td>'+esc(l.say)+'</td><td class="scr">'+esc(l.screen||'')+'</td></tr>'}).join('')+'</table>'+(sc.insight?'<div class="msec">핵심 인사이트</div><div class="angle st">💡 '+esc(sc.insight)+'</div>':'');
     h+='<div class="msec">캡션</div><div class="capbox">'+esc(sc.caption||'')+'<div class="tags">'+esc((sc.hashtags||[]).join(' '))+'</div></div>';
     if((sc.research||[]).length)h+='<div class="msec">조사해서 더한 정보</div><ul class="checks">'+sc.research.map(r=>'<li>'+esc(r.fact||'')+(r.source?' <a href="'+esc(r.source)+'" target="_blank" rel="noopener">출처</a>':'')+'</li>').join('')+'</ul>';
     if(sc.comment_prompt||sc.debate)h+='<div class="msec">댓글 설계</div><ul class="checks">'+(sc.comment_prompt?'<li>💬 고정 댓글 질문: '+esc(sc.comment_prompt)+'</li>':'')+(sc.debate?'<li>⚖️ 의견이 갈릴 지점: '+esc(sc.debate)+'</li>':'')+'</ul>';

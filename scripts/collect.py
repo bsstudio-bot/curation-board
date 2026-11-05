@@ -632,6 +632,54 @@ def collect_popcorn(yt_key, token, ig_user_id, prev, now):
 API_URL = "https://script.google.com/macros/s/AKfycbx_bxTi39uwrssjbst255QjPBY_p1KNQwRA8KAgzj_h9DNHjcw3BUpfNZntsy8ItxEw/exec"
 
 
+# ---------------------------------------------------------------- 30대 아저씨 훈수: 비슷한 결의 크리에이터 최근 콘텐츠
+def collect_hunsu(creators, yt_key, token, ig_user_id, prev, now, days=30):
+    """site/hunsu.json의 크리에이터별 유튜브 최근 업로드 + 인스타 최근 게시물. 실패하면 직전 수집분 유지."""
+    prev = prev or {}
+    out = {"collected_at": now.isoformat(), "youtube": [], "ig_accounts": [], "ig_posts": [], "errors": []}
+    yt_ok = False
+    if yt_key:
+        ids = {}
+        for c in creators:
+            if not c.get("yt"):
+                continue
+            try:
+                d = _yt("playlistItems", part="contentDetails", playlistId="UU" + c["yt"][2:], maxResults=12, key=yt_key)
+                for it in d.get("items", []):
+                    ids[it["contentDetails"]["videoId"]] = c["name"]
+            except Exception as e:  # noqa: BLE001
+                out["errors"].append(f"유튜브 {c['name']}: {str(e)[:80]}")
+        try:
+            rows = [_yt_row(v, "훈수: " + ids[v["id"]]) for v in _yt_videos(list(ids), yt_key)]
+            by = {}
+            for r in rows:
+                r["creator"] = ids[r["id"]]
+                by.setdefault(r["creator"], []).append(r["views"])
+            for r in rows:
+                med = statistics.median(by[r["creator"]]) if by[r["creator"]] else 0
+                r["ratio"] = round(r["views"] / med, 1) if med else None
+            out["youtube"] = sorted([r for r in rows if hours_since(r.get("published") or "", now) <= days * 24],
+                                    key=lambda r: r.get("published") or "", reverse=True)
+            yt_ok = bool(rows)
+        except Exception as e:  # noqa: BLE001
+            out["errors"].append(f"유튜브 상세: {str(e)[:80]}")
+    if not yt_ok:
+        out["youtube"] = prev.get("youtube", [])
+    chans = [{"handle": c["ig"], "cat": "30대 아저씨 훈수", "note": c["name"]} for c in creators if c.get("ig")]
+    if token and ig_user_id and chans:
+        acc, posts = collect_instagram(chans, token, ig_user_id, {"accounts": prev.get("ig_accounts", []), "posts": prev.get("ig_posts", [])})
+        add_ratio(acc, posts)
+        name = {c["ig"]: c["name"] for c in creators if c.get("ig")}
+        for x in posts:
+            x["creator"] = name.get(x["handle"], x["handle"])
+            x["ad"] = ad_type_of(x.get("caption"))
+        out["ig_accounts"] = acc
+        out["ig_posts"] = [x for x in posts if hours_since(x.get("timestamp") or "", now) <= days * 24]
+    else:
+        out["ig_accounts"], out["ig_posts"] = prev.get("ig_accounts", []), prev.get("ig_posts", [])
+    return out
+
+
 def load_channels():
     base = load(os.path.join(ROOT, "channels.json"))
     try:
@@ -697,6 +745,11 @@ def main():
             print("brand enrich failed", e)
     topics = topics_of(cafe_rows, now)
     youtube = collect_youtube(os.environ.get("YT_KEY"), now) or prev.get("youtube")
+    hs_conf = load(os.path.join(ROOT, "site", "hunsu.json"), {}) or {}
+    try:
+        hunsu = collect_hunsu(hs_conf.get("creators", []), os.environ.get("YT_KEY"), token, ig_user_id, prev.get("hunsu"), now)
+    except Exception as e:  # noqa: BLE001
+        print("hunsu failed", e); hunsu = prev.get("hunsu")
     popcorn = None  # 팝콘 리서치 탭 삭제(2026-11-04): 수집 중단
     trends = collect_trends((prev.get("trends") or {}).get("items"), now)
     hist_path = os.path.join(ROOT, "site", "topics_history.json")
@@ -716,6 +769,7 @@ def main():
         "topics": topics,
         "youtube": youtube,
         "popcorn": popcorn,
+        "hunsu": hunsu,
         "trends": {"source": "google-trends-kr", "collected_at": now.isoformat(), "items": trends},
         "brands": brands,
         "channels_source": channels.get("_source", "channels.json"),

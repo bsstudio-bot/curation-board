@@ -633,6 +633,9 @@ API_URL = "https://script.google.com/macros/s/AKfycbx_bxTi39uwrssjbst255QjPBY_p1
 
 
 # ---------------------------------------------------------------- 30대 아저씨 훈수: 비슷한 결의 크리에이터 최근 콘텐츠
+HUNSU_YT_QUERIES = ["30대 노화", "에이징 커브", "아저씨 냄새", "홀아비 냄새", "30대 탈모", "30대 남자 현실", "노화 속도", "유부남 현실", "아빠 육아 현실", "40대 남자 건강"]
+
+
 def collect_hunsu(creators, yt_key, token, ig_user_id, prev, now, days=30):
     """site/hunsu.json의 크리에이터별 유튜브 최근 업로드 + 인스타 최근 게시물. 실패하면 직전 수집분 유지."""
     prev = prev or {}
@@ -649,11 +652,21 @@ def collect_hunsu(creators, yt_key, token, ig_user_id, prev, now, days=30):
                     ids[it["contentDetails"]["videoId"]] = c["name"]
             except Exception as e:  # noqa: BLE001
                 out["errors"].append(f"유튜브 {c['name']}: {str(e)[:80]}")
+        after = (now - timedelta(days=14)).astimezone(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+        for q in HUNSU_YT_QUERIES:
+            try:
+                d = _yt("search", part="id", q=q, type="video", order="viewCount", publishedAfter=after,
+                        regionCode="KR", relevanceLanguage="ko", maxResults=15, key=yt_key)
+                for it in d.get("items", []):
+                    ids.setdefault(it["id"]["videoId"], "검색: " + q)
+            except Exception as e:  # noqa: BLE001
+                out["errors"].append(f"유튜브 검색 {q}: {str(e)[:80]}")
         try:
             rows = [_yt_row(v, "훈수: " + ids[v["id"]]) for v in _yt_videos(list(ids), yt_key)]
             by = {}
             for r in rows:
-                r["creator"] = ids[r["id"]]
+                r["creator"] = r.get("channel") if ids[r["id"]].startswith("검색: ") else ids[r["id"]]
+                r["from_search"] = ids[r["id"]].startswith("검색: ")
                 by.setdefault(r["creator"], []).append(r["views"])
             for r in rows:
                 med = statistics.median(by[r["creator"]]) if by[r["creator"]] else 0

@@ -670,6 +670,44 @@ def add_images(ai, data):
     return ai
 
 
+HUNSU_PROMPT = """너는 유튜버 고몽(김웅현)의 '30대 아저씨 훈수' 시리즈 기획 PD다.
+고몽: 30대 후반 남자, 3살·6살 두 딸 아빠, 영화·드라마 해설 10년차 이야기꾼. 편한 존댓말로 솔직하고 웃기게 말한다.
+이 시리즈에서 고몽이 하는 이야기는 딱 두 갈래다.
+- 에이징 커브: 30대 이후 몸과 얼굴이 바뀌는 이야기. 노화, 탈모, 냄새, 피부, 뱃살, 체력 저하, 건강검진, 잠, 술 등. 근거가 있거나 '맞아 나도' 공감이 나오는 것.
+- 이슈·개똥철학: 요즘 화제가 된 일·인물·논쟁을 30대 아빠 시선으로 보는 것, 남자들이 공감하는 인생·결혼·육아·일 이야기, 고몽이 한마디 얹을 만한 생각거리.
+
+아래 후보(유튜브·인스타) 중에서 고몽이 소재로 삼을 만한 것만 골라라. 기준:
+1. 핏: 위 두 갈래 중 하나에 확실히 들어가야 한다. 30대 후반 아빠가 말해도 어색하지 않아야 한다.
+2. 반응: 조회·좋아요·댓글이 채널 평소보다 좋거나(ratio) 절대 수치가 큰 것. 댓글이 많아 이야기가 오가는 것을 우선. 반응이 약하면 핏이 좋아도 뺀다.
+3. 빼는 것: 제품 추천·리뷰·할인·하울·광고·공구, 브이로그·여행·일상, 운동 루틴·마라톤·트레일러닝·보디빌딩·몸 자랑, 메이크업·스타일링 튜토리얼, 20대 대상 연애·외모 기술, 정치, 루머·사생활 폭로, 특정인 조롱.
+최대 20개. 고른 것만 JSON 배열로 출력하라(설명 금지):
+[{"id": "후보 id 그대로", "bucket": "에이징 커브" 또는 "이슈·개똥철학", "fit": 1~10, "why": "고몽이라면 이렇게 풀겠다는 한 줄(고몽 말투, 30자 안팎)"}]
+fit 7 미만은 넣지 마라."""
+
+
+def hunsu_curate(data):
+    H = data.get("hunsu") or {}
+    cand = []
+    for v in H.get("youtube") or []:
+        if hours_ago(v.get("published")) > 30 * 24:
+            continue
+        if v.get("views", 0) < (20000 if v.get("from_search") else 3000):
+            continue
+        cand.append((f"yt:{v['id']}", f"유튜브{' 쇼츠' if v.get('short') else ''} | {v.get('creator')} | {v.get('title')} | 조회 {v.get('views')} 좋아요 {v.get('likes')} 댓글 {v.get('comments')} 평소대비 {v.get('ratio')} | {(v.get('desc') or '')[:100]}"))
+    for p in H.get("ig_posts") or []:
+        if p.get("ad") or (p.get("likes") or 0) < 150:
+            continue
+        cand.append((f"ig:{p.get('permalink')}", f"인스타 | {p.get('creator')} | {(p.get('caption') or '')[:220]} | 좋아요 {p.get('likes')} 댓글 {p.get('comments')} 평소대비 {p.get('ratio')}"))
+    if not cand:
+        return None
+    body = "\n".join(f"[id] {i} | {t}" for i, t in cand[:160])
+    arr = parse_json(claude(HUNSU_PROMPT + "\n\n[후보]\n" + body), list)
+    if not isinstance(arr, list):
+        print("  [훈수] 파싱 실패"); return None
+    ok = {i for i, _ in cand}
+    return [a for a in arr if isinstance(a, dict) and a.get("id") in ok and _num(a.get("fit")) >= 7]
+
+
 def main():
     data = json.load(open("site/data.json", encoding="utf-8"))
     allj = get("all")
@@ -754,7 +792,7 @@ def main():
             new["date_checked"] = len(checks)
             new["taste_match"] = taste_match(data)
             new["taste_at"] = NOW.isoformat()
-            for k in ("popcorn_news", "popcorn_global", "popcorn_news_at", "popcorn_yt_ok"):
+            for k in ("popcorn_news", "popcorn_global", "popcorn_news_at", "popcorn_yt_ok", "hunsu_picks", "hunsu_date", "hunsu_at"):
                 if k in ai:
                     new.setdefault(k, ai[k])
             new["yt_review"] = review
@@ -764,6 +802,18 @@ def main():
             json.dump(ai, open(ai_path, "w", encoding="utf-8"), ensure_ascii=False)
             open(".ai_updated", "w").write("1")
             report["큐레이션"] = f"이슈 {len(ai['issues'])} · 추천 {len(ai['picks'])} (후보 {ai['pool_size']}) · 일정 확인 {ai.get('date_checked', 0)} · 포맷 {len(ai.get('formats', []))}"
+
+    # H: 30대 아저씨 훈수 관련 콘텐츠 큐레이션 (하루 1번, 훈수 수집이 그날 들어온 뒤)
+    hs_today = str((data.get("hunsu") or {}).get("collected_at", ""))[:10] == NOW.strftime("%Y-%m-%d")
+    if ("H" in ONLY) or (not ONLY and hs_today and ai.get("hunsu_date") != NOW.strftime("%Y-%m-%d")):
+        picks = hunsu_curate(data)
+        if picks is not None:
+            ai["hunsu_picks"] = picks
+            ai["hunsu_date"] = NOW.strftime("%Y-%m-%d")
+            ai["hunsu_at"] = NOW.isoformat()
+            json.dump(ai, open(ai_path, "w", encoding="utf-8"), ensure_ascii=False)
+            open(".ai_updated", "w").write("1")
+            report["훈수"] = len(picks)
 
     # A + B: 스크립트
     jobsA = [(q["id"], q.get("item") or {}) for q in queue]

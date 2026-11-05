@@ -676,13 +676,15 @@ HUNSU_PROMPT = """너는 유튜버 고몽(김웅현)의 '30대 아저씨 훈수'
 - 에이징 커브: 30대 이후 몸과 얼굴이 바뀌는 이야기. 노화, 탈모, 냄새, 피부, 뱃살, 체력 저하, 건강검진, 잠, 술 등. 근거가 있거나 '맞아 나도' 공감이 나오는 것.
 - 이슈·개똥철학: 요즘 화제가 된 일·인물·논쟁을 30대 아빠 시선으로 보는 것, 남자들이 공감하는 인생·결혼·육아·일 이야기, 고몽이 한마디 얹을 만한 생각거리.
 
+[팀이 가장 원하는 레퍼런스] 오니언 '30대 남자 인생 나락 루트'(67초 쇼츠, 조회 54만, 댓글 151). 사람 얼굴 없이 이미지·자막·내레이션으로 끌고 가고, 30대 남자 인생을 '루트' 하나로 던져서 댓글에서 "이건 맞다", "난 다르다"가 오간다. 이런 결: '~루트', '~하면 생기는 일', '~가 바뀌는 시점', '요즘 늘고 있다는 ~', '~의 현실', '~특징'처럼 인생·사회 현상을 한 줄로 던지는 1분 안팎 쇼츠. 사람이 나오든 안 나오든 상관없다. 이런 결의 후보를 최우선으로 많이 골라라.
+
 아래 후보(유튜브·인스타) 중에서 고몽이 소재로 삼을 만한 것만 골라라. 기준:
 1. 핏: 위 두 갈래 중 하나에 확실히 들어가야 한다. 30대 후반 아빠가 말해도 어색하지 않아야 한다.
 2. 반응: 조회·좋아요·댓글이 채널 평소보다 좋거나(ratio) 절대 수치가 큰 것. 댓글이 많아 이야기가 오가는 것을 우선. 반응이 약하면 핏이 좋아도 뺀다.
 3. 빼는 것: 제품 추천·리뷰·할인·하울·광고·공구, 브이로그·여행·일상, 게임, 운동 루틴·마라톤·트레일러닝·보디빌딩·몸 자랑, 메이크업·스타일링 튜토리얼, 연애 상담·소개팅·결혼 준비(고몽은 이미 결혼해 아이 둘), 20대 대상 외모 기술, 정치, 루머·사생활 폭로, 특정인 조롱.
 4. 댓글이 30개 미만이면 뺀다.
-최대 20개. 고른 것만 JSON 배열로 출력하라(설명 금지):
-[{"id": "후보 id 그대로", "bucket": "에이징 커브" 또는 "이슈·개똥철학", "fit": 1~10, "why": "고몽 영상으로 만들 때의 각도 한 줄(30자 안팎, 명사형으로 끝)"}]
+최대 30개. 고른 것만 JSON 배열로 출력하라(설명 금지):
+[{"id": "후보 id 그대로", "bucket": "에이징 커브" 또는 "이슈·개똥철학", "fit": 1~10, "ref_like": 1~10 (위 레퍼런스와 결이 얼마나 비슷한지), "why": "고몽 영상으로 만들 때의 각도 한 줄(30자 안팎, 명사형으로 끝)"}]
 why는 고몽 1인칭 경험담으로 쓰지 마라('저도 매년 겪어요', '제가 증인', '저도 고민 중' 금지). 고몽이 실제로 겪었는지 우리는 모른다. 예: '30대 아빠 시선으로 보는 탈모 골든타임', '딸 아빠라면 다 아는 장면에 공감 한 줄'.
 fit 7 미만은 넣지 마라."""
 
@@ -690,19 +692,19 @@ fit 7 미만은 넣지 마라."""
 def hunsu_curate(data):
     H = data.get("hunsu") or {}
     cand = []
-    for v in H.get("youtube") or []:
+    for v in sorted(H.get("youtube") or [], key=lambda v: v.get("comments", 0), reverse=True):
         if hours_ago(v.get("published")) > 30 * 24:
             continue
         if v.get("views", 0) < (20000 if v.get("from_search") else 3000):
             continue
-        cand.append((f"yt:{v['id']}", f"유튜브{' 쇼츠' if v.get('short') else ''} | {v.get('creator')} | {v.get('title')} | 조회 {v.get('views')} 좋아요 {v.get('likes')} 댓글 {v.get('comments')} 평소대비 {v.get('ratio')} | {(v.get('desc') or '')[:100]}"))
+        cand.append((f"yt:{v['id']}", f"유튜브{' 쇼츠' if v.get('short') else ''}({v.get('duration') or '?'}초) | {v.get('creator')} | {v.get('title')} | 조회 {v.get('views')} 좋아요 {v.get('likes')} 댓글 {v.get('comments')} 평소대비 {v.get('ratio')} | {(v.get('desc') or '')[:100]}"))
     for p in H.get("ig_posts") or []:
         if p.get("ad") or (p.get("likes") or 0) < 150:
             continue
         cand.append((f"ig:{p.get('permalink')}", f"인스타 | {p.get('creator')} | {(p.get('caption') or '')[:220]} | 좋아요 {p.get('likes')} 댓글 {p.get('comments')} 평소대비 {p.get('ratio')}"))
     if not cand:
         return None
-    body = "\n".join(f"[id] {i} | {t}" for i, t in cand[:160])
+    body = "\n".join(f"[id] {i} | {t}" for i, t in cand[:220])
     arr = parse_json(claude(HUNSU_PROMPT + "\n\n[후보]\n" + body), list)
     if not isinstance(arr, list):
         print("  [훈수] 파싱 실패"); return None

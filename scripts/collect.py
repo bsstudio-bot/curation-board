@@ -636,18 +636,21 @@ API_URL = "https://script.google.com/macros/s/AKfycbx_bxTi39uwrssjbst255QjPBY_p1
 HUNSU_YT_QUERIES = ["30대 노화", "에이징 커브", "아저씨 냄새", "홀아비 냄새", "30대 탈모", "30대 남자 현실", "노화 속도", "유부남 현실", "아빠 육아 현실", "40대 남자 건강"]
 
 
-def collect_hunsu(creators, yt_key, token, ig_user_id, prev, now, days=30):
+HUNSU_SHORT_QUERIES = ["나락 루트", "인생 꼬이는 과정", "남자 인생 현실", "30대 남자 현실", "40대 남자 인생", "유부남 현실", "남자 인생 바뀌는 시점", "아빠 현실"]
+
+
+def collect_hunsu(creators, yt_key, token, ig_user_id, prev, now, days=30, refs=None):
     """site/hunsu.json의 크리에이터별 유튜브 최근 업로드 + 인스타 최근 게시물. 실패하면 직전 수집분 유지."""
     prev = prev or {}
     out = {"collected_at": now.isoformat(), "youtube": [], "ig_accounts": [], "ig_posts": [], "errors": []}
     yt_ok = False
     if yt_key:
         ids = {}
-        for c in creators:
+        for c in list(creators) + [dict(r, ref=True) for r in (refs or [])]:
             if not c.get("yt"):
                 continue
             try:
-                d = _yt("playlistItems", part="contentDetails", playlistId="UU" + c["yt"][2:], maxResults=12, key=yt_key)
+                d = _yt("playlistItems", part="contentDetails", playlistId="UU" + c["yt"][2:], maxResults=20 if c.get("ref") else 12, key=yt_key)
                 for it in d.get("items", []):
                     ids[it["contentDetails"]["videoId"]] = c["name"]
             except Exception as e:  # noqa: BLE001
@@ -661,6 +664,14 @@ def collect_hunsu(creators, yt_key, token, ig_user_id, prev, now, days=30):
                     ids.setdefault(it["id"]["videoId"], "검색: " + q)
             except Exception as e:  # noqa: BLE001
                 out["errors"].append(f"유튜브 검색 {q}: {str(e)[:80]}")
+        for q in HUNSU_SHORT_QUERIES:
+            try:
+                d = _yt("search", part="id", q=q, type="video", videoDuration="short", order="viewCount", publishedAfter=after,
+                        regionCode="KR", relevanceLanguage="ko", maxResults=15, key=yt_key)
+                for it in d.get("items", []):
+                    ids.setdefault(it["id"]["videoId"], "검색: " + q)
+            except Exception as e:  # noqa: BLE001
+                out["errors"].append(f"쇼츠 검색 {q}: {str(e)[:80]}")
         try:
             rows = [_yt_row(v, "훈수: " + ids[v["id"]]) for v in _yt_videos(list(ids), yt_key)]
             by = {}
@@ -760,7 +771,7 @@ def main():
     youtube = collect_youtube(os.environ.get("YT_KEY"), now) or prev.get("youtube")
     hs_conf = load(os.path.join(ROOT, "site", "hunsu.json"), {}) or {}
     try:
-        hunsu = collect_hunsu(hs_conf.get("creators", []), os.environ.get("YT_KEY"), token, ig_user_id, prev.get("hunsu"), now)
+        hunsu = collect_hunsu(hs_conf.get("creators", []), os.environ.get("YT_KEY"), token, ig_user_id, prev.get("hunsu"), now, refs=hs_conf.get("format_refs", []))
     except Exception as e:  # noqa: BLE001
         print("hunsu failed", e); hunsu = prev.get("hunsu")
     popcorn = None  # 팝콘 리서치 탭 삭제(2026-11-04): 수집 중단

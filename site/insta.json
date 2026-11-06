@@ -1,7 +1,7 @@
 {
  "updated": "2026-11-06",
  "carousel": {
-  "intro": "구성은 독후파파(문제 → 근거 → 정리), 디자인은 요즘 반응 좋은 매거진 포맷을 따랐어요. 주제는 두 시리즈로 좁혔어요. 30대 남자가 직접 겪는 노화를 근거와 함께 짚는 'AGING CURVE', 요즘 화제에 고몽의 생각을 얹는 'ISSUE'예요.",
+  "intro": "※ 고몽 계정 분석 결과, 시리즈는 릴스('고몽 프레임')로 만들고 캐러셀은 저장용 요약으로 쓰는 방향을 제안했어요(첫 탭 참고). 아래 캐러셀 포맷은 그 요약 카드의 기준이에요.\n구성은 독후파파(문제 → 근거 → 정리), 디자인은 요즘 반응 좋은 매거진 포맷을 따랐어요. 주제는 두 시리즈로 좁혔어요. 30대 남자가 직접 겪는 노화를 근거와 함께 짚는 'AGING CURVE', 요즘 화제에 고몽의 생각을 얹는 'ISSUE'예요.",
   "dokhu": {
    "handle": "dokhu.papa",
    "url": "https://www.instagram.com/dokhu.papa/",
@@ -495,7 +495,7 @@
    },
    {
     "d": "화",
-    "feed": "AGING CURVE 캐러셀",
+    "feed": "AGING CURVE 릴스 (고몽 프레임) + 요약 캐러셀",
     "n": 4,
     "st": [
      "캐러셀 표지 공유",
@@ -506,7 +506,7 @@
    },
    {
     "d": "수",
-    "feed": "가족 장면 릴스",
+    "feed": "딸 릴스 (화면 위 한 줄 사건)",
     "n": 3,
     "st": [
      "릴스 공유",
@@ -528,19 +528,19 @@
    },
    {
     "d": "금",
-    "feed": "공구 오픈 캐러셀 또는 ISSUE 캐러셀",
+    "feed": "공구 오픈 캐러셀 또는 ISSUE 릴스 (고몽 프레임)",
     "n": 5,
     "st": [
      "오전 11시 오픈 + 링크 스티커",
      "구매 인증 리그램",
      "질문 답변 모아 보기",
      "마감 시간·남은 수량 안내",
-     "ISSUE 캐러셀 공유 (공구 없는 주)"
+     "ISSUE 릴스 공유 (공구 없는 주)"
     ]
    },
    {
     "d": "토",
-    "feed": "가벼운 일상·유머 릴스",
+    "feed": "자기 고백 유머 사진 한 장 또는 챌린지 릴스",
     "n": 2,
     "st": [
      "릴스 공유",
@@ -973,5 +973,476 @@
    }
   ],
   "stories_note": "하루 2~5개, 일주일 24개 정도예요. 피드가 올라가는 날은 그 피드를 중심으로 3~5개, 쉬는 날은 2개로 맞췄어요."
+ },
+ "gomong": {
+  "intro": "@gomongomong 게시물과 릴스 탭 48개를 조회수·좋아요 기준으로 정리했어요(11월 6일 기준). 결론부터 말하면 이 계정은 캐러셀보다 릴스가 압도적으로 강해요. 그래서 새 계정도 시리즈는 릴스로 만들고, 캐러셀은 저장용 요약으로만 쓰는 쪽을 제안해요.",
+  "profile": [
+   [
+    "팔로워",
+    "1.8만 (게시물 352)"
+   ],
+   [
+    "바이오",
+    "고몽 유튜브 10년, 고몽랩스, 고몽머니, 퍼스트무버 대표… 직함을 줄줄이 나열"
+   ],
+   [
+    "하이라이트",
+    "고몽랩스, 아버지 시즌2, 고몽2, 인테리어, 고몽머니, art2026, 고몽몰 등 14개"
+   ],
+   [
+    "피드 성격",
+    "강연·전시·고몽랩스 활동 기록이 대부분"
+   ]
+  ],
+  "types": [
+   [
+    "딸 이벤트",
+    "2",
+    "239만",
+    "453만",
+    "딸 피규어 만들기 촬영, 딸 둘을 피규어로 만들었다"
+   ],
+   [
+    "딸 서사 (한 줄 훅)",
+    "1",
+    "82만",
+    "82만",
+    "둘째를 낳고 첫째딸이 우울증이 왔다"
+   ],
+   [
+    "챌린지",
+    "1",
+    "37만",
+    "37만",
+    "최산 BAD 챌린지"
+   ],
+   [
+    "고몽머니 숫자 훅 (협업)",
+    "16",
+    "5.2만",
+    "85만",
+    "하이닉스로 5억 날리고 마시는 위스키, 우국원 1억대 그림 완판"
+   ],
+   [
+    "딸 일상 (훅 없음)",
+    "6",
+    "2,577",
+    "3,653",
+    "딸2♡, 딸짱, 둘째는 사랑"
+   ],
+   [
+    "기타 (AI·사무실·일상)",
+    "19",
+    "5,313",
+    "2.7만",
+    "AI로 딸 사진 바꾸기, 직원이 보내온 영상"
+   ]
+  ],
+  "feed": {
+   "img": "refs/gm_hot.jpg",
+   "stat": "피드 사진·캐러셀 30개의 좋아요는 대부분 50~200개예요. 강연, 전시, 고몽랩스 소식처럼 '활동 기록'은 반응이 거의 같아요.",
+   "hot": "예외 하나: 쿠팡 배달 완료 사진에 상의를 벗은 채 찍힌 고몽 한 장(\"한참 뒤에 나갔다고..\"). 좋아요 3,008, 댓글 147, 공유 46. 다른 크리에이터들이 댓글로 몰려왔어요. 자기 고백형 유머 한 장이 피드 평균의 20배 넘게 나왔어요."
+  },
+  "learn": [
+   "조회수가 터진 릴스는 모두 '딸 + 사건'이에요. 피규어 만들기(453만), 첫째의 동생 우울증(82만). 반면 훅 없이 올린 딸 일상 클립은 1~3천 회에 그쳤어요.",
+   "터진 딸 릴스에는 화면 위쪽에 상황을 한 문장으로 적은 얇은 흰 글씨가 있어요. 설명이 아니라 '무슨 일이 있었는지'만 써요.",
+   "고몽머니 협업 릴스는 같은 틀(검은 바탕, 위 두 줄 제목 + 빨간 박스, 아래 초록 시리즈명)로 16개 중 절반이 5만 회를 넘었어요. 숫자와 사람 이야기가 핵심이에요.",
+   "캐러셀은 최고가 좋아요 208개예요. 이 계정 팔로워는 넘겨 보는 글보다 영상과 한 장짜리 사진에 반응해요.",
+   "AI로 딸 사진 바꾸기, 프롬프트 댓글 유도 같은 정보형은 3~7천 회로 낮았어요."
+  ],
+  "propose": [
+   {
+    "t": "시리즈는 캐러셀 대신 '고몽 프레임' 릴스로",
+    "d": "AGING CURVE·ISSUE를 고몽머니 협업 릴스 틀로 만들어요. 위 두 줄 제목(둘째 줄 빨간 박스), 가운데 고몽 토크와 자료 화면, 아래 초록 시리즈명. 이미 검증된 틀이라 따로 디자인을 익힐 필요가 없어요.",
+    "img": "carousel/r_aging.jpg"
+   },
+   {
+    "t": "ISSUE도 같은 틀로",
+    "d": "화제 한 줄 + 고몽 생각. '현대 회장님 집 소파는 / 찢어져 있었다'처럼 의외의 사실을 빨간 박스에 넣어요.",
+    "img": "carousel/r_issue.jpg"
+   },
+   {
+    "t": "딸 릴스는 '한 줄 사건'을 꼭",
+    "d": "일상 클립에도 화면 위에 무슨 일이 있었는지 한 문장. 그리고 한 달에 한 번은 피규어처럼 '아빠가 해 준 큰일' 이벤트형으로. 문구는 실제 있었던 일만 써요.",
+    "img": "carousel/r_daughter.jpg"
+   },
+   {
+    "t": "캐러셀은 릴스 요약 카드로만",
+    "d": "릴스를 올린 뒤 같은 내용을 4~5장(표지, 숫자, 관리법, 출처)으로 줄여 '저장용'으로 올려요. 이미 만든 AGING CURVE 캐러셀을 이렇게 줄이면 돼요.",
+    "img": "carousel/a1_2.jpg"
+   },
+   {
+    "t": "피드 사진은 자기 고백 유머 한 장",
+    "d": "쿠팡 배달 사진처럼 웃긴 순간 한 장 + 짧은 한 줄. 활동 기록은 스토리와 하이라이트로 옮기고 피드는 가볍게.",
+    "img": "refs/gm_hot.jpg"
+   },
+   {
+    "t": "덜어 낼 것",
+    "d": "활동 기록 위주 피드, 훅 없는 일상 클립, AI 프롬프트 댓글 유도형. 바이오도 직함 나열 대신 '6살·3살 두 딸 아빠, 영화 해설 10년' 같은 한 줄 정체성으로.",
+    "img": ""
+   }
+  ],
+  "reels": [
+   {
+    "url": "https://www.instagram.com/gomongomong/reel/DFkZqxlJ2xc/",
+    "views": 4532000,
+    "cap": "딸 피규어 만들기 촬영",
+    "img": "refs/gm_DFkZqxlJ2xc.jpg",
+    "cat": "딸 이벤트",
+    "owner": "gomongomong"
+   },
+   {
+    "url": "https://www.instagram.com/gomongomong/reel/Db1xxINPJG5/",
+    "views": 852000,
+    "cap": "하이닉스로 5억 날리고 마시는 위스키",
+    "img": "refs/gm_Db1xxINPJG5.jpg",
+    "cat": "고몽머니 숫자 훅",
+    "owner": "gomongmoney"
+   },
+   {
+    "url": "https://www.instagram.com/gomongomong/reel/DGHdq5pPT9m/",
+    "views": 816000,
+    "cap": "둘째를 낳고 첫째딸이 우울증이 왔다",
+    "img": "refs/gm_DGHdq5pPT9m.jpg",
+    "cat": "딸 서사",
+    "owner": "gomongomong"
+   },
+   {
+    "url": "https://www.instagram.com/gomongomong/reel/DcVAMg4RXuW/",
+    "views": 367000,
+    "cap": "최산 BAD 챌린지",
+    "img": "refs/gm_DcVAMg4RXuW.jpg",
+    "cat": "챌린지",
+    "owner": "gomongmoney"
+   },
+   {
+    "url": "https://www.instagram.com/gomongomong/reel/DGh59ChJxZ0/",
+    "views": 242000,
+    "cap": "딸 둘을 피규어로 만들었다",
+    "img": "refs/gm_DGh59ChJxZ0.jpg",
+    "cat": "딸 이벤트",
+    "owner": "gomongomong"
+   },
+   {
+    "url": "https://www.instagram.com/gomongomong/reel/DbPXxuGR8N6/",
+    "views": 149000,
+    "cap": "수익률 2800% 계좌 눈앞에서 직접 본 후기",
+    "img": "refs/gm_DbPXxuGR8N6.jpg",
+    "cat": "고몽머니 숫자 훅",
+    "owner": "gomongmoney"
+   },
+   {
+    "url": "https://www.instagram.com/gomongomong/reel/DerNZHTj7Zl/",
+    "views": 124000,
+    "cap": "우국원 1억대 그림 완판",
+    "img": "refs/gm_DerNZHTj7Zl.jpg",
+    "cat": "고몽머니 숫자 훅",
+    "owner": "gomongmoney"
+   },
+   {
+    "url": "https://www.instagram.com/gomongomong/reel/Db69FuVvZyq/",
+    "views": 122000,
+    "cap": "위스키 안 마시고 바닥에 던지는 사람",
+    "img": "refs/gm_Db69FuVvZyq.jpg",
+    "cat": "고몽머니 숫자 훅",
+    "owner": "gomongmoney"
+   },
+   {
+    "url": "https://www.instagram.com/gomongomong/reel/DbCNVZwPlMh/",
+    "views": 82000,
+    "cap": "50억 잃은 고수 앞에 4억 손실은 애교 수준",
+    "img": "refs/gm_DbCNVZwPlMh.jpg",
+    "cat": "고몽머니 숫자 훅",
+    "owner": "gomongmoney"
+   },
+   {
+    "url": "https://www.instagram.com/gomongomong/reel/DeDU4XVvXx_/",
+    "views": 79000,
+    "cap": "미술품 호당 가격 신인과 거장의 차이",
+    "img": "refs/gm_DeDU4XVvXx_.jpg",
+    "cat": "고몽머니 숫자 훅",
+    "owner": "gomongmoney"
+   },
+   {
+    "url": "https://www.instagram.com/gomongomong/reel/Dck8s-7RYPP/",
+    "views": 78000,
+    "cap": "명품시계 가격",
+    "img": "refs/gm_Dck8s-7RYPP.jpg",
+    "cat": "고몽머니 숫자 훅",
+    "owner": "gomongmoney"
+   },
+   {
+    "url": "https://www.instagram.com/gomongomong/reel/DbHiU2JvjpB/",
+    "views": 76000,
+    "cap": "하이닉스로 강남 아파트 날린 사람 보며 위로받기",
+    "img": "refs/gm_DbHiU2JvjpB.jpg",
+    "cat": "고몽머니 숫자 훅",
+    "owner": "gomongmoney"
+   },
+   {
+    "url": "https://www.instagram.com/gomongomong/reel/Dcrwr6jPQEB/",
+    "views": 27000,
+    "cap": "(캡션 없음)",
+    "img": "refs/gm_Dcrwr6jPQEB.jpg",
+    "cat": "기타",
+    "owner": ""
+   },
+   {
+    "url": "https://www.instagram.com/gomongomong/reel/DcnWrGHx3bb/",
+    "views": 27000,
+    "cap": "#파텍필립 #오데마피게 #롤렉스 #명품시계 #고몽",
+    "img": "refs/gm_DcnWrGHx3bb.jpg",
+    "cat": "고몽머니 숫자 훅",
+    "owner": "gomongmoney"
+   },
+   {
+    "url": "https://www.instagram.com/gomongomong/reel/DFpRgd7p5sG/",
+    "views": 25000,
+    "cap": "(캡션 없음)",
+    "img": "refs/gm_DFpRgd7p5sG.jpg",
+    "cat": "기타",
+    "owner": ""
+   },
+   {
+    "url": "https://www.instagram.com/gomongomong/reel/DckYKgIRmR2/",
+    "views": 19000,
+    "cap": "#이부진 #명품시계 #시계 #고몽 #파텍필립",
+    "img": "refs/gm_DckYKgIRmR2.jpg",
+    "cat": "고몽머니 숫자 훅",
+    "owner": "gomongmoney"
+   },
+   {
+    "url": "https://www.instagram.com/gomongomong/reel/Ddi6pHlp75_/",
+    "views": 16000,
+    "cap": "작동 시 업무 중 최산댄스 가능",
+    "img": "refs/gm_Ddi6pHlp75_.jpg",
+    "cat": "기타",
+    "owner": "gomongomong"
+   },
+   {
+    "url": "https://www.instagram.com/gomongomong/reel/DGQlkmLPYWW/",
+    "views": 9897,
+    "cap": "살려줘",
+    "img": "refs/gm_DGQlkmLPYWW.jpg",
+    "cat": "기타",
+    "owner": "gomongomong"
+   },
+   {
+    "url": "https://www.instagram.com/gomongomong/reel/DcXlPTvxfxl/",
+    "views": 9710,
+    "cap": "#biiig #빅 #빅뱅 #빅챌린지 #고몽",
+    "img": "refs/gm_DcXlPTvxfxl.jpg",
+    "cat": "고몽머니 숫자 훅",
+    "owner": "gomongmoney"
+   },
+   {
+    "url": "https://www.instagram.com/gomongomong/reel/DcwzGKdSgVk/",
+    "views": 9641,
+    "cap": "#오데마피게 #로열오크 #레이디로열오크 #명품시계 #시계",
+    "img": "refs/gm_DcwzGKdSgVk.jpg",
+    "cat": "고몽머니 숫자 훅",
+    "owner": "gomongmoney"
+   },
+   {
+    "url": "https://www.instagram.com/gomongomong/reel/DewFMr4x_Dc/",
+    "views": 8865,
+    "cap": "#미국주식 #국내주식 #손해 #투자 #재테크",
+    "img": "refs/gm_DewFMr4x_Dc.jpg",
+    "cat": "고몽머니 숫자 훅",
+    "owner": "gomongmoney"
+   },
+   {
+    "url": "https://www.instagram.com/gomongomong/reel/DGF8BKFpKBe/",
+    "views": 7942,
+    "cap": "#missingyou",
+    "img": "refs/gm_DGF8BKFpKBe.jpg",
+    "cat": "기타",
+    "owner": "gomongomong"
+   },
+   {
+    "url": "https://www.instagram.com/gomongomong/reel/DdXakVCz5t6/",
+    "views": 7722,
+    "cap": "#고몽 #고몽머니 #라운지 #유튜브 #유튜버",
+    "img": "refs/gm_DdXakVCz5t6.jpg",
+    "cat": "고몽머니 숫자 훅",
+    "owner": "gomongmoney"
+   },
+   {
+    "url": "https://www.instagram.com/gomongomong/reel/DbzG4C4vjJa/",
+    "views": 7715,
+    "cap": "#고몽 #고몽머니 #위스키 #야마자키 #유튜브",
+    "img": "refs/gm_DbzG4C4vjJa.jpg",
+    "cat": "고몽머니 숫자 훅",
+    "owner": "gomongmoney"
+   },
+   {
+    "url": "https://www.instagram.com/gomongomong/reel/DHBj7IVpyO1/",
+    "views": 7658,
+    "cap": "AI 아빠 어디가",
+    "img": "refs/gm_DHBj7IVpyO1.jpg",
+    "cat": "기타",
+    "owner": "gomongomong"
+   },
+   {
+    "url": "https://www.instagram.com/gomongomong/reel/DHxwnSkJQvw/",
+    "views": 7038,
+    "cap": "귀여워",
+    "img": "refs/gm_DHxwnSkJQvw.jpg",
+    "cat": "기타",
+    "owner": "gomongomong"
+   },
+   {
+    "url": "https://www.instagram.com/gomongomong/reel/DcQWBzCJF3H/",
+    "views": 6378,
+    "cap": "왕귀왕귀 REDRED",
+    "img": "refs/gm_DcQWBzCJF3H.jpg",
+    "cat": "기타",
+    "owner": "gomongomong"
+   },
+   {
+    "url": "https://www.instagram.com/gomongomong/reel/DcIZtMWJfDO/",
+    "views": 5544,
+    "cap": "프롬프트 원하시면 팔로우 댓글 주세요:)",
+    "img": "refs/gm_DcIZtMWJfDO.jpg",
+    "cat": "기타",
+    "owner": "gomongomong"
+   },
+   {
+    "url": "https://www.instagram.com/gomongomong/reel/DGxBtqdJn0g/",
+    "views": 5313,
+    "cap": "이안코는 쿠키에 진심인 쿠키에 미친자들이 만든 쿠키 전문 카페입니다. 문의 DM 받습니다.",
+    "img": "refs/gm_DGxBtqdJn0g.jpg",
+    "cat": "기타",
+    "owner": "gomongomong"
+   },
+   {
+    "url": "https://www.instagram.com/gomongomong/reel/DdSyRQjREz6/",
+    "views": 4405,
+    "cap": "#고몽 #고몽머니 #유튜버 #지식산업센터 #직원",
+    "img": "refs/gm_DdSyRQjREz6.jpg",
+    "cat": "고몽머니 숫자 훅",
+    "owner": "gomongmoney"
+   },
+   {
+    "url": "https://www.instagram.com/gomongomong/reel/Dd6aEQ4hJI8/",
+    "views": 4087,
+    "cap": "도대체 고몽랩스가 뭔데? / #공항도둑 #상남자",
+    "img": "refs/gm_Dd6aEQ4hJI8.jpg",
+    "cat": "기타",
+    "owner": "believer_lee"
+   },
+   {
+    "url": "https://www.instagram.com/gomongomong/reel/Db9zrYlJCgv/",
+    "views": 3812,
+    "cap": "오늘 낮 군포시에 나타난 구름 모양이 화제다",
+    "img": "refs/gm_Db9zrYlJCgv.jpg",
+    "cat": "기타",
+    "owner": "gomongomong"
+   },
+   {
+    "url": "https://www.instagram.com/gomongomong/reel/Dc54CrwJUHB/",
+    "views": 3653,
+    "cap": "준비물 : 딸 사진 한 장 + 프롬프트 붙여넣기 끝 / 아들딸을 아서왕으로 만들고 싶은 분은 팔로우+ 댓글 주세요",
+    "img": "refs/gm_Dc54CrwJUHB.jpg",
+    "cat": "딸 일상",
+    "owner": "gomongomong"
+   },
+   {
+    "url": "https://www.instagram.com/gomongomong/reel/DJ-HEOnTyg-/",
+    "views": 3477,
+    "cap": "딸2♡",
+    "img": "refs/gm_DJ-HEOnTyg-.jpg",
+    "cat": "딸 일상",
+    "owner": "gomongomong"
+   },
+   {
+    "url": "https://www.instagram.com/gomongomong/reel/DemGM37JKbf/",
+    "views": 3240,
+    "cap": "휴먼 로드스터",
+    "img": "refs/gm_DemGM37JKbf.jpg",
+    "cat": "기타",
+    "owner": "gomongomong"
+   },
+   {
+    "url": "https://www.instagram.com/gomongomong/reel/De0S8c-qGSB/",
+    "views": 3038,
+    "cap": "유튜버의 최고 덕목은 \"메타 인지\" 입니다 / #ccfk #CJ온스타일",
+    "img": "refs/gm_De0S8c-qGSB.jpg",
+    "cat": "기타",
+    "owner": "gomongomong"
+   },
+   {
+    "url": "https://www.instagram.com/gomongomong/reel/DLFWrbqqegt/",
+    "views": 2857,
+    "cap": "딸 유치원 숙제 구글 VEO3로 해주는 아빠 여기 있음.. 퍼플렉시티, GPT 프롬프트 번역을 활용해 클링과 함께 10분컷으로 만든 '소고기'주",
+    "img": "refs/gm_DLFWrbqqegt.jpg",
+    "cat": "딸 일상",
+    "owner": "gomongomong"
+   },
+   {
+    "url": "https://www.instagram.com/gomongomong/reel/Dc_Ip81pj3j/",
+    "views": 2807,
+    "cap": "직원이 이런 영상을 보내왔다",
+    "img": "refs/gm_Dc_Ip81pj3j.jpg",
+    "cat": "기타",
+    "owner": "gomongomong"
+   },
+   {
+    "url": "https://www.instagram.com/gomongomong/reel/DcCSJkJzU8-/",
+    "views": 2297,
+    "cap": "둘째는 사랑",
+    "img": "refs/gm_DcCSJkJzU8-.jpg",
+    "cat": "딸 일상",
+    "owner": "gomongomong"
+   },
+   {
+    "url": "https://www.instagram.com/gomongomong/reel/DcsiXZ7pdzf/",
+    "views": 2261,
+    "cap": "아기웃기기술",
+    "img": "refs/gm_DcsiXZ7pdzf.jpg",
+    "cat": "딸 일상",
+    "owner": "gomongomong"
+   },
+   {
+    "url": "https://www.instagram.com/gomongomong/reel/DMUEeQWJ_lx/",
+    "views": 2074,
+    "cap": "딸짱",
+    "img": "refs/gm_DMUEeQWJ_lx.jpg",
+    "cat": "딸 일상",
+    "owner": "gomongomong"
+   },
+   {
+    "url": "https://www.instagram.com/gomongomong/reel/DcGi36TJkJm/",
+    "views": 1987,
+    "cap": "십이지장까지 시원해지는 고몽 제로 안 출시!",
+    "img": "refs/gm_DcGi36TJkJm.jpg",
+    "cat": "기타",
+    "owner": "gomongomong"
+   },
+   {
+    "url": "https://www.instagram.com/gomongomong/reel/DWAsFtjidI_/",
+    "views": 1458,
+    "cap": "유튜버의 대를 이어야 하나?",
+    "img": "refs/gm_DWAsFtjidI_.jpg",
+    "cat": "기타",
+    "owner": "gomongomong"
+   },
+   {
+    "url": "https://www.instagram.com/gomongomong/reel/DeHDILZJMzx/",
+    "views": 1312,
+    "cap": "집에 언제 가지",
+    "img": "refs/gm_DeHDILZJMzx.jpg",
+    "cat": "기타",
+    "owner": "gomongomong"
+   },
+   {
+    "url": "https://www.instagram.com/gomongomong/reel/DfJwInLJeLl/",
+    "views": 825,
+    "cap": "한 편의 뮤비처럼 울기",
+    "img": "refs/gm_DfJwInLJeLl.jpg",
+    "cat": "기타",
+    "owner": "gomongomong"
+   }
+  ]
  }
 }

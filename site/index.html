@@ -113,6 +113,18 @@ nav button.fav{background:#FFE9C7;border-radius:8px 8px 0 0;color:#8A4B00;font-w
 .posit{background:#1B2136;color:#fff;border-radius:12px;padding:12px 16px;font-size:14px;margin:8px 0}.dgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));gap:12px}.dir{background:#fff;border:2px solid #F3D9B1;border-radius:14px;padding:14px 16px;font-size:13px}.dno{font-size:11px;font-weight:800;color:#C2410C}.dname{font-size:17px;font-weight:800;margin:2px 0 4px}.dcon{margin-bottom:8px;line-height:1.5}.dir dl{margin:0;display:grid;grid-template-columns:78px 1fr;gap:4px 8px}.dir dt{color:var(--sub);font-weight:700}.dir dd{margin:0;line-height:1.45}.btab th{text-align:left;color:var(--sub);font-weight:700;width:110px}.btab td{font-size:13px}
 .anc{background:#fff;border:1px solid var(--line);border-radius:12px;padding:10px 16px;font-size:13px;line-height:1.6}.anc ul{margin:4px 0;padding-left:18px}
 .tastesec{color:#8A4B00}
+.parts{display:flex;gap:8px;margin:2px 0 6px}.parts button{border:1px solid var(--line);background:#fff;border-radius:999px;padding:7px 16px;font-size:13px;font-weight:700;color:var(--sub);cursor:pointer}.parts button.on{background:#1B2136;color:#fff;border-color:#1B2136}
+.p2{background:#fff;border:1px solid var(--line);border-radius:14px;padding:18px 20px;margin-bottom:14px}.p2 h3{margin:0 0 6px;font-size:17px}.p2 .sm{font-size:13px;color:#555;line-height:1.6}
+.p2 ol,.p2 ul{margin:6px 0 0;padding-left:20px;font-size:14px;line-height:1.7}.p2row{display:grid;grid-template-columns:minmax(260px,360px) 1fr;gap:18px;align-items:start}.p2row img{width:100%;border-radius:10px;border:1px solid var(--line)}
+.ins{background:#FFF6E8;border-left:4px solid #E8592B;padding:10px 14px;border-radius:8px;font-size:14px;line-height:1.6;margin-top:10px}
+.tbl{width:100%;border-collapse:collapse;font-size:14px}.tbl th,.tbl td{border-bottom:1px solid var(--line);padding:9px 8px;text-align:left;vertical-align:top;line-height:1.55}.tbl th{font-size:12px;color:var(--sub);font-weight:700}
+.strip{display:flex;gap:10px;overflow-x:auto;padding-bottom:8px}.strip img{height:420px;border-radius:8px;border:1px solid var(--line)}
+.sw{display:inline-block;width:14px;height:14px;border-radius:3px;vertical-align:-2px;margin-right:6px;border:1px solid #0001}
+.mixg{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px}.mixb{border:1px solid var(--line);border-radius:12px;padding:12px 14px}.mixb b{font-size:15px}.mixb .big{font-size:26px;font-weight:800;color:#E8592B}
+.capb{white-space:pre-wrap;background:#F7F5F0;border-radius:10px;padding:12px 14px;font-size:13px;line-height:1.6}
+.tcard{border:1px solid var(--line);border-radius:12px;padding:12px 14px}.tcard b{font-size:15px}
+@media(max-width:760px){.p2row{grid-template-columns:1fr}.strip img{height:300px}}
+
 .why{display:flex;gap:5px;flex-wrap:wrap}.why span{font-size:11px;background:#F4F1EA;border-radius:4px;padding:2px 6px;color:var(--navy)}
 @media(max-width:640px){.search{width:100%;margin-left:0}.grid{grid-template-columns:1fr 1fr}.thumb{aspect-ratio:1}}
 </style>
@@ -121,6 +133,7 @@ nav button.fav{background:#FFE9C7;border-radius:8px 8px 0 0;color:#8A4B00;font-w
 <header><div class="wrap">
   <div class="top"><h1>데일리 <b>큐레이션</b> 보드</h1><span class="upd" id="upd">불러오는 중…</span>
   <input class="search" id="q" placeholder="캡션·계정·제목 검색"><span class="who" id="who"></span></div>
+  <div class="parts" id="parts"></div>
   <nav id="nav"></nav>
 </div></header>
 <div class="wrap" id="guide"></div>
@@ -131,8 +144,10 @@ nav button.fav{background:#FFE9C7;border-radius:8px 8px 0 0;color:#8A4B00;font-w
 const API='https://script.google.com/macros/s/AKfycbx_bxTi39uwrssjbst255QjPBY_p1KNQwRA8KAgzj_h9DNHjcw3BUpfNZntsy8ItxEw/exec';
 const CATS=['아이랑 갈 곳','육아 정보','해설·인물','밈·트렌드'];
 const CAT_DAYS={'아이랑 갈 곳':7,'육아 정보':30,'해설·인물':30,'밈·트렌드':30};
+const PART2=['캐러셀 기획','운영 방향'];
 const TABS=['찜한 후보','오늘의 추천','반응 좋은 글',...CATS,'30대 아저씨 훈수','맘카페 인기글','참고) 광고·공구','채널 목록'];
-let HS=null, POP=null, NOTES=[], FB={}, showEx=false, bmTab='찜', AT={}, AI=null, ruleView=false, ADS={}, SC={}, SCQ=new Set(), D=null, tab='오늘의 추천', sort='new', cafeSel='전체', kidOnly=false, q='', bmMode='week', CH=null, BM={}, LOOKUP={}, busy=false;
+let INS=null, part=(location.hash==='#p2'?2:1), opsCat='전체', HS=null, POP=null, NOTES=[], FB={}, showEx=false, bmTab='찜', AT={}, AI=null, ruleView=false, ADS={}, SC={}, SCQ=new Set(), D=null, tab='오늘의 추천', sort='new', cafeSel='전체', kidOnly=false, q='', bmMode='week', CH=null, BM={}, LOOKUP={}, busy=false;
+if(part===2)tab=PART2[0];
 const open_={};
 const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const fmt=n=>n==null?'-':n>=10000?(n/10000).toFixed(n>=100000?0:1)+'만':Math.round(n).toLocaleString();
@@ -176,6 +191,30 @@ function cafeCard(r,extra=''){const im=imgOf(Object.assign({kind:'cafe'},r));ret
 function trendCard(x,extra=''){const n=(x.news||[])[0]||{};const im=imgOf(Object.assign({kind:'trend'},x));return '<div class="card'+(im?'':' nothumb')+'">'+starBtn(x.id||('trend:'+x.title))+thumbA(im,n.url,'wide')+'<div class="body"><div class="acc">🔎 '+esc(x.title)+' <span>구글 급상승 · 검색 '+esc(x.traffic||'')+'</span></div><div class="cap" style="-webkit-line-clamp:3">'+(x.news||[]).map(k=>'· '+esc(k.title)+' <small>('+esc(k.source)+')</small>').join('<br>')+'</div>'+extra+'<div class="meta"><span>'+day(x.timestamp)+'</span>'+(n.url?'<a class="open" href="'+esc(n.url)+'" target="_blank" rel="noopener">기사 →</a>':'')+'</div>'+scBtn(x.id||('trend:'+x.title))+'</div></div>'}
 function ytCard(x,extra=''){const id=x.id||('yt:'+(x.url||'').split(/[\/=]/).pop());return '<div class="card">'+starBtn(id)+'<a class="thumb" href="'+esc(x.url)+'" target="_blank" rel="noopener" style="background-image:url(\''+esc(x.thumb||'')+'\')"></a><div class="body"><div class="acc">▶ '+esc(x.channel||'')+' <span>유튜브'+(x.short?' 쇼츠':'')+'</span></div><div class="cap">'+esc(x.title||'')+'</div>'+extra+'<div class="meta"><span>조회 '+fmt(x.views)+'</span><span>♥ '+fmt(x.likes)+'</span><span>💬 '+fmt(x.comments)+'</span><span>'+day(x.timestamp||x.published)+'</span><a class="open" href="'+esc(x.url)+'" target="_blank" rel="noopener">영상 →</a></div>'+scBtn(id)+'</div></div>'}
 function personCard(x,extra=''){const id=x.id||('person:'+x.title);const im=imgOf(Object.assign({kind:'person'},x));return '<div class="card'+(im?'':' nothumb')+'">'+starBtn(id)+thumbA(im,x.url||(x.sources||[])[0],'wide')+'<div class="body"><div class="acc">🧑 '+esc(x.title||'')+' <span>'+esc(String(x.ptype||'').startsWith('B')?'선택·커리어':'일반인 화제')+'</span></div><div class="cap" style="-webkit-line-clamp:4">'+esc(x.who||'')+(x.why?'<br>'+esc(x.why):'')+'</div>'+(x.character?'<div class="angle">🎭 캐릭터: '+esc(x.character)+'</div>':'')+(x.intro_point?'<div class="angle st">🎯 소개 포인트: '+esc(x.intro_point)+'</div>':'')+(x.extra_value?'<div class="angle st">🎁 시청자가 얻어갈 것: '+esc(x.extra_value)+'</div>':'')+(x.caution?'<div class="angle">⚠️ '+esc(x.caution)+'</div>':'')+extra+'<div class="meta">'+(x.signals?'<span>'+esc(String(x.signals).slice(0,60))+'</span>':'')+(x.sources||[]).slice(0,2).map((u,i)=>'<a class="open" href="'+esc(u)+'" target="_blank" rel="noopener">기사'+(i+1)+' →</a>').join('')+'</div>'+scBtn(id)+'</div></div>'}
+function loadIns(){if(INS)return true;fetch('insta.json?'+Date.now()).then(r=>r.json()).then(j=>{INS=j;render()}).catch(()=>{});return false}
+function postCard(x){return '<div class="card">'+thumbA(x.img,x.url,'')+'<div class="body"><div class="acc">'+esc(x.type)+(x.cat?' <span>'+esc(x.cat)+'</span>':'')+'</div><div class="cap">'+esc(x.cap)+'</div><div class="meta"><span>♥ '+fmt(x.likes)+'</span><span>💬 '+fmt(x.comments)+'</span><a class="open" href="'+esc(x.url)+'" target="_blank" rel="noopener">보기 →</a></div></div></div>'}
+function carView(){if(!loadIns())return '<div class="empty">불러오는 중…</div>';const C=INS.carousel,K=C.dokhu,M=C.magazine,S=C.spec,P=C.sample;
+  let h='<div class="intro">'+esc(C.intro)+'</div>';
+  h+='<div class="sec">레퍼런스 1 · 독후파파 캐러셀 구성<small><a href="'+K.url+'" target="_blank" rel="noopener">@'+K.handle+'</a> · 팔로워 '+K.followers+' · '+esc(K.who)+'</small></div>';
+  h+='<div class="p2"><div class="p2row"><img src="'+K.cover+'" alt=""><div><h3>슬라이드 구성</h3><ol>'+K.structure.map(x=>'<li>'+esc(x)+'</li>').join('')+'</ol><h3 style="margin-top:14px">캡션 공식</h3><ol>'+K.caption.map(x=>'<li>'+esc(x)+'</li>').join('')+'</ol><div class="sm" style="margin-top:8px">'+esc(K.mix)+'</div></div></div>';
+  h+='<div style="margin-top:14px"><img src="'+K.slides+'" style="width:100%;border-radius:10px;border:1px solid var(--line)" alt=""><div class="sm">2~6장 예시 (자존감 회복 3가지 놀이법)</div></div><div class="ins">'+esc(K.insight)+'</div></div>';
+  h+='<div class="grid">'+K.posts.map(postCard).join('')+'</div>';
+  h+='<div class="sec">레퍼런스 2 · 매거진 캐러셀 디자인<small>'+esc(M.note)+'</small></div><div class="p2"><div class="p2row"><img src="'+M.collage+'" alt=""><div><h3>공통 포맷</h3><ul>'+M.rules.map(x=>'<li>'+esc(x)+'</li>').join('')+'</ul></div></div></div>';
+  h+='<div class="sec">고몽 육아노트 포맷<small>구성은 독후파파, 디자인은 매거진</small></div><div class="p2"><table class="tbl"><tr><th style="width:120px">크기</th><td>'+esc(S.size)+'</td></tr><tr><th>글꼴</th><td>'+esc(S.font)+'</td></tr><tr><th>색</th><td>'+S.color.map(c=>'<span class="sw" style="background:'+c[0]+'"></span>'+c[0]+' '+esc(c[1])).join('<br>')+'</td></tr><tr><th>장별 역할</th><td><ol style="margin:0">'+S.pages.map(x=>'<li>'+esc(x)+'</li>').join('')+'</ol></td></tr></table><div class="ins">'+esc(S.differ)+'</div></div>';
+  h+='<div class="sec">샘플 1편 · '+esc(P.title)+'<small>'+esc(P.basis)+'</small></div><div class="p2"><div class="strip">'+P.images.map(u=>'<a href="'+u+'" target="_blank"><img src="'+u+'" alt=""></a>').join('')+'</div><h3 style="margin-top:10px">캡션 초안</h3><div class="capb">'+esc(P.caption)+'</div></div>';
+  h+='<div class="sec">다음 주제 후보<small>'+C.topics.length+'개 · 두 딸(6살·3살) 기준</small></div><div class="hsgrid">'+C.topics.map((t,i)=>'<div class="tcard"><div class="hsno">'+String(i+2).padStart(2,'0')+'</div><b>'+esc(t.t)+'</b><div class="sm" style="margin-top:6px">구성: '+esc(t.s)+'</div><div class="sm" style="color:#8A4B00;margin-top:4px">'+esc(t.why)+'</div></div>').join('')+'</div>';
+  h+='<div class="note" style="margin-top:12px">⚠️ '+esc(C.caution)+'</div>';return h}
+function opsView(){if(!loadIns())return '<div class="empty">불러오는 중…</div>';const O=INS.ops;
+  let h='<div class="intro">'+esc(O.intro)+'</div>';
+  h+='<div class="sec">프로필 구성<small><a href="https://www.instagram.com/appasallim/" target="_blank" rel="noopener">@appasallim</a> · 팔로워 19.7만 · 게시물 1,122</small></div><div class="p2"><div class="p2row"><img src="'+O.profile.img+'" alt=""><table class="tbl">'+O.profile.items.map(r=>'<tr><th style="width:96px">'+esc(r[0])+'</th><td>'+esc(r[1])+'</td></tr>').join('')+'</table></div></div>';
+  h+='<div class="sec">콘텐츠 구성<small>'+esc(O.mix_note)+'</small></div><div class="mixg">'+O.mix.map(m=>'<div class="mixb"><b>'+esc(m.cat)+'</b> <span class="big">'+m.n+'개</span><div class="sm">좋아요 중앙값 '+fmt(m.likes)+' · 댓글 중앙값 '+fmt(m.comments)+'</div><div class="sm" style="margin-top:6px">'+esc(m.desc)+'</div></div>').join('')+'</div>';
+  h+='<div class="sec">반응 상위 6개<small>좋아요 순</small></div><div class="grid">'+O.top.map(postCard).join('')+'</div>';
+  h+='<div class="sec">공구 운영 순서<small>모기 디바이스·음식물처리기·빨래바구니 공구에서 반복된 흐름</small></div><div class="p2"><table class="tbl">'+O.flow.map(r=>'<tr><th style="width:230px;color:#1B2136;font-size:14px">'+esc(r[0])+'</th><td>'+esc(r[1])+'</td></tr>').join('')+'</table></div>';
+  h+='<div class="sec">차용할 것<small>아빠살림에서 → 고몽 계정으로</small></div><div class="p2"><table class="tbl"><tr><th>항목</th><th>아빠살림</th><th>고몽 버전</th></tr>'+O.borrow.map(r=>'<tr><td><b>'+esc(r[0])+'</b></td><td>'+esc(r[1])+'</td><td>'+esc(r[2])+'</td></tr>').join('')+'</table></div>';
+  h+='<div class="sec">고몽 주간 운영안 (초안)<small>정보로 모으고, 가족 장면으로 친해지고, 공구로 판매</small></div><div class="p2"><table class="tbl"><tr><th style="width:60px">요일</th><th>콘텐츠</th><th>메모</th></tr>'+O.week.map(r=>'<tr><td><b>'+esc(r[0])+'</b></td><td>'+esc(r[1])+'</td><td>'+esc(r[2])+'</td></tr>').join('')+'</table></div>';
+  const cats=['전체','살림 정보','가족·일상','공구'];const G=O.posts.filter(x=>opsCat==='전체'||x.cat===opsCat);
+  h+='<div class="sec">최근 게시물 '+O.posts.length+'개<small>'+esc(INS.updated)+' 기준</small></div><div class="bar">'+cats.map(c=>'<button class="chip'+(opsCat===c?' on':'')+'" data-opc="'+c+'">'+c+(c==='전체'?'':' '+O.posts.filter(x=>x.cat===c).length)+'</button>').join('')+'</div><div class="grid">'+G.map(postCard).join('')+'</div>';
+  return h}
 let hsWho='전체', hsSort='ref';
 function hunsuFeed(){const H=D.hunsu||{};const yt=(H.youtube||[]).map(x=>({id:'yt:'+x.id,pf:'유튜브'+(x.short?' 쇼츠':''),who:x.creator,title:x.title,img:x.thumb,url:x.url,ts:x.published,n1:'조회 '+fmt(x.views),n2:'♥ '+fmt(x.likes),n3:'💬 '+fmt(x.comments),ratio:x.from_search?null:x.ratio,ad:null}));
   const ig=(H.ig_posts||[]).map(x=>({id:'ig:'+x.permalink,pf:'인스타'+(x.media_type==='REELS'?' 릴스':''),who:x.creator,title:(x.caption||'').split('\n').filter(Boolean)[0]||'',img:x.thumb,url:x.permalink,ts:x.timestamp,n1:'♥ '+fmt(x.likes),n2:'💬 '+fmt(x.comments),n3:'',ratio:x.ratio,ad:x.ad}));
@@ -398,7 +437,8 @@ function okRecent(p){return !p.flag&&!adType(p.caption)&&!p.ended&&(p.likes||0)>
 function render(){if(!D)return;const A=accMap(),P=D.instagram.posts;
   const inCat=c=>P.filter(p=>p.cat===c&&!p.ended&&hoursAgo(p.timestamp)<=CAT_DAYS[c]*24);
   const counts={};CATS.forEach(c=>counts[c]=inCat(c).length);
-  document.getElementById('nav').innerHTML=TABS.map(t=>'<button class="'+(t===tab?'on':'')+(t==='찜한 후보'?' fav':'')+'" data-tab="'+t+'">'+t+(counts[t]!=null?'<span class="cnt">'+counts[t]+'</span>':t==='찜한 후보'?'<span class="cnt">'+Object.keys(BM).length+'</span>':t==='스크립트'?'<span class="cnt">'+Object.keys(SC).length+'</span>':'')+'</button>').join('');
+  document.getElementById('parts').innerHTML='<button class="'+(part===1?'on':'')+'" data-part="1">① 정보 큐레이션</button><button class="'+(part===2?'on':'')+'" data-part="2">② 인스타그램 레퍼런스·운영 방향</button>';
+  document.getElementById('nav').innerHTML=(part===2?PART2:TABS).map(t=>'<button class="'+(t===tab?'on':'')+(t==='찜한 후보'?' fav':'')+'" data-tab="'+t+'">'+t+(counts[t]!=null?'<span class="cnt">'+counts[t]+'</span>':t==='찜한 후보'?'<span class="cnt">'+Object.keys(BM).length+'</span>':t==='스크립트'?'<span class="cnt">'+Object.keys(SC).length+'</span>':'')+'</button>').join('');
   let h='';
   if(tab==='오늘의 추천'){const today=new Date().toLocaleDateString('en-CA',{timeZone:'Asia/Seoul'});const useAI=AI&&AI.picks&&AI.picks.length&&!ruleView;
     h+='<div class="bar">'+(AI&&AI.picks?'<button class="chip'+(!ruleView?' on':'')+'" data-rv="0">Claude 큐레이션'+(AI.date!==today?' ('+AI.date+')':'')+'</button><button class="chip'+(ruleView?' on':'')+'" data-rv="1">규칙 기반</button>':'')+'<span class="lbl" style="margin-left:auto">'+(useAI?'고몽 신규 채널 기준 · '+kst(AI.generated_at)+' · 후보 '+AI.pool_size+'개 중':'')+'</span></div>';
@@ -422,7 +462,7 @@ function render(){if(!D)return;const A=accMap(),P=D.instagram.posts;
     h+='<div class="sec">주간 인기글 전체</div><div class="bar">'+names.map(n=>'<button class="chip'+(cafeSel===n?' on':'')+'" data-cafe="'+esc(n)+'">'+esc(n)+'</button>').join('')+'<button class="chip'+(kidOnly?' on':'')+'" data-kid="1">정보 글만</button></div>';
     const rows=D.cafe.filter(r=>(cafeSel==='전체'||r.cafe===cafeSel)&&(!kidOnly||!r.flag)&&match(r.title)).sort((a,b)=>b.reads-a.reads).slice(0,200);
     h+=cafeTable(rows)+'<div class="note">로그인 없이 공개되는 주간 인기글 기준이에요. 맘스홀릭·레몬테라스·맘이베베는 가입해야 보여서 빠져 있어요.</div>';
-  } else if(tab==='30대 아저씨 훈수'){h+=hunsuView()} else if(tab==='🍿 팝콘 리서치'){h+=popcornView()} else if(tab==='참고) 광고·공구'){h+=adView(A)} else if(tab==='찜한 후보'){h+=bmView(A)} else if(tab==='스크립트'){h+=scriptView()} else if(tab==='채널 목록'){h+=channelView()}
+  } else if(tab==='30대 아저씨 훈수'){h+=hunsuView()} else if(tab==='캐러셀 기획'){h+=carView()} else if(tab==='운영 방향'){h+=opsView()} else if(tab==='🍿 팝콘 리서치'){h+=popcornView()} else if(tab==='참고) 광고·공구'){h+=adView(A)} else if(tab==='찜한 후보'){h+=bmView(A)} else if(tab==='스크립트'){h+=scriptView()} else if(tab==='채널 목록'){h+=channelView()}
   document.getElementById('main').innerHTML=h}
 document.getElementById('q').oninput=e=>{q=e.target.value.trim();render()};
 document.addEventListener('click',async e=>{const a=e.target.closest('a#chgUser');if(a){e.preventDefault();askUser(true);return}
@@ -430,6 +470,8 @@ document.addEventListener('click',async e=>{const a=e.target.closest('a#chgUser'
   const si=e.target.closest('.scitem');if(si){scModal(si.dataset.sc);return}
   const t=e.target.closest('button');if(!t)return;
   if(t.dataset.tab){tab=t.dataset.tab;render();scrollTo(0,0)}
+  if(t.dataset.part){part=+t.dataset.part;tab=part===2?PART2[0]:'오늘의 추천';history.replaceState(null,'',part===2?'#p2':location.pathname);render();scrollTo(0,0)}
+  if(t.dataset.opc){opsCat=t.dataset.opc;render()}
   if(t.dataset.sort){sort=t.dataset.sort;render()}
   if(t.dataset.cafe){cafeSel=t.dataset.cafe;render()}
   if(t.dataset.kid){kidOnly=!kidOnly;render()}

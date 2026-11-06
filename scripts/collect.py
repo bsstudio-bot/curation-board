@@ -774,6 +774,18 @@ def main():
         hunsu = collect_hunsu(hs_conf.get("creators", []), os.environ.get("YT_KEY"), token, ig_user_id, prev.get("hunsu"), now, refs=hs_conf.get("format_refs", []))
     except Exception as e:  # noqa: BLE001
         print("hunsu failed", e); hunsu = prev.get("hunsu")
+    # 파트2 '최근 게시물': 레퍼런스 계정 최근 글 (site/insta.json refaccounts)
+    refposts = prev.get("refposts")
+    ref_conf = (load(os.path.join(ROOT, "site", "insta.json"), {}) or {}).get("refaccounts") or []
+    if token and ig_user_id and ref_conf:
+        try:
+            ra, rp = collect_instagram(ref_conf, token, ig_user_id, prev.get("refposts"))
+            add_ratio(ra, rp)
+            for x in rp:
+                x["flag"] = flag_of(x.get("caption") or "")
+            refposts = {"collected_at": now.isoformat(), "accounts": ra, "posts": rp}
+        except Exception as e:  # noqa: BLE001
+            print("refposts failed", e)
     popcorn = None  # 팝콘 리서치 탭 삭제(2026-11-04): 수집 중단
     trends = collect_trends((prev.get("trends") or {}).get("items"), now)
     hist_path = os.path.join(ROOT, "site", "topics_history.json")
@@ -794,6 +806,7 @@ def main():
         "youtube": youtube,
         "popcorn": popcorn,
         "hunsu": hunsu,
+        "refposts": refposts,
         "trends": {"source": "google-trends-kr", "collected_at": now.isoformat(), "items": trends},
         "brands": brands,
         "channels_source": channels.get("_source", "channels.json"),

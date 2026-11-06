@@ -144,7 +144,7 @@ nav button.fav{background:#FFE9C7;border-radius:8px 8px 0 0;color:#8A4B00;font-w
 const API='https://script.google.com/macros/s/AKfycbx_bxTi39uwrssjbst255QjPBY_p1KNQwRA8KAgzj_h9DNHjcw3BUpfNZntsy8ItxEw/exec';
 const CATS=['아이랑 갈 곳','육아 정보','해설·인물','밈·트렌드'];
 const CAT_DAYS={'아이랑 갈 곳':7,'육아 정보':30,'해설·인물':30,'밈·트렌드':30};
-const PART2=['릴스 조합안','고몽 계정 분석','릴스 포맷 (재리 방식)','캐러셀 기획','운영 방향'];
+const PART2=['운영 방향']; // 2026-11-06 내림: 릴스 조합안, 고몽 계정 분석, 릴스 포맷 (재리 방식), 캐러셀 기획 (데이터·뷰 함수는 남겨 둠)
 const TABS=['찜한 후보','오늘의 추천','반응 좋은 글',...CATS,'30대 아저씨 훈수','맘카페 인기글','참고) 광고·공구','채널 목록'];
 let INS=null, part=(location.hash==='#p2'?2:1), opsCat='전체', HS=null, POP=null, NOTES=[], FB={}, showEx=false, bmTab='찜', AT={}, AI=null, ruleView=false, ADS={}, SC={}, SCQ=new Set(), D=null, tab='오늘의 추천', sort='new', cafeSel='전체', kidOnly=false, q='', bmMode='week', CH=null, BM={}, LOOKUP={}, busy=false;
 if(part===2)tab=PART2[0];
@@ -465,7 +465,7 @@ function okRecent(p){return !p.flag&&!adType(p.caption)&&!p.ended&&(p.likes||0)>
 function render(){if(!D)return;const A=accMap(),P=D.instagram.posts;
   const inCat=c=>P.filter(p=>p.cat===c&&!p.ended&&hoursAgo(p.timestamp)<=CAT_DAYS[c]*24);
   const counts={};CATS.forEach(c=>counts[c]=inCat(c).length);
-  document.getElementById('parts').innerHTML='<button class="'+(part===1?'on':'')+'" data-part="1">① 정보 큐레이션</button><button class="'+(part===2?'on':'')+'" data-part="2">② 인스타그램 레퍼런스·운영 방향</button>';
+  document.getElementById('parts').innerHTML='<button class="'+(part===1?'on':'')+'" data-part="1">① 정보 큐레이션</button><button class="'+(part===2?'on':'')+'" data-part="2">② 인스타 운영 방향</button>';
   document.getElementById('nav').innerHTML=(part===2?PART2:TABS).map(t=>'<button class="'+(t===tab?'on':'')+(t==='찜한 후보'?' fav':'')+'" data-tab="'+t+'">'+t+(counts[t]!=null?'<span class="cnt">'+counts[t]+'</span>':t==='찜한 후보'?'<span class="cnt">'+Object.keys(BM).length+'</span>':t==='스크립트'?'<span class="cnt">'+Object.keys(SC).length+'</span>':'')+'</button>').join('');
   let h='';
   if(tab==='오늘의 추천'){const today=new Date().toLocaleDateString('en-CA',{timeZone:'Asia/Seoul'});const useAI=AI&&AI.picks&&AI.picks.length&&!ruleView;

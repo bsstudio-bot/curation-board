@@ -144,7 +144,7 @@ nav button.fav{background:#FFE9C7;border-radius:8px 8px 0 0;color:#8A4B00;font-w
 const API='https://script.google.com/macros/s/AKfycbx_bxTi39uwrssjbst255QjPBY_p1KNQwRA8KAgzj_h9DNHjcw3BUpfNZntsy8ItxEw/exec';
 const CATS=['아이랑 갈 곳','육아 정보','해설·인물','밈·트렌드'];
 const CAT_DAYS={'아이랑 갈 곳':7,'육아 정보':30,'해설·인물':30,'밈·트렌드':30};
-const PART2=['캐러셀 기획','운영 방향'];
+const PART2=['고몽 계정 분석','캐러셀 기획','운영 방향'];
 const TABS=['찜한 후보','오늘의 추천','반응 좋은 글',...CATS,'30대 아저씨 훈수','맘카페 인기글','참고) 광고·공구','채널 목록'];
 let INS=null, part=(location.hash==='#p2'?2:1), opsCat='전체', HS=null, POP=null, NOTES=[], FB={}, showEx=false, bmTab='찜', AT={}, AI=null, ruleView=false, ADS={}, SC={}, SCQ=new Set(), D=null, tab='오늘의 추천', sort='new', cafeSel='전체', kidOnly=false, q='', bmMode='week', CH=null, BM={}, LOOKUP={}, busy=false;
 if(part===2)tab=PART2[0];
@@ -191,10 +191,21 @@ function cafeCard(r,extra=''){const im=imgOf(Object.assign({kind:'cafe'},r));ret
 function trendCard(x,extra=''){const n=(x.news||[])[0]||{};const im=imgOf(Object.assign({kind:'trend'},x));return '<div class="card'+(im?'':' nothumb')+'">'+starBtn(x.id||('trend:'+x.title))+thumbA(im,n.url,'wide')+'<div class="body"><div class="acc">🔎 '+esc(x.title)+' <span>구글 급상승 · 검색 '+esc(x.traffic||'')+'</span></div><div class="cap" style="-webkit-line-clamp:3">'+(x.news||[]).map(k=>'· '+esc(k.title)+' <small>('+esc(k.source)+')</small>').join('<br>')+'</div>'+extra+'<div class="meta"><span>'+day(x.timestamp)+'</span>'+(n.url?'<a class="open" href="'+esc(n.url)+'" target="_blank" rel="noopener">기사 →</a>':'')+'</div>'+scBtn(x.id||('trend:'+x.title))+'</div></div>'}
 function ytCard(x,extra=''){const id=x.id||('yt:'+(x.url||'').split(/[\/=]/).pop());return '<div class="card">'+starBtn(id)+'<a class="thumb" href="'+esc(x.url)+'" target="_blank" rel="noopener" style="background-image:url(\''+esc(x.thumb||'')+'\')"></a><div class="body"><div class="acc">▶ '+esc(x.channel||'')+' <span>유튜브'+(x.short?' 쇼츠':'')+'</span></div><div class="cap">'+esc(x.title||'')+'</div>'+extra+'<div class="meta"><span>조회 '+fmt(x.views)+'</span><span>♥ '+fmt(x.likes)+'</span><span>💬 '+fmt(x.comments)+'</span><span>'+day(x.timestamp||x.published)+'</span><a class="open" href="'+esc(x.url)+'" target="_blank" rel="noopener">영상 →</a></div>'+scBtn(id)+'</div></div>'}
 function personCard(x,extra=''){const id=x.id||('person:'+x.title);const im=imgOf(Object.assign({kind:'person'},x));return '<div class="card'+(im?'':' nothumb')+'">'+starBtn(id)+thumbA(im,x.url||(x.sources||[])[0],'wide')+'<div class="body"><div class="acc">🧑 '+esc(x.title||'')+' <span>'+esc(String(x.ptype||'').startsWith('B')?'선택·커리어':'일반인 화제')+'</span></div><div class="cap" style="-webkit-line-clamp:4">'+esc(x.who||'')+(x.why?'<br>'+esc(x.why):'')+'</div>'+(x.character?'<div class="angle">🎭 캐릭터: '+esc(x.character)+'</div>':'')+(x.intro_point?'<div class="angle st">🎯 소개 포인트: '+esc(x.intro_point)+'</div>':'')+(x.extra_value?'<div class="angle st">🎁 시청자가 얻어갈 것: '+esc(x.extra_value)+'</div>':'')+(x.caution?'<div class="angle">⚠️ '+esc(x.caution)+'</div>':'')+extra+'<div class="meta">'+(x.signals?'<span>'+esc(String(x.signals).slice(0,60))+'</span>':'')+(x.sources||[]).slice(0,2).map((u,i)=>'<a class="open" href="'+esc(u)+'" target="_blank" rel="noopener">기사'+(i+1)+' →</a>').join('')+'</div>'+scBtn(id)+'</div></div>'}
+let gmCat='전체';
+function gmView(){if(!loadIns())return '<div class="empty">불러오는 중…</div>';const G=INS.gomong;if(!G)return '<div class="empty">아직 데이터가 없어요.</div>';
+  let h='<div class="intro">'+esc(G.intro)+'</div>';
+  h+='<div class="sec">계정 한눈에<small><a href="https://www.instagram.com/gomongomong/" target="_blank" rel="noopener">@gomongomong</a></small></div><div class="p2"><table class="tbl">'+G.profile.map(r=>'<tr><th style="width:100px">'+esc(r[0])+'</th><td>'+esc(r[1])+'</td></tr>').join('')+'</table></div>';
+  h+='<div class="sec">릴스 유형별 반응<small>릴스 탭 48개 중 표지가 확인된 45개</small></div><div class="p2"><table class="tbl"><tr><th>유형</th><th>개수</th><th>조회 중앙값</th><th>최고</th><th>예시</th></tr>'+G.types.map(r=>'<tr><td><b>'+esc(r[0])+'</b></td><td>'+r[1]+'</td><td>'+r[2]+'</td><td>'+r[3]+'</td><td class="sm">'+esc(r[4])+'</td></tr>').join('')+'</table></div>';
+  h+='<div class="sec">알게 된 것</div><div class="p2"><ol>'+G.learn.map(x=>'<li>'+esc(x)+'</li>').join('')+'</ol></div>';
+  h+='<div class="sec">피드(사진·캐러셀)</div><div class="p2"><div class="p2row"><img src="'+G.feed.img+'" alt=""><div><div class="sm" style="font-size:14px">'+esc(G.feed.stat)+'</div><div class="ins">'+esc(G.feed.hot)+'</div></div></div></div>';
+  h+='<div class="sec">우리 계정에 적용할 방식<small>시안은 표지만, 실제 영상·사진 자리는 비워 둠</small></div><div class="hsgrid">'+G.propose.map((x,i)=>'<div class="tcard"><div class="hsno">'+String(i+1).padStart(2,'0')+'</div><b>'+esc(x.t)+'</b><div class="sm" style="margin-top:6px">'+esc(x.d)+'</div>'+(x.img?'<a href="'+x.img+'" target="_blank"><img src="'+x.img+'" style="margin-top:10px;max-height:360px;max-width:100%;border-radius:8px;border:1px solid var(--line)"></a>':'')+'</div>').join('')+'</div>';
+  const cats=['전체',...new Set(G.reels.map(x=>x.cat))];const R=G.reels.filter(x=>gmCat==='전체'||x.cat===gmCat);
+  h+='<div class="sec">릴스 조회수 순<small>'+G.reels.length+'개</small></div><div class="bar">'+cats.map(c=>'<button class="chip'+(gmCat===c?' on':'')+'" data-gmc="'+esc(c)+'">'+esc(c)+'</button>').join('')+'</div><div class="grid">'+R.map(x=>'<div class="card">'+thumbA(x.img,x.url,'')+'<div class="body"><div class="acc">릴스 <span>'+esc(x.cat)+'</span>'+(x.owner==='gomongmoney'?' <span>고몽머니 협업</span>':'')+'</div><div class="cap">'+esc(x.cap)+'</div><div class="meta"><span>조회 '+fmt(x.views)+'</span><a class="open" href="'+esc(x.url)+'" target="_blank" rel="noopener">보기 →</a></div></div></div>').join('')+'</div>';
+  return h}
 function loadIns(){if(INS)return true;fetch('insta.json?'+Date.now()).then(r=>r.json()).then(j=>{INS=j;render()}).catch(()=>{});return false}
 function postCard(x){return '<div class="card">'+thumbA(x.img,x.url,'')+'<div class="body"><div class="acc">'+esc(x.type)+(x.cat?' <span>'+esc(x.cat)+'</span>':'')+'</div><div class="cap">'+esc(x.cap)+'</div><div class="meta"><span>♥ '+fmt(x.likes)+'</span><span>💬 '+fmt(x.comments)+'</span><a class="open" href="'+esc(x.url)+'" target="_blank" rel="noopener">보기 →</a></div></div></div>'}
 function carView(){if(!loadIns())return '<div class="empty">불러오는 중…</div>';const C=INS.carousel,K=C.dokhu,M=C.magazine,S=C.spec,P=C.sample;
-  let h='<div class="intro">'+esc(C.intro)+'</div>';
+  let h='<div class="intro" style="white-space:pre-line">'+esc(C.intro)+'</div>';
   h+='<div class="sec">레퍼런스 1 · 독후파파 캐러셀 구성<small><a href="'+K.url+'" target="_blank" rel="noopener">@'+K.handle+'</a> · 팔로워 '+K.followers+' · '+esc(K.who)+'</small></div>';
   h+='<div class="p2"><div class="p2row"><img src="'+K.cover+'" alt=""><div><h3>슬라이드 구성</h3><ol>'+K.structure.map(x=>'<li>'+esc(x)+'</li>').join('')+'</ol><h3 style="margin-top:14px">캡션 공식</h3><ol>'+K.caption.map(x=>'<li>'+esc(x)+'</li>').join('')+'</ol><div class="sm" style="margin-top:8px">'+esc(K.mix)+'</div></div></div>';
   h+='<div style="margin-top:14px"><img src="'+K.slides+'" style="width:100%;border-radius:10px;border:1px solid var(--line)" alt=""><div class="sm">2~6장 예시 (자존감 회복 3가지 놀이법)</div></div><div class="ins">'+esc(K.insight)+'</div></div>';
@@ -463,7 +474,7 @@ function render(){if(!D)return;const A=accMap(),P=D.instagram.posts;
     h+='<div class="sec">주간 인기글 전체</div><div class="bar">'+names.map(n=>'<button class="chip'+(cafeSel===n?' on':'')+'" data-cafe="'+esc(n)+'">'+esc(n)+'</button>').join('')+'<button class="chip'+(kidOnly?' on':'')+'" data-kid="1">정보 글만</button></div>';
     const rows=D.cafe.filter(r=>(cafeSel==='전체'||r.cafe===cafeSel)&&(!kidOnly||!r.flag)&&match(r.title)).sort((a,b)=>b.reads-a.reads).slice(0,200);
     h+=cafeTable(rows)+'<div class="note">로그인 없이 공개되는 주간 인기글 기준이에요. 맘스홀릭·레몬테라스·맘이베베는 가입해야 보여서 빠져 있어요.</div>';
-  } else if(tab==='30대 아저씨 훈수'){h+=hunsuView()} else if(tab==='캐러셀 기획'){h+=carView()} else if(tab==='운영 방향'){h+=opsView()} else if(tab==='🍿 팝콘 리서치'){h+=popcornView()} else if(tab==='참고) 광고·공구'){h+=adView(A)} else if(tab==='찜한 후보'){h+=bmView(A)} else if(tab==='스크립트'){h+=scriptView()} else if(tab==='채널 목록'){h+=channelView()}
+  } else if(tab==='30대 아저씨 훈수'){h+=hunsuView()} else if(tab==='고몽 계정 분석'){h+=gmView()} else if(tab==='캐러셀 기획'){h+=carView()} else if(tab==='운영 방향'){h+=opsView()} else if(tab==='🍿 팝콘 리서치'){h+=popcornView()} else if(tab==='참고) 광고·공구'){h+=adView(A)} else if(tab==='찜한 후보'){h+=bmView(A)} else if(tab==='스크립트'){h+=scriptView()} else if(tab==='채널 목록'){h+=channelView()}
   document.getElementById('main').innerHTML=h}
 document.getElementById('q').oninput=e=>{q=e.target.value.trim();render()};
 document.addEventListener('click',async e=>{const a=e.target.closest('a#chgUser');if(a){e.preventDefault();askUser(true);return}
@@ -473,6 +484,7 @@ document.addEventListener('click',async e=>{const a=e.target.closest('a#chgUser'
   if(t.dataset.tab){tab=t.dataset.tab;render();scrollTo(0,0)}
   if(t.dataset.part){part=+t.dataset.part;tab=part===2?PART2[0]:'오늘의 추천';history.replaceState(null,'',part===2?'#p2':location.pathname);render();scrollTo(0,0)}
   if(t.dataset.opc){opsCat=t.dataset.opc;render()}
+  if(t.dataset.gmc){gmCat=t.dataset.gmc;render()}
   if(t.dataset.sort){sort=t.dataset.sort;render()}
   if(t.dataset.cafe){cafeSel=t.dataset.cafe;render()}
   if(t.dataset.kid){kidOnly=!kidOnly;render()}

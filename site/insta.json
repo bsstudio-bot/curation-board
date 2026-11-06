@@ -485,7 +485,7 @@
   "week": [
    {
     "d": "월",
-    "feed": "생활 정보 릴스 (루틴형)",
+    "feed": "생활 정보 토크 릴스 (재리 포맷)",
     "n": 3,
     "st": [
      "새 릴스 공유",
@@ -495,7 +495,7 @@
    },
    {
     "d": "화",
-    "feed": "AGING CURVE 릴스 (고몽 프레임) + 요약 캐러셀",
+    "feed": "AGING CURVE 토크 릴스 (재리 포맷) + 요약 캐러셀",
     "n": 4,
     "st": [
      "캐러셀 표지 공유",
@@ -528,7 +528,7 @@
    },
    {
     "d": "금",
-    "feed": "공구 오픈 캐러셀 또는 ISSUE 릴스 (고몽 프레임)",
+    "feed": "공구 오픈 캐러셀 또는 ISSUE 토크 릴스 (재리 포맷)",
     "n": 5,
     "st": [
      "오전 11시 오픈 + 링크 스티커",
@@ -1442,6 +1442,565 @@
     "img": "refs/gm_DfJwInLJeLl.jpg",
     "cat": "기타",
     "owner": "gomongomong"
+   }
+  ]
+ },
+ "jr": {
+  "intro": "재리(@jae_rri, 팔로워 17.1만) 릴스 탭 48개를 봤어요(11월 6일 기준). 조회수 바닥이 1.9만, 중앙값이 3.9만으로 편차가 거의 없어요. 같은 자리·같은 틀로 매일 찍어서 '실패작'이 없는 포맷이에요. 고몽 신규 계정 릴스의 기본 틀로 살릴 수 있다고 봐요.",
+  "stats": [
+   [
+    "릴스",
+    "48개 (7~10월은 거의 매일)"
+   ],
+   [
+    "조회수",
+    "최저 1.9만 · 중앙값 3.9만 · 최고 62.3만"
+   ],
+   [
+    "좋아요 / 댓글 중앙값",
+    "133 / 433 (48개 중 45개가 댓글이 좋아요보다 많음)"
+   ],
+   [
+    "최고 반응",
+    "'10억 자산가가 된 나는' 62.3만 · 댓글 6,404 / '자녀에게 꼭 사주세요' 13만 · 댓글 7,219"
+   ]
+  ],
+  "anatomy": [
+   [
+    "장소·구도",
+    "매번 같은 거실 소파 앞, 가슴 위 정면 구도. 옷만 바뀌어요. 썸네일을 모아 보면 한 시리즈처럼 보여요."
+   ],
+   [
+    "상단 두 줄 제목",
+    "1줄 흰색 + 2줄 노란색(또는 키워드만 노랑). 기울어진 굵은 글씨에 검은 테두리. 질문형이나 숫자형 ('지금 사야 하는 TOP4', '1,000만 원 있다면')"
+   ],
+   [
+    "가운데 대사 자막",
+    "얼굴 바로 아래, 흰 기울임 글씨 한 줄. 말하는 문장을 그대로"
+   ],
+   [
+    "3D 스티커·자료 화면",
+    "돈다발·그래프·스마트폰 같은 3D 오브젝트, 기업 로고, 기사 캡처를 화면 아래쪽에 작게"
+   ],
+   [
+    "손짓",
+    "손가락으로 숫자 세기, 화면 가리키기. 정적인 토크인데도 움직임이 있어 보여요"
+   ],
+   [
+    "캡션·댓글",
+    "'저를 팔로우하고 댓글에 1 남겨주세요' → 자료를 DM으로 보내는 방식. 그래서 댓글이 좋아요의 3배"
+   ]
+  ],
+  "apply": [
+   {
+    "t": "고정 촬영 자리 하나 정하기",
+    "d": "고몽 스튜디오 라운지나 집 거실 한 곳. 같은 구도·같은 조명으로 고정하면 편집 틀도 고정돼요. 매일 찍기 쉬워지는 게 핵심이에요."
+   },
+   {
+    "t": "AGING CURVE·ISSUE를 이 틀로",
+    "d": "위 두 줄 제목(둘째 줄 노랑), 고몽 정면 토크, 근거는 기사·논문 캡처를 작게 띄워서. 이야기꾼 말투는 그대로 두고 틀만 빌려요.",
+    "img": "carousel/j_aging.jpg"
+   },
+   {
+    "t": "ISSUE는 자료 화면을 크게",
+    "d": "화제의 원본(기사·방송 캡처)을 작은 창으로 보여 주면 '진짜 있었던 일'이라는 신뢰가 생겨요. 캡처는 사용 허락을 확인해야 해요.",
+    "img": "carousel/j_issue.jpg"
+   },
+   {
+    "t": "생활·육아 정보와 공구도 같은 틀",
+    "d": "'딸 둘 아빠 가방에 늘 들어 있는 3가지'처럼 숫자형 제목. 제품을 손에 들고 소개하고 공구 예고로 이어 가요.",
+    "img": "carousel/j_daily.jpg"
+   },
+   {
+    "t": "댓글 키워드 → DM 자료",
+    "d": "'댓글에 냄새 남기면 관리법 정리본 보내드려요'. 이미 만든 요약 캐러셀 이미지를 DM 자료로 쓰면 돼요. 자동 DM 도구를 연결해야 해요."
+   },
+   {
+    "t": "딸 릴스는 따로",
+    "d": "재리 틀은 정보형이에요. 딸 이벤트·서사 릴스는 고몽 본계정처럼 실제 장면 + 화면 위 한 줄 사건으로 따로 가요."
+   }
+  ],
+  "caution": "재리 계정은 정보·돈 주제라 숫자 훅이 바로 통해요. 고몽 계정에서는 '질문 + 의외의 사실' 제목이 더 맞아요. 의학·건강 정보는 과장 없이 출처를 화면에 띄워요.",
+  "reels": [
+   {
+    "url": "https://www.instagram.com/jae_rri/reel/DMSanIrvWet/",
+    "views": 623000,
+    "likes": "2,051",
+    "comments": "6,404",
+    "cap": "🤔 월급이 적은데 재테크가 될까? / 👩‍💼 저는 연봉 3천 시절부터 7년간 자산을 10배 늘렸어요 / 📈 주식 하나도 모르던 시절부터 부동산은 0원으로 ",
+    "img": "refs/jr_DMSanIrvWet.jpg",
+    "likes_n": 2051,
+    "comments_n": 6404
+   },
+   {
+    "url": "https://www.instagram.com/jae_rri/reel/DbLC2GrT9f5/",
+    "views": 133000,
+    "likes": "500",
+    "comments": "3,556",
+    "cap": "코스피가 떨어질때마다 외국인과 기관들이 조용히 줍줍하고 있는 한국주식\". ",
+    "img": "refs/jr_DbLC2GrT9f5.jpg",
+    "likes_n": 500,
+    "comments_n": 3556
+   },
+   {
+    "url": "https://www.instagram.com/jae_rri/reel/DeElSE4T8Hh/",
+    "views": 130000,
+    "likes": "1,123",
+    "comments": "7,219",
+    "cap": "한국에서도 이 주식은 살수있으니 자녀에게 꼭 사주세요👼\". ",
+    "img": "refs/jr_DeElSE4T8Hh.jpg",
+    "likes_n": 1123,
+    "comments_n": 7219
+   },
+   {
+    "url": "https://www.instagram.com/jae_rri/reel/DdTtpU2zM-X/",
+    "views": 116000,
+    "likes": "579",
+    "comments": "5,004",
+    "cap": "환율 떨어졌을때 꼭 해야하는 투자! 예금 적금보다 많이줍니다\". ",
+    "img": "refs/jr_DdTtpU2zM-X.jpg",
+    "likes_n": 579,
+    "comments_n": 5004
+   },
+   {
+    "url": "https://www.instagram.com/jae_rri/reel/DewU1Gqz-VB/",
+    "views": 101000,
+    "likes": "419",
+    "comments": "3,235",
+    "cap": "삼성전자, SK하이닉스 물렸는데 어떻게해야할까요?\". ",
+    "img": "refs/jr_DewU1Gqz-VB.jpg",
+    "likes_n": 419,
+    "comments_n": 3235
+   },
+   {
+    "url": "https://www.instagram.com/jae_rri/reel/Db23R5AzpAt/",
+    "views": 101000,
+    "likes": "424",
+    "comments": "1,030",
+    "cap": "지금사야하는 한국주식 TOP4\". ",
+    "img": "refs/jr_Db23R5AzpAt.jpg",
+    "likes_n": 424,
+    "comments_n": 1030
+   },
+   {
+    "url": "https://www.instagram.com/jae_rri/reel/Ddqf2xCzr_B/",
+    "views": 96000,
+    "likes": "857",
+    "comments": "4,234",
+    "cap": "10년뒤 100배오를 주식! 꼭 확인하세요  / 제일 중요한건 사고 버티기 입니다!!\". ",
+    "img": "refs/jr_Ddqf2xCzr_B.jpg",
+    "likes_n": 857,
+    "comments_n": 4234
+   },
+   {
+    "url": "https://www.instagram.com/jae_rri/reel/Dca6h--TTux/",
+    "views": 81000,
+    "likes": "349",
+    "comments": "1,142",
+    "cap": "AI를 많이 쓰면 쓸수록  GPU보다 제일 중요한게  / 데이터를 옮기는 ’빛(광통신)‘인데요 / 한국인은 잘 모르는 미국주식 자료 바로받아가세요🇺🇸\". ",
+    "img": "refs/jr_Dca6h--TTux.jpg",
+    "likes_n": 349,
+    "comments_n": 1142
+   },
+   {
+    "url": "https://www.instagram.com/jae_rri/reel/DcQZF0CT1wh/",
+    "views": 74000,
+    "likes": "48",
+    "comments": "33",
+    "cap": "⭐재리 팔로워전용 할인 혜택 링크⭐️ / 영상에서 소개한 클래스101 플러스를 ❛47% 할인❜된  / 가격에 이용할 수 있어요 / *혜택 소진 시 조기 종료될 수",
+    "img": "refs/jr_DcQZF0CT1wh.jpg",
+    "likes_n": 48,
+    "comments_n": 33
+   },
+   {
+    "url": "https://www.instagram.com/jae_rri/reel/DbF4dd3zOta/",
+    "views": 70000,
+    "likes": "316",
+    "comments": "1,842",
+    "cap": "주식 언제가 바닥일까요?\". ",
+    "img": "refs/jr_DbF4dd3zOta.jpg",
+    "likes_n": 316,
+    "comments_n": 1842
+   },
+   {
+    "url": "https://www.instagram.com/jae_rri/reel/DeWnJm2v3xZ/",
+    "views": 67000,
+    "likes": "233",
+    "comments": "918",
+    "cap": "천만원으로 이렇게 투자하세요.  천만원도 엄청 큰돈이고 ㅎ 모으신분들 많이없습니다!\". ",
+    "img": "refs/jr_DeWnJm2v3xZ.jpg",
+    "likes_n": 233,
+    "comments_n": 918
+   },
+   {
+    "url": "https://www.instagram.com/jae_rri/reel/DdOWhxKTrGq/",
+    "views": 64000,
+    "likes": "372",
+    "comments": "3,661",
+    "cap": "50만원으로 5천만원 만들기! 꿀팁 받아가세요\". ",
+    "img": "refs/jr_DdOWhxKTrGq.jpg",
+    "likes_n": 372,
+    "comments_n": 3661
+   },
+   {
+    "url": "https://www.instagram.com/jae_rri/reel/DdECzEZTTKn/",
+    "views": 61000,
+    "likes": "371",
+    "comments": "1,010",
+    "cap": "주식이 100% 오르는 기간이 있다는 거 아세요? 📈 / 주식 시장은 참 신기하게도 매년 상승하는 달과 하락하는 달의 비슷한 패턴이 반복됩니다. / 🍂 역사적",
+    "img": "refs/jr_DdECzEZTTKn.jpg",
+    "likes_n": 371,
+    "comments_n": 1010
+   },
+   {
+    "url": "https://www.instagram.com/jae_rri/reel/De6mwMOzVZb/",
+    "views": 52000,
+    "likes": "413",
+    "comments": "2,001",
+    "cap": "우리아이 주식계좌에서 꼭 사줘야하는 주식 TOP4 자세한 방법부터 안전하게 ETF로 준비하세요🙏👼\". ",
+    "img": "refs/jr_De6mwMOzVZb.jpg",
+    "likes_n": 413,
+    "comments_n": 2001
+   },
+   {
+    "url": "https://www.instagram.com/jae_rri/reel/DeeSq8RTYRN/",
+    "views": 51000,
+    "likes": "354",
+    "comments": "1,916",
+    "cap": "매월 10만원으로 우리아이 부자만들어주기 프로젝트👼 / 저라면 학원비 줄여서 이렇게 투자해줄거에요\". ",
+    "img": "refs/jr_DeeSq8RTYRN.jpg",
+    "likes_n": 354,
+    "comments_n": 1916
+   },
+   {
+    "url": "https://www.instagram.com/jae_rri/reel/DbaZn8JTzNp/",
+    "views": 50000,
+    "likes": "172",
+    "comments": "1,401",
+    "cap": "코스피 2일만에 20% 떨어졌어요  / 이런 급락장은 어떻게 대응해야할지 아주 자세히 정리했어요\". ",
+    "img": "refs/jr_DbaZn8JTzNp.jpg",
+    "likes_n": 172,
+    "comments_n": 1401
+   },
+   {
+    "url": "https://www.instagram.com/jae_rri/reel/DcI4iqaz6hX/",
+    "views": 48000,
+    "likes": "167",
+    "comments": "796",
+    "cap": "8월에만 몇십프로 오른 코스닥!  / 지금 어떤 주식을 눈여겨봐야할까요!\". ",
+    "img": "refs/jr_DcI4iqaz6hX.jpg",
+    "likes_n": 167,
+    "comments_n": 796
+   },
+   {
+    "url": "https://www.instagram.com/jae_rri/reel/DcLh3mZzBi7/",
+    "views": 47000,
+    "likes": "167",
+    "comments": "431",
+    "cap": "실적도 주가도 좋은 한국 화장품주식 TOP2!\". ",
+    "img": "refs/jr_DcLh3mZzBi7.jpg",
+    "likes_n": 167,
+    "comments_n": 431
+   },
+   {
+    "url": "https://www.instagram.com/jae_rri/reel/DdyAuzEzQml/",
+    "views": 44000,
+    "likes": "173",
+    "comments": "827",
+    "cap": "월급 200만 원  주식 1억 만들기 포트폴리오, 바로 알려드릴게요. / 이것만 해도  남들보다 3년은 빨리 1억모을 수 있어요  / 이통장을 활용하면 세금도 없",
+    "img": "refs/jr_DdyAuzEzQml.jpg",
+    "likes_n": 173,
+    "comments_n": 827
+   },
+   {
+    "url": "https://www.instagram.com/jae_rri/reel/Db7y055zY9Y/",
+    "views": 43000,
+    "likes": "120",
+    "comments": "405",
+    "cap": "7월 심한 변동성으로 힘들었던 한국주식 8월에 반등 할 수 있을까요?\". ",
+    "img": "refs/jr_Db7y055zY9Y.jpg",
+    "likes_n": 120,
+    "comments_n": 405
+   },
+   {
+    "url": "https://www.instagram.com/jae_rri/reel/DfCSzNozAXv/",
+    "views": 42000,
+    "likes": "192",
+    "comments": "1,542",
+    "cap": "드디어 상장하는 클로드 엔트로픽! 스페이스X상장할때 한국주식 엄청 올랐었는데  엔트로픽상장하면 어떤 한국주식이 오를까요?\". ",
+    "img": "refs/jr_DfCSzNozAXv.jpg",
+    "likes_n": 192,
+    "comments_n": 1542
+   },
+   {
+    "url": "https://www.instagram.com/jae_rri/reel/Db-klB5zub-/",
+    "views": 42000,
+    "likes": "157",
+    "comments": "375",
+    "cap": "지금 사야하는 미국주식 TOP3 바로확인하세요!!\". ",
+    "img": "refs/jr_Db-klB5zub-.jpg",
+    "likes_n": 157,
+    "comments_n": 375
+   },
+   {
+    "url": "https://www.instagram.com/jae_rri/reel/Da-TUK7TWy4/",
+    "views": 41000,
+    "likes": "165",
+    "comments": "391",
+    "cap": "폭등하는 주식찾는 방법 3가지! 꼭 확인하세요 ㅎ\". ",
+    "img": "refs/jr_Da-TUK7TWy4.jpg",
+    "likes_n": 165,
+    "comments_n": 391
+   },
+   {
+    "url": "https://www.instagram.com/jae_rri/reel/DbiKBKKTddu/",
+    "views": 39000,
+    "likes": "92",
+    "comments": "417",
+    "cap": "주식으로 돈버는 핵심기준 3가지 받아가세요🤒🤒\". ",
+    "img": "refs/jr_DbiKBKKTddu.jpg",
+    "likes_n": 92,
+    "comments_n": 417
+   },
+   {
+    "url": "https://www.instagram.com/jae_rri/reel/DeRjIigTXPG/",
+    "views": 38000,
+    "likes": "211",
+    "comments": "1,204",
+    "cap": "부자들만 몰래하는 노후에 월250만원씩 받는방법\". ",
+    "img": "refs/jr_DeRjIigTXPG.jpg",
+    "likes_n": 211,
+    "comments_n": 1204
+   },
+   {
+    "url": "https://www.instagram.com/jae_rri/reel/Ddlfa3dTRSZ/",
+    "views": 37000,
+    "likes": "141",
+    "comments": "679",
+    "cap": "반등장 시작? 지금 한국주식 미국주식 분위기가 좋습니다!  / 지금 사야하는지 팔아야하는지 꼭 확인하세요\". ",
+    "img": "refs/jr_Ddlfa3dTRSZ.jpg",
+    "likes_n": 141,
+    "comments_n": 679
+   },
+   {
+    "url": "https://www.instagram.com/jae_rri/reel/DcBL0PTzril/",
+    "views": 37000,
+    "likes": "134",
+    "comments": "725",
+    "cap": "미국주식 신고갸! 미국 부자들이 조용히 사는 주식! 바로확인하세요\". ",
+    "img": "refs/jr_DcBL0PTzril.jpg",
+    "likes_n": 134,
+    "comments_n": 725
+   },
+   {
+    "url": "https://www.instagram.com/jae_rri/reel/DbsW0yvzxf-/",
+    "views": 37000,
+    "likes": "91",
+    "comments": "426",
+    "cap": "지금사야하는 미국주식 1 🙏\". ",
+    "img": "refs/jr_DbsW0yvzxf-.jpg",
+    "likes_n": 91,
+    "comments_n": 426
+   },
+   {
+    "url": "https://www.instagram.com/jae_rri/reel/DdJRsiMToNl/",
+    "views": 35000,
+    "likes": "96",
+    "comments": "291",
+    "cap": "7월 급락 이후 살아나던 증시가 최근 다시 흔들리고 있어요! / 시장이 왜이렇게 다시 아파하는지 / 지금 돈벌 수 있는 투자 전략을 무엇일지 전부 알려드릴께요 /",
+    "img": "refs/jr_DdJRsiMToNl.jpg",
+    "likes_n": 96,
+    "comments_n": 291
+   },
+   {
+    "url": "https://www.instagram.com/jae_rri/reel/Dck_YeMzX78/",
+    "views": 35000,
+    "likes": "127",
+    "comments": "409",
+    "cap": "AI데이터 센터의 문제를 해결해 줄수 있는 미국주식\". ",
+    "img": "refs/jr_Dck_YeMzX78.jpg",
+    "likes_n": 127,
+    "comments_n": 409
+   },
+   {
+    "url": "https://www.instagram.com/jae_rri/reel/DbvNjuUTs7g/",
+    "views": 33000,
+    "likes": "90",
+    "comments": "294",
+    "cap": "지금 시야하는 미국주식2 바로확인하세요!\". ",
+    "img": "refs/jr_DbvNjuUTs7g.jpg",
+    "likes_n": 90,
+    "comments_n": 294
+   },
+   {
+    "url": "https://www.instagram.com/jae_rri/reel/Db0NdL3TU5p/",
+    "views": 32000,
+    "likes": "74",
+    "comments": "412",
+    "cap": "엔비디아, 테슬라 ,애플 같은 빅테크 부터 반도체주식까지 얼마나오를지 확인하세요!\". ",
+    "img": "refs/jr_Db0NdL3TU5p.jpg",
+    "likes_n": 74,
+    "comments_n": 412
+   },
+   {
+    "url": "https://www.instagram.com/jae_rri/reel/DfPXZTOzwzu/",
+    "views": 31000,
+    "likes": "118",
+    "comments": "5",
+    "cap": "”여러분은 왜 투자를 시작하셨나요?“ / 스무 살, 설레는 마음으로 대학교 교정에 들어섰을 때 / 제가 가장 먼저 마주한 건 캠퍼스의 낭만이 아닌 ’현실의 무게‘",
+    "img": "refs/jr_DfPXZTOzwzu.jpg",
+    "likes_n": 118,
+    "comments_n": 5
+   },
+   {
+    "url": "https://www.instagram.com/jae_rri/reel/DcGb7smzMCM/",
+    "views": 31000,
+    "likes": "86",
+    "comments": "295",
+    "cap": "기관이나 헤지펀드 같은 큰손들의 매수 흐름, 핵심 뉴스, 재무 상황, 실적 발표까지... 성공적인 투자를 위해 챙겨야 할 건 산더미인데, 본업에 육아까지 챙기다 ",
+    "img": "refs/jr_DcGb7smzMCM.jpg",
+    "likes_n": 86,
+    "comments_n": 295
+   },
+   {
+    "url": "https://www.instagram.com/jae_rri/reel/Dbk6ebjT8Co/",
+    "views": 31000,
+    "likes": "94",
+    "comments": "434",
+    "cap": "차트 보는 방법! 꼭 확인하세요\". ",
+    "img": "refs/jr_Dbk6ebjT8Co.jpg",
+    "likes_n": 94,
+    "comments_n": 434
+   },
+   {
+    "url": "https://www.instagram.com/jae_rri/reel/DbQYPkBTq07/",
+    "views": 30000,
+    "likes": "57",
+    "comments": "245",
+    "cap": "어떤 주식? ETF? 나에에 맞는 투자방법 꼭 확인하세요!\". ",
+    "img": "refs/jr_DbQYPkBTq07.jpg",
+    "likes_n": 57,
+    "comments_n": 245
+   },
+   {
+    "url": "https://www.instagram.com/jae_rri/reel/DdYqXIWTHH9/",
+    "views": 29000,
+    "likes": "132",
+    "comments": "546",
+    "cap": "월 30만원은 투자할 수있죠? ㅎ  주린이 포트폴리오 받아가세요!\". ",
+    "img": "refs/jr_DdYqXIWTHH9.jpg",
+    "likes_n": 132,
+    "comments_n": 546
+   },
+   {
+    "url": "https://www.instagram.com/jae_rri/reel/DbncgzizIot/",
+    "views": 29000,
+    "likes": "93",
+    "comments": "312",
+    "cap": "주식 이순서로 공부하세요!\". ",
+    "img": "refs/jr_DbncgzizIot.jpg",
+    "likes_n": 93,
+    "comments_n": 312
+   },
+   {
+    "url": "https://www.instagram.com/jae_rri/reel/DeMPpoNzbBL/",
+    "views": 26000,
+    "likes": "124",
+    "comments": "798",
+    "cap": "올해 3천만원으로 이거했으면 4천만원됬는데…\". ",
+    "img": "refs/jr_DeMPpoNzbBL.jpg",
+    "likes_n": 124,
+    "comments_n": 798
+   },
+   {
+    "url": "https://www.instagram.com/jae_rri/reel/DdggztKzCib/",
+    "views": 26000,
+    "likes": "86",
+    "comments": "186",
+    "cap": "천만원 더 버는 주식투자 세팅 3가지!\". ",
+    "img": "refs/jr_DdggztKzCib.jpg",
+    "likes_n": 86,
+    "comments_n": 186
+   },
+   {
+    "url": "https://www.instagram.com/jae_rri/reel/De9NvwCToe6/",
+    "views": 25000,
+    "likes": "75",
+    "comments": "423",
+    "cap": "통장에 딱 1,000만 원이 있다면, 여러분은 어디에 넣으시겠어요?💵 / 유행하는 AI 반도체 주식에 몰빵하기?  / 아니면 매달 또박또박 들어오는 배당주 모으",
+    "img": "refs/jr_De9NvwCToe6.jpg",
+    "likes_n": 75,
+    "comments_n": 423
+   },
+   {
+    "url": "https://www.instagram.com/jae_rri/reel/DbDPDBtTwyK/",
+    "views": 25000,
+    "likes": "69",
+    "comments": "217",
+    "cap": "어떤 ETF에 투자해야할까요? ETF종류와 특징! 바로 받아가세요\". ",
+    "img": "refs/jr_DbDPDBtTwyK.jpg",
+    "likes_n": 69,
+    "comments_n": 217
+   },
+   {
+    "url": "https://www.instagram.com/jae_rri/reel/DfHemGVzhxD/",
+    "views": 24000,
+    "likes": "73",
+    "comments": "431",
+    "cap": "은퇴후에 일하지 않아도 매달 300씩 들어온다면! 노후준비는 이렇게하세요\". ",
+    "img": "refs/jr_DfHemGVzhxD.jpg",
+    "likes_n": 73,
+    "comments_n": 431
+   },
+   {
+    "url": "https://www.instagram.com/jae_rri/reel/Dcx63ufzLDj/",
+    "views": 24000,
+    "likes": "31",
+    "comments": "7",
+    "cap": "#카카오페이증권협찬광고 /  2026년 신혼부부 주목 무료주식 커플당 최대10만원 받아가세요! / 올해 혼인신고 하신 분들, 아직도 이 혜택 모르시는 분 없죠? ",
+    "img": "refs/jr_Dcx63ufzLDj.jpg",
+    "likes_n": 31,
+    "comments_n": 7
+   },
+   {
+    "url": "https://www.instagram.com/jae_rri/reel/DcTCF1RTL8m/",
+    "views": 23000,
+    "likes": "82",
+    "comments": "293",
+    "cap": "최근 발표된 CPI와 PPI 지표의 긍정적인 신호로,  / 시장을 짓누르던 금리 부담이 빠르게 완화되며 증시는 /  이미 힘찬 반등 흐름을 보이고 있습니다.📈",
+    "img": "refs/jr_DcTCF1RTL8m.jpg",
+    "likes_n": 82,
+    "comments_n": 293
+   },
+   {
+    "url": "https://www.instagram.com/jae_rri/reel/DejZC2KTdmG/",
+    "views": 21000,
+    "likes": "39",
+    "comments": "121",
+    "cap": "월급별 투자금액과 방법 꼭 확인하세요!!📺\". ",
+    "img": "refs/jr_DejZC2KTdmG.jpg",
+    "likes_n": 39,
+    "comments_n": 121
+   },
+   {
+    "url": "https://www.instagram.com/jae_rri/reel/DeOve6fz-1G/",
+    "views": 20000,
+    "likes": "26",
+    "comments": "38",
+    "cap": "코인, 아직도 수수료 내고 거래하세요? / 12년 무사고 거래소 코인원에서는 /  바우처 발급 시 전 종목 거래 수수료 0원 /  신규 회원가입 시 3만원 상당 ",
+    "img": "refs/jr_DeOve6fz-1G.jpg",
+    "likes_n": 26,
+    "comments_n": 38
+   },
+   {
+    "url": "https://www.instagram.com/jae_rri/reel/DetqnmxzDMl/",
+    "views": 19000,
+    "likes": "42",
+    "comments": "79",
+    "cap": "나는 주식으로 돈을 벌 수 있을까? 나의 투자유형을 확인해보세요\". ",
+    "img": "refs/jr_DetqnmxzDMl.jpg",
+    "likes_n": 42,
+    "comments_n": 79
    }
   ]
  }

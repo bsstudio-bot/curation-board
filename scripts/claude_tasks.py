@@ -807,6 +807,21 @@ def hunsu_curate(data):
     return [a for a in arr if isinstance(a, dict) and a.get("id") in ok and _num(a.get("fit")) >= 7]
 
 
+def push_ai_now(msg):
+    """스크립트 작성이 길어져도 큐레이션 결과가 먼저 보드에 뜨게 ai.json을 바로 push한다(Actions에서만)."""
+    if not os.environ.get("GITHUB_ACTIONS"):
+        return
+    try:
+        cmds = ['git config user.name "curation-bot"', 'git config user.email "41898282+github-actions[bot]@users.noreply.github.com"',
+                "git add site/ai.json", f'git commit -m "ai: {msg}"',
+                "git pull --rebase -X theirs origin main", "git push"]
+        for c in cmds:
+            subprocess.run(c, shell=True, timeout=120)
+        print("  ai.json 먼저 push:", msg)
+    except Exception as e:  # noqa: BLE001
+        print("  push 실패", e)
+
+
 def main():
     data = json.load(open("site/data.json", encoding="utf-8"))
     allj = get("all")
@@ -905,6 +920,7 @@ def main():
             ai = add_images(new, data)
             json.dump(ai, open(ai_path, "w", encoding="utf-8"), ensure_ascii=False)
             open(".ai_updated", "w").write("1")
+            push_ai_now("큐레이션 먼저 반영 (스크립트는 이어서 작성)")
             report["큐레이션"] = f"이슈 {len(ai['issues'])} · 추천 {len(ai['picks'])} (후보 {ai['pool_size']}) · 일정 확인 {ai.get('date_checked', 0)} · 포맷 {len(ai.get('formats', []))}"
 
     # H: 30대 아저씨 훈수 관련 콘텐츠 큐레이션 (하루 1번, 훈수 수집이 그날 들어온 뒤)

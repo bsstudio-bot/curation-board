@@ -639,7 +639,7 @@ HUNSU_YT_QUERIES = ["30대 노화", "에이징 커브", "아저씨 냄새", "홀
 HUNSU_SHORT_QUERIES = ["나락 루트", "인생 꼬이는 과정", "남자 인생 현실", "30대 남자 현실", "40대 남자 인생", "유부남 현실", "남자 인생 바뀌는 시점", "아빠 현실"]
 
 
-def collect_hunsu(creators, yt_key, token, ig_user_id, prev, now, days=30, refs=None):
+def collect_hunsu(creators, yt_key, token, ig_user_id, prev, now, days=30, refs=None, yt_queries=None, short_queries=None, cat="30대 아저씨 훈수"):
     """site/hunsu.json의 크리에이터별 유튜브 최근 업로드 + 인스타 최근 게시물. 실패하면 직전 수집분 유지."""
     prev = prev or {}
     out = {"collected_at": now.isoformat(), "youtube": [], "ig_accounts": [], "ig_posts": [], "errors": []}
@@ -656,7 +656,7 @@ def collect_hunsu(creators, yt_key, token, ig_user_id, prev, now, days=30, refs=
             except Exception as e:  # noqa: BLE001
                 out["errors"].append(f"유튜브 {c['name']}: {str(e)[:80]}")
         after = (now - timedelta(days=14)).astimezone(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
-        for q in HUNSU_YT_QUERIES:
+        for q in (yt_queries if yt_queries is not None else HUNSU_YT_QUERIES):
             try:
                 d = _yt("search", part="id", q=q, type="video", order="viewCount", publishedAfter=after,
                         regionCode="KR", relevanceLanguage="ko", maxResults=15, key=yt_key)
@@ -664,7 +664,7 @@ def collect_hunsu(creators, yt_key, token, ig_user_id, prev, now, days=30, refs=
                     ids.setdefault(it["id"]["videoId"], "검색: " + q)
             except Exception as e:  # noqa: BLE001
                 out["errors"].append(f"유튜브 검색 {q}: {str(e)[:80]}")
-        for q in HUNSU_SHORT_QUERIES:
+        for q in (short_queries if short_queries is not None else HUNSU_SHORT_QUERIES):
             try:
                 d = _yt("search", part="id", q=q, type="video", videoDuration="short", order="viewCount", publishedAfter=after,
                         regionCode="KR", relevanceLanguage="ko", maxResults=15, key=yt_key)
@@ -673,7 +673,7 @@ def collect_hunsu(creators, yt_key, token, ig_user_id, prev, now, days=30, refs=
             except Exception as e:  # noqa: BLE001
                 out["errors"].append(f"쇼츠 검색 {q}: {str(e)[:80]}")
         try:
-            rows = [_yt_row(v, "훈수: " + ids[v["id"]]) for v in _yt_videos(list(ids), yt_key)]
+            rows = [_yt_row(v, cat + ": " + ids[v["id"]]) for v in _yt_videos(list(ids), yt_key)]
             by = {}
             for r in rows:
                 r["creator"] = r.get("channel") if ids[r["id"]].startswith("검색: ") else ids[r["id"]]
@@ -689,7 +689,7 @@ def collect_hunsu(creators, yt_key, token, ig_user_id, prev, now, days=30, refs=
             out["errors"].append(f"유튜브 상세: {str(e)[:80]}")
     if not yt_ok:
         out["youtube"] = prev.get("youtube", [])
-    chans = [{"handle": c["ig"], "cat": "30대 아저씨 훈수", "note": c["name"]} for c in creators if c.get("ig")]
+    chans = [{"handle": c["ig"], "cat": cat, "note": c["name"]} for c in creators if c.get("ig")]
     if token and ig_user_id and chans:
         acc, posts = collect_instagram(chans, token, ig_user_id, {"accounts": prev.get("ig_accounts", []), "posts": prev.get("ig_posts", [])})
         add_ratio(acc, posts)
@@ -786,6 +786,12 @@ def main():
             refposts = {"collected_at": now.isoformat(), "accounts": ra, "posts": rp}
         except Exception as e:  # noqa: BLE001
             print("refposts failed", e)
+    lf_conf = load(os.path.join(ROOT, "site", "life.json"), {}) or {}
+    try:
+        life = collect_hunsu(lf_conf.get("creators", []), os.environ.get("YT_KEY"), token, ig_user_id, prev.get("life"), now, days=21,
+                             yt_queries=lf_conf.get("yt_queries", []), short_queries=lf_conf.get("short_queries", []), cat="일상 공감")
+    except Exception as e:  # noqa: BLE001
+        print("life failed", e); life = prev.get("life")
     popcorn = None  # 팝콘 리서치 탭 삭제(2026-11-04): 수집 중단
     trends = collect_trends((prev.get("trends") or {}).get("items"), now)
     hist_path = os.path.join(ROOT, "site", "topics_history.json")
@@ -807,6 +813,7 @@ def main():
         "popcorn": popcorn,
         "hunsu": hunsu,
         "refposts": refposts,
+        "life": life,
         "trends": {"source": "google-trends-kr", "collected_at": now.isoformat(), "items": trends},
         "brands": brands,
         "channels_source": channels.get("_source", "channels.json"),

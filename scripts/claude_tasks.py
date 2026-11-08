@@ -839,7 +839,7 @@ def main():
     ai_path = "site/ai.json"
     ai = json.load(open(ai_path, encoding="utf-8")) if os.path.exists(ai_path) else {}
     data_today = str(data.get("updated_at", ""))[:10] == NOW.strftime("%Y-%m-%d")
-    need_e = ("E" in ONLY) or (not ONLY and ((ai.get("date") != NOW.strftime("%Y-%m-%d") and (data_today or NOW.hour >= 12))))
+    need_e = ("E" in ONLY) or (not ONLY and str(ai.get("hold_until", "")) < NOW.strftime("%Y-%m-%d") and ((ai.get("date") != NOW.strftime("%Y-%m-%d") and (data_today or NOW.hour >= 12))))  # hold_until: 그날까지 기존 추천 유지
     if "F" in ONLY and ai.get("picks"):  # 기존 큐레이션에 일정 확인만 추가
         checks = verify_dates(date_targets(ai))
         for x in ai["picks"] + [it for i in ai.get("issues", []) for it in i.get("items", [])]:

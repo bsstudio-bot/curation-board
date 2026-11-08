@@ -28,6 +28,7 @@ main{padding:18px 0 60px}
 .sec{font-size:15px;font-weight:700;margin:22px 0 10px}.sec small{font-weight:400;color:var(--sub);margin-left:6px}
 .addtag{font-size:11px;background:#EEF4FF;color:#3B5BA9;border-radius:999px;padding:1px 7px;margin-left:4px;white-space:nowrap}
 .sced input,.sced textarea{width:100%;box-sizing:border-box;border:1px solid var(--line);border-radius:8px;padding:8px 10px;font:inherit;font-size:14.5px;line-height:1.6;margin:4px 0 10px}.sced textarea#ed_lines{font-size:15px}.chip.pub{background:#1F8A74;color:#fff;border-color:#1F8A74}.edtag{font-size:12px;background:#E8F5F1;color:#1F8A74;border-radius:999px;padding:2px 8px;margin-left:4px}.arcpre{white-space:pre-wrap;font:inherit;font-size:14.5px;line-height:1.6;background:#FAFAF7;border-radius:8px;padding:12px 14px;margin:8px 0}
+.p2cell{cursor:pointer}.p2cell .card{height:100%}.p2cell.open .card{outline:3px solid #1B2136;outline-offset:-1px}.p2cell:hover .card{box-shadow:0 4px 14px rgba(0,0,0,.08)}.p2sum{margin:6px 0 2px;line-height:1.45}.p2open{grid-column:1/-1;background:#F6F5F0;border-radius:14px;padding:14px}.scin-t th.bt,.scin-t td.bt{width:38px;padding:4px 4px;font-size:11.5px;color:#9A7B4F;background:#FFFBF4;white-space:nowrap;vertical-align:top}.scin-t td.say{white-space:nowrap;font-size:14.5px}.scin-t td.scr{width:auto;white-space:normal}.scin-t tr.bstart td{border-top:2px solid #E8DFCF}.scin{overflow-x:auto}
 .p2pick{display:grid;grid-template-columns:300px 1fr;gap:16px;align-items:start;margin:14px 0;padding-bottom:16px;border-bottom:1px solid var(--line)}.p2r .sctable{font-size:13.5px}.scin{background:#fff;border:1px solid var(--line);border-radius:12px;padding:14px 16px}.scin.empty2{padding:18px;text-align:center}.scih{margin-bottom:8px;font-size:15px}.scbar{display:flex;gap:6px;flex-wrap:wrap;margin-top:10px}@media(max-width:800px){.p2pick{grid-template-columns:1fr}}
 .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:12px}
 .card{background:#fff;border:1px solid var(--line);border-radius:12px;overflow:hidden;display:flex;flex-direction:column;position:relative}
@@ -233,17 +234,20 @@ function scInline(id){if(EDIT===id)return scEditor(id);const it=SC[id];if(!it||!
   let h='<div class="scin">';
   h+='<div class="scih">'+(sc.title_bar?'<b>'+esc(sc.title_bar)+'</b>':'<b>'+esc(sc.title||'')+'</b>')+(it.model==='edited'?' <span class="edtag">✏️ 팀 수정본</span>':'')+'<span class="sm"> · 약 '+(sc.seconds||'-')+'초 · '+esc(it.by||'')+' '+kst(it.created_at)+(SCQ.has(id)?' · ⏳ 다시 쓰는 중':'')+'</span></div>';
   const has=(sc.lines||[]).some(l=>l.beat);
-  h+='<table class="sctable"><tr>'+(has?'<th style="width:64px">흐름</th>':'')+'<th>말할 것</th><th style="width:34%">화면</th></tr>'+(sc.lines||[]).map(l=>'<tr>'+(has?'<td class="scr">'+esc(l.beat||'')+'</td>':'')+'<td>'+esc(l.say)+(l.added?' <span class="addtag">고몽 코멘트</span>':'')+'</td><td class="scr">'+esc(l.screen||'')+'</td></tr>').join('')+'</table>';
+  h+='<table class="sctable scin-t"><tr>'+(has?'<th class="bt">흐름</th>':'')+'<th>말할 것</th><th>화면</th></tr>'+(sc.lines||[]).map((l,i,arr)=>'<tr'+(has&&i&&arr[i-1].beat!==l.beat?' class="bstart"':'')+'>'+(has?'<td class="bt">'+(i===0||arr[i-1].beat!==l.beat?esc(l.beat||''):'')+'</td>':'')+'<td class="say">'+esc(l.say)+(l.added?' <span class="addtag">고몽 코멘트</span>':'')+'</td><td class="scr">'+esc(l.screen||'')+'</td></tr>').join('')+'</table>';
   if(sc.insight)h+='<div class="angle st" style="margin-top:8px">💡 '+esc(sc.insight)+'</div>';
   if((sc.cut||[]).length)h+='<details style="margin-top:8px"><summary class="sm">✂️ 편집에서 뺀 줄 '+sc.cut.length+'개 (필요하면 직접 수정으로 다시 넣기)</summary><ul class="checks">'+sc.cut.map(c=>'<li>'+esc(c.say||'')+(c.why?' <span class="sm">· '+esc(c.why)+'</span>':'')+'</li>').join('')+'</ul></details>';
   h+='<details style="margin-top:8px"><summary class="sm">캡션 · 조사한 정보 · 촬영 전 확인</summary><div class="capbox" style="margin-top:6px">'+esc(sc.caption||'')+'<div class="tags">'+esc((sc.hashtags||[]).join(' '))+'</div></div>'+((sc.research||[]).length?'<ul class="checks">'+sc.research.map(r=>'<li>'+esc(r.fact||'')+(r.source?' <a href="'+esc(r.source)+'" target="_blank" rel="noopener">출처</a>':'')+'</li>').join('')+'</ul>':'')+((sc.checks||[]).length?'<ul class="checks">'+sc.checks.map(x=>'<li>✔ '+esc(x)+'</li>').join('')+'</ul>':'')+'</details>';
   h+='<div class="scbar"><button class="chip" data-sccopy="'+esc(id)+'">대본만 복사</button><button class="chip on" data-sccopyall="'+esc(id)+'">전체 복사</button><button class="chip" data-edit="'+esc(id)+'">✏️ 직접 수정</button><button class="chip" data-sc="'+esc(id)+'">다시 쓰기 · 크게 보기</button></div></div>';return h}
+let OPENP=null;
 function p2Today(A){if(!AI||!AI.picks||!AI.picks.length)return '<div class="empty">오늘의 추천이 아직 없어요.</div>';
   const L=AI.picks.filter(x=>x.kind!=='instagram'||!adType(x.caption)).filter(x=>!(FB[x.id]&&FB[x.id].status==='제외')).sort((a,b)=>(b.score||0)-(a.score||0));
   const n=L.filter(x=>SC[x.id]).length;
-  let h='<div class="intro">오늘 고를 만한 소재와 고몽 말투 스크립트를 나란히 봐요. '+esc(AI.date||'')+' 큐레이션 '+L.length+'개 중 스크립트 '+n+'개 준비됨. 스크립트 말투는 고몽 실제 토크 영상 기준(반말 독백)으로 쓰여요.</div>';
-  h+=L.map(x=>'<div class="p2pick"><div class="p2l">'+anyCard(x,A,aiChips(x))+'</div><div class="p2r"><div class="sm" style="margin-bottom:6px"><b>'+esc(x.series||'')+'</b>'+(x.angle?' · '+esc(x.angle):'')+'</div>'+scInline(x.id)+'</div></div>').join('');
-  return h}
+  let h='<div class="intro">카드를 누르면 그 아래에 고몽 말투 스크립트가 펼쳐져요. '+esc(AI.date||'')+' 큐레이션 '+L.length+'개 · 스크립트 '+n+'개 준비됨.</div><div class="grid p2grid">';
+  for(const x of L){const mini='<div class="p2sum"><b>'+esc(x.series||'')+'</b>'+(SC[x.id]?' <span class="sm">· 📄 스크립트'+(SC[x.id].model==='edited'?' (팀 수정본)':'')+'</span>':'')+(x.angle?'<div class="sm">'+esc(x.angle)+'</div>':'')+'</div>';
+    h+='<div class="p2cell'+(OPENP===x.id?' open':'')+'" data-openp="'+esc(x.id)+'">'+anyCard(x,A,mini)+'</div>';
+    if(OPENP===x.id)h+='<div class="p2open"><div class="sm" style="margin-bottom:6px"><b>'+esc(x.series||'')+'</b>'+(x.angle?' · '+esc(x.angle):'')+(x.reason?' · 적합도 '+esc(x.score)+' '+esc(x.reason):'')+' <a href="#" data-closep="1" style="float:right">접기 ✕</a></div>'+scInline(x.id)+'</div>';}
+  return h+'</div>'}
 function refView(){const R=D.refposts;if(!R||!(R.posts||[]).length)return '<div class="empty">레퍼런스 계정 글을 모으는 중이에요. 다음 수집(매일 오전 7시) 뒤에 보여요.</div>';
   const A={};for(const a of R.accounts||[])A[a.handle]=a;const acc=(R.accounts||[]).filter(a=>!a.error);
   const sel=window.refSel||'전체';
@@ -552,6 +556,8 @@ document.getElementById('q').oninput=e=>{q=e.target.value.trim();render()};
 document.addEventListener('click',async e=>{const a=e.target.closest('a#chgUser');if(a){e.preventDefault();askUser(true);return}
   if(e.target.id==='modal'){e.target.className='modal';return}
   const si=e.target.closest('.scitem');if(si){scModal(si.dataset.sc);return}
+  if(e.target.closest('[data-closep]')){e.preventDefault();OPENP=null;render();return}
+  const pc=e.target.closest('.p2cell');if(pc&&!e.target.closest('button,a,input,textarea,label')){OPENP=OPENP===pc.dataset.openp?null:pc.dataset.openp;EDIT=null;render();const el=document.querySelector('.p2open');if(el)el.scrollIntoView({behavior:'smooth',block:'nearest'});return}
   const t=e.target.closest('button');if(!t)return;
   if(t.dataset.tab){tab=t.dataset.tab;render();scrollTo(0,0)}
   if(t.dataset.edit){if(!askUser(false))return;EDIT=t.dataset.edit;render();return}

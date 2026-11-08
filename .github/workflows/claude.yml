@@ -38,6 +38,7 @@ jobs:
         env:
           CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
           ONLY: ${{ github.event.inputs.only }}
+          PYTHONUNBUFFERED: "1"
         run: python3 scripts/claude_tasks.py
       - name: Save curation
         if: always()

@@ -16,7 +16,7 @@ PASS = os.environ.get("BOARD_PASS", "bs2026")
 KST = timezone(timedelta(hours=9))
 NOW = datetime.now(KST)
 MODEL = os.environ.get("CLAUDE_MODEL", "sonnet")
-MAX_PICKS, MAX_ADS, ADS_BATCH, SCRIPT_BATCH = 18, 40, 20, 4
+MAX_PICKS, MAX_ADS, ADS_BATCH, SCRIPT_BATCH = 36, 40, 20, 4
 ONLY = set(filter(None, os.environ.get("ONLY", "").split(",")))  # 예: ONLY=A  (요청만)
 
 
@@ -76,7 +76,7 @@ def item_text(it):
     src = (f"{it.get('cafe')} 맘카페 인기글 (조회 {it.get('reads')}, 댓글 {it.get('comments')})" if it.get("kind") == "cafe"
            else f"구글 급상승 검색어 (검색 {it.get('traffic')})" if it.get("kind") == "trend"
            else f"유튜브 {it.get('channel')} (조회 {it.get('views')})" if it.get("kind") == "youtube"
-           else "요즘 뜨는 인물 (웹 검색으로 찾음)" if it.get("kind") == "person" else f"@{it.get('handle')}")
+           else "요즘 뜨는 인물 (웹 검색으로 찾음)" if it.get("kind") == "person" else "시의성 주제 (웹 검색으로 찾음)" if it.get("kind") == "topic" else f"@{it.get('handle')}")
     t = [f"시리즈: {series}", f"해설 각도 힌트: {it.get('angle') or '없음'}", f"원문 출처: {src}",
          f"게시일: {str(it.get('timestamp') or it.get('written_at') or '')[:10]}", f"오늘 날짜: {NOW:%Y-%m-%d}"]
     dc = it.get("date_check") or {}
@@ -183,7 +183,7 @@ def write_one(id_, it, guide):
 def write_scripts(jobs, guide, label):
     """jobs: [(id, item)] → 하나씩 웹 조사 후 작성·저장(3개 동시). 저장 개수 반환."""
     from concurrent.futures import ThreadPoolExecutor
-    with ThreadPoolExecutor(max_workers=3) as ex:
+    with ThreadPoolExecutor(max_workers=4) as ex:
         return sum(ex.map(lambda j: write_one(j[0], j[1], guide), jobs))
 
 def pick_item(p):
@@ -202,13 +202,13 @@ def hours_ago(ts):
 CURATE_PROMPT = """너는 유튜버 고몽(김웅현)의 **신규 채널** 숏폼 기획 PD다.
 고몽: 영화·드라마 해설 10년차 '스토리 중독자', 3살·6살 두 딸 아빠. 관심사: 그림 컬렉팅, AI, 위스키, 맛집, 투자, 공간.
 신규 채널은 일상·화제·트렌드·육아 정보를 쉽게 풀어주는 숏폼 채널이다(레퍼런스: @kangae_eco처럼 옆자리 사람에게 얘기하듯 해설).
-시리즈: 아이랑 갈 곳 / 왜 그럴까(시사·경제·소비 해설) / 화제 인물 / 밈·트렌드 / 화제 / 육아 정보 / 맘카페 화제
+시리즈: 영화·드라마 / 아이랑 갈 곳 / 왜 그럴까(시사·경제·소비 해설) / 화제 인물 / 밈·트렌드 / AI·테크 / 화제 / 육아 정보 / 맘카페 화제
 
 아래 후보(인스타 글, 맘카페 인기글, 유튜브 인기·육아 쇼츠, 구글 급상승 검색어)를 보고 두 가지를 해라.
 
 1) issues: 지금 뜨는 이슈 3~6개. 이야기로 풀 수 있는 주제를 우선한다(랭킹·통계 묶음은 제외). 여러 후보가 같은 주제를 다루거나(채널 2곳 이상·맘카페·검색어가 겹침), 검색량이 큰 화제를 묶는다.
    각 이슈: title(15자 이내), summary(무슨 일인지 1~2문장, 후보 내용만 근거), ids(관련 후보 id 목록), why_now(왜 지금 다룰 만한지 1문장), fit(1~10, 우리 채널 적합도)
-2) picks: 오늘 찍을 후보 15~18개. 시리즈 배분: 아이랑 갈 곳 4~5, 왜 그럴까 4~5, 화제 인물 2~4('요즘 뜨는 인물' 후보에서, 일반인 A와 유명인 선택·커리어 B를 섞어서), 밈·트렌드 2~3, 화제 1~2, 육아 정보 2~3, 맘카페 화제 1~2. 후보가 모자란 시리즈는 억지로 채우지 않는다. 같은 계정은 시리즈당 1개까지.
+2) picks: 오늘 찍을 후보 28~36개(팀이 고를 수 있게 넉넉히). 시리즈 배분 가이드: 영화·드라마 3~6, 아이랑 갈 곳 4~6, 왜 그럴까 4~6, 화제 인물 2~4('요즘 뜨는 인물' 후보에서, 일반인 A와 유명인 선택·커리어 B를 섞어서), 밈·트렌드 3~5, AI·테크 2~3, 화제 1~3, 육아 정보 3~5, 맘카페 화제 2~3. '시의성 주제(웹 검색)' 후보는 이미 고몽 각도가 검토된 것이라 적극 활용하고 series는 후보에 적힌 것을 쓴다.
    각 pick: id(후보 id 그대로), series, score(1~10), reason(왜 고몽 채널에 맞는지 1문장, 구체적으로), story(이야기 뼈대 한 줄: '발단 → 전개 → 반전/결말', 후보 내용 안에서만), angle(시청자가 궁금해할 질문 하나), gomong_angle(고몽다운 풀이 한 줄: 이야기꾼·영화/드라마 비유, 딸 둘 아빠 시선, 자기 고백형 유머 중 자연스러운 것. 2년 넘은 옛날 밈은 쓰지 않는다. 억지면 빈 문자열. 고몽이 실제로 겪은 일(병원·펫로스·육아 에피소드 등)을 사실처럼 지어내지 말고, 필요하면 '고몽 본인 경험이 있다면 ~로'처럼 조건으로 쓴다)
 
 [가장 중요한 기준 — 고몽이 '이야기'로 풀 수 있는가]
@@ -216,7 +216,11 @@ CURATE_PROMPT = """너는 유튜버 고몽(김웅현)의 **신규 채널** 숏�
 - 좋은 소재: 인물의 선택과 사연, 탄생 비화·뒷이야기, 의외의 반전이 있는 현상, 사람들이 왜 열광하는지 감정이 보이는 트렌드, 아이 키우는 집에서 벌어질 법한 에피소드, 영화·드라마 한 장면처럼 풀 수 있는 일, 고몽 가족이 직접 가서 겪을 수 있는 장소(아이랑 갈 곳).
 - 빼는 소재: 랭킹·순위표(학생 수 많은 학교 순위 등), 수익률·연봉·금액 계산(1억 투자하면 얼마 등), 통계·비교표 나열, 체크리스트형 정보 카드. 1차 정보로 단순히 흥미로운 것만으로는 고르지 않는다. 숫자는 이야기를 돕는 양념일 때만 OK.
 - '왜 그럴까'는 숫자 해설이 아니라 '그 뒤에 숨은 이야기'(누가, 왜, 어떻게 그렇게 됐나)다.
-[점수 기준] 스토리텔링 가능성(가장 중요) > 시의성 > 반응(평소 대비 배수, 여러 곳 동시 언급) > 고몽 캐릭터·가족과의 연결.
+[고몽 핏 — 고몽이 '직접' 말하기에 맞는가 (사용자 2026-11-08: 고몽에게 핏한 주제가 부족하다)]
+- 고몽이 자연스럽게 자기 생각을 얹을 수 있는 소재에 큰 가점: 영화·드라마·OTT 화제(10년차 해설가), 아이 키우는 집의 현상·고민(여섯 살·세 살 두 딸 아빠), 그림·AI·위스키·투자·공간 관심사.
+- 남의 경험·후기를 전달만 하게 되는 소재, 정보 카드처럼 읽기만 하게 되는 소재는 감점.
+- gomong_angle은 '고몽이라서 할 수 있는 말'을 구체적으로(예: "해설가 시선으로 이 장면이 왜 먹혔는지", "두 딸 아빠로서 등하원 시간 고민").
+[점수 기준] 스토리텔링 가능성(가장 중요) > 고몽 핏 > 시의성 > 반응(평소 대비 배수, 여러 곳 동시 언급) > 고몽 캐릭터·가족과의 연결.
 [화제·가십 원칙 — 렉카 금지] 공식 발표, 작품·방송 화제, 본인이 공개한 결혼·출산·육아 소식, 훈훈한 장면, 사회적으로 이야기할 거리는 OK.
 사생활 폭로, 루머·열애설·이혼설, 사건·사고 피해자, 논란 몰이, 특정인 비난, 사망·범죄, 정치, 해외 스포츠 경기 결과는 고르지 않는다. 화제 픽은 사람보다 현상을 이야기할 수 있어야 한다.
 @@CHANNEL_RULES@@
@@ -278,6 +282,8 @@ def pool_text(pool):
             out.append(f"[id] {pid}\n유튜브 {'쇼츠' if x['short'] else '영상'} ({x['src']}) · {x['channel']} · 조회 {x['views']} · 좋아요 {x['likes']} · {str(x['timestamp'])[:10]}\n{x['caption'][:350]}")
         elif x["kind"] == "person":
             out.append(f"[id] {pid}\n요즘 뜨는 인물 · 적합도 {x.get('fit')}\n{x['caption'][:500]}")
+        elif x["kind"] == "topic":
+            out.append(f"[id] {pid}\n시의성 주제(웹 검색) · series {x.get('tseries')} · 고몽 적합도 {x.get('fit')}\n{x['caption'][:600]}")
         else:
             out.append(f"[id] {pid}\n{x['caption']}")
     return "\n\n".join(out)
@@ -298,9 +304,9 @@ def feedback_text():
     return {f["id"] for f in fb}, "\n".join(lines)
 
 
-def curate(data, people=None):
+def curate(data, people=None, topics=None):
     pool = build_pool(data)
-    for x in people or []:
+    for x in (people or []) + (topics or []):
         pool[x["id"]] = {k: v for k, v in x.items() if k != "id"}
     done_ids, fb_txt = feedback_text()
     for i in list(pool):
@@ -482,6 +488,41 @@ A는 있는 만큼(없으면 0명, 최대 4명), B는 4~6명. 각 JSON 객체:
  sources(근거 URL 2~3개), story_seed(이야기 씨앗: A는 비슷하게 흥한 사례/반짝 뒤 무너진 사례/열광 이유/사회적 의미, B는 과거 경력·전환점/비슷한 선택을 한 사람들/이 결정이 말해주는 것),
  debate(의견이 갈릴 지점), caution(주의할 점), fit(1~10: 고몽 채널에서 이야기로 풀기 좋은 정도)
 'intro_point'와 'extra_value'를 한 줄씩 못 쓰면 넣지 않는다. 검색으로 확인된 사실만 쓴다. 출력은 JSON 배열만."""
+
+
+TOPICS_PROMPT = """오늘은 {today}이다. 유튜버 고몽(김웅현)이 신규 숏폼 채널에서 '자기 말로' 이야기하기 좋은 시의성 있는 주제를 웹 검색으로 찾아라.
+고몽: 영화·드라마 해설 유튜브 10년(구독 256만), 여섯 살·세 살 두 딸 아빠, 관심사 그림 컬렉팅·AI·위스키·투자·공간. 카메라 보고 친구한테 말하듯 반말로 생각을 말하는 토크 숏폼.
+[찾을 갈래 — 최근 1~2주 안에 여러 곳에서 이야기되는 것만]
+1. 영화·드라마: 지금 화제인 극장 개봉작·OTT 시리즈·예능의 화제 장면, 흥행·반응 현상, 원작·배우·제작 비하인드 중 보도된 것. 고몽이 해설가 시선으로 한마디 할 수 있는 것.
+2. 육아·가족 현상: 아이 키우는 집에서 요즘 이야기되는 변화·정책·논쟁·유행(장난감, 교육, 등하원, 돌봄, 키즈 콘텐츠 등). 아빠 시선으로 생각을 말할 수 있는 것.
+3. 왜 그럴까(생활 경제·소비): 요즘 사람들이 왜 이걸 사고, 줄 서고, 바꾸는지 같은 소비·생활 현상.
+4. AI·테크 일상: 일반인이 체감하는 AI·앱·기기 변화.
+5. 밈·트렌드: 지금 유행하는 말·놀이·챌린지·콘텐츠 형식(시작점과 퍼진 이유를 알 수 있는 것).
+[고르지 않는 것] 특정 채널 한 곳이 자기 기획으로 다룬 고유 소재(시의성 없는 옛날 영화 비하인드, 건축 해부, 기업인 일대기 등), 직접 다녀온 후기가 있어야 성립하는 장소 소개, 정치, 사건·사고, 사망, 루머·열애·사생활, 논란 몰이, 해외 스포츠 결과, 광고·협찬.
+갈래마다 3~5개, 모두 14~20개. 각 JSON 객체:
+ series('영화·드라마'|'육아 정보'|'왜 그럴까'|'AI·테크'|'밈·트렌드'), title(15자 이내), summary(무슨 일인지 2문장, 확인된 사실만), why_now(왜 지금인지: 날짜·반응 근거),
+ gomong_angle(고몽이 이걸 자기 말로 할 수 있는 이유와 각도 한 줄: 해설가·두 딸 아빠·관심사 중 무엇과 이어지는지. 지어낸 경험 금지),
+ story(발단 → 전개 → 반전/결말 한 줄), angle(시청자가 궁금해할 질문 한 줄), sources(근거 URL 2~3개), fit(1~10: 고몽이 직접 말하기에 맞는 정도)
+검색으로 확인된 사실만 쓴다. 출력은 JSON 배열만."""
+
+
+def web_topics():
+    raw = claude(TOPICS_PROMPT.replace("{today}", NOW.strftime("%Y-%m-%d")), tools=["WebSearch", "WebFetch"], turns=40)
+    arr = parse_json(raw, list)
+    if not isinstance(arr, list):
+        print("  [주제] 파싱 실패:", (raw or "")[:300]); return []
+    out = []
+    for x in arr:
+        if not (isinstance(x, dict) and x.get("title")) or _num(x.get("fit")) < 6:
+            continue
+        src = x.get("sources") or []
+        cap = (f"시의성 주제: {x['title']} ({x.get('series','')})\n{x.get('summary','')}\n왜 지금: {x.get('why_now','')}\n고몽 각도: {x.get('gomong_angle','')}\n"
+               f"이야기 뼈대: {x.get('story','')}\n출처: " + " ".join(src))
+        out.append({"kind": "topic", "id": "topic:" + x["title"], "title": x["title"], "tseries": x.get("series"), "summary": x.get("summary"),
+                    "why_now": x.get("why_now"), "gomong_angle": x.get("gomong_angle"), "story": x.get("story"), "angle": x.get("angle"),
+                    "sources": src, "url": src[0] if src else "", "fit": _num(x.get("fit")), "caption": cap, "timestamp": NOW.isoformat()})
+    print("  [주제] 후보:", [(x["title"], x["tseries"], x["fit"]) for x in out])
+    return out
 
 
 def _num(v):
@@ -715,7 +756,7 @@ def add_images(ai, data):
     allx = list(ai.get("picks") or []) + [it for i in ai.get("issues") or [] for it in i.get("items") or []] + list(ai.get("trends") or [])
     for x in allx:
         k = x.get("kind")
-        if k == "person" and not x.get("image"):
+        if k in ("person", "topic") and not x.get("image"):
             x["image"] = person_img(x)
         elif k == "cafe" and not x.get("thumb"):
             x["thumb"] = cafe.get(x.get("url"), "")
@@ -842,7 +883,11 @@ def main():
         review = classify_shorts(data)
         apply_review(data, review)
         people = hot_people(ai.get("people"))
-        new = curate(data, people)
+        try:
+            topics = web_topics()
+        except Exception as e:  # noqa: BLE001
+            print("topics failed", e); topics = []
+        new = curate(data, people, topics)
         if new:
             checks = verify_dates(date_targets(new))
             for x in new["picks"] + [it for i in new["issues"] for it in i["items"]]:

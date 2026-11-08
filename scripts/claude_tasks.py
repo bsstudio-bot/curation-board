@@ -17,6 +17,7 @@ KST = timezone(timedelta(hours=9))
 NOW = datetime.now(KST)
 MODEL = os.environ.get("CLAUDE_MODEL", "sonnet")
 MAX_PICKS, MAX_ADS, ADS_BATCH, SCRIPT_BATCH = 36, 40, 20, 4
+GUIDE_VERSION = "2026-11-09a"  # 대본 기준이 바뀌면 올린다. R은 이 버전이 아닌 대본만 다시 쓴다
 ONLY = set(filter(None, os.environ.get("ONLY", "").split(",")))  # 예: ONLY=A  (요청만)
 
 
@@ -112,7 +113,7 @@ RESEARCH_TASK = """
 
 REVIEW_PROMPT = """너는 숏폼 대본 검수자다. 아래 대본(JSON)을 원문과 research(조사 사실·출처)에 대조해서 고쳐라.
 1. 정확성: 각 문장이 원문·research와 맞는지 본다. 날짜·연도('작년', '얼마 전')가 research의 날짜와 맞는지 특히 확인한다. 과장·단정·왜곡(예: '잠시 중단 후 재개'를 '결국 문 닫았다'로 쓰는 것)은 사실대로 고친다. 근거 없는 문장은 빼거나 checks로 옮긴다.
-2. 구조: beat가 훅 → 정보 → 인사이트 → 마무리 순서로 네 단계를 모두 갖췄는지 본다. 사실 나열·가십 소개로 끝나고 인사이트가 없거나 요약에 그치면, research의 사실에 기대 해석(왜 이런 일이 생겼나, 왜 끌리나, 비슷한 사례의 패턴, 우리 생활에 주는 의미)을 보강해 인사이트를 전체의 3분의 1 안팎으로 만든다. 훅이 인사·소개로 시작하면 의외의 장면·질문으로 바꾼다. 화제 인물이면 왜 떴나→예전 사례→몰락 사례→열광 이유→사회의 바람→댓글 질문이 4단계 안에 자연스럽게 들어갔는지도 본다. 몰락 사례는 실제로 보도된 '반짝 뒤 무너진' 사례여야 하고, 맞는 사례가 research에 없으면 그 단계를 억지로 채우지 말고 checks에 '몰락 사례 조사 보강'을 남긴다.
+2. 구조: beat가 훅 → 정보 → 인사이트 → 마무리 순서로 네 단계를 모두 갖췄는지 본다. 인사이트가 8줄 미만이거나 사실 요약이면 research에 기대 해석을 늘리고, 마무리가 '이상 끝' 같은 정해진 끝인사이거나 요약이면 cta_type에 맞게 담백하게 고친다. 사실 나열·가십 소개로 끝나고 인사이트가 없거나 요약에 그치면, research의 사실에 기대 해석(왜 이런 일이 생겼나, 왜 끌리나, 비슷한 사례의 패턴, 우리 생활에 주는 의미)을 보강해 인사이트를 전체의 3분의 1 안팎으로 만든다. 훅이 인사·소개로 시작하면 의외의 장면·질문으로 바꾼다. 화제 인물이면 왜 떴나→예전 사례→몰락 사례→열광 이유→사회의 바람→댓글 질문이 4단계 안에 자연스럽게 들어갔는지도 본다. 몰락 사례는 실제로 보도된 '반짝 뒤 무너진' 사례여야 하고, 맞는 사례가 research에 없으면 그 단계를 억지로 채우지 말고 checks에 '몰락 사례 조사 보강'을 남긴다.
 3. 댓글: 마지막 질문과 comment_prompt가 공감 댓글과 다른 의견이 둘 다 나올 수 있는 질문인지 본다.
 4. 지어낸 경험 금지: 원문 글쓴이의 경험(다녀왔다, 먹어 봤다, 갔더니)을 고몽 1인칭으로 바꿔 말한 문장은 '~했대', '가 본 사람들 말로는 ~더라고' 같은 전언으로 고친다. 가이드의 '확인된 실제 경험' 목록에 없는 고몽 경험담도 전언이나 가정형으로 고친다.
 5. 말투(반말 독백)·한 호흡 한 줄 형식·길이, 그리고 cut·added 필드는 유지한다. 출력은 고친 대본 JSON 객체 하나만(같은 필드 구조, 설명 없이)."""
@@ -122,8 +123,8 @@ EDIT_PROMPT = """너는 고몽의 숏폼 대본 편집자다. 아래 '넉넉한 
 [편집 순서]
 1. 덜어내기: 우선순위가 낮은 줄을 뺀다. 빼는 기준: 훅·질문(title_bar)에 답하는 데 필요 없는 사실, 숫자가 두 개를 넘는 부분, 비슷한 말 반복, 시청자가 몰라도 이야기가 이어지는 디테일(주소·영업시간 같은 정보는 화면 자막으로 넘긴다), 인사이트 후보 중 약한 것, 마무리 후보 중 덜 자연스러운 것.
 2. 고몽 코멘트 더하기: 덜어낸 자리에 고몽이 카메라 보고 덧붙이는 짧은 생각·리액션을 2~4줄 넣는다. 사실을 다시 말하는 게 아니라 고몽 반응이다(예: "야, 이거 되게 아이디어 좋은데?", "나는 이게 좀 짠하더라", "근데 솔직히 이건 좀 부럽다"). 코멘트는 지금 영상을 찍으며 하는 반응으로 쓴다("~더라", "~네", "~같아"). "그 소식 듣고 나도 안타까웠거든"처럼 과거에 무엇을 보거나 느꼈다는 말, "이번 주말에 가 볼까 싶어"·"가 보려고 해" 같은 계획은 쓰지 않는다. 필요하면 "우리 집이라면 ~해 볼 것 같아"처럼 가정형으로.
-3. 인사이트를 자연스럽게: "여기서 진짜 재밌는 건", "그래서 이게 왜 중요하냐면" 같은 공식 문구로 시작하지 않는다. 고몽 원문처럼 자기 생각을 말하듯 푼다: "근데 나는 이게 ~같고", "그리고 무엇보다", "~라는 생각은 안 들거든", "살아 있는 사람이 기억하면 그게 의미 있는 거라고 생각해". 한 가지 생각을 2~4줄에 걸쳐 이유와 함께 천천히 말한다.
-4. 마무리를 자연스럽게: 억지 펀치·교훈 문장 대신 "그래서 나는 ~"으로 생각을 정리하고 바람이나 가벼운 한마디로 끝낸 뒤 짧은 끝인사("이상 끝" 등). 앞에서 한 말을 요약하지 않는다.
+3. 인사이트를 키운다(이 단계의 핵심): 초안의 인사이트 후보 중 강한 것을 살려 전체의 40% 안팎(8~14줄)으로 늘린다. 덜어낸 정보 줄의 자리를 인사이트에 준다. 가이드의 세 층(왜 생겼나 / 사람들 마음 / 고몽 시선·비슷한 사례) 중 2~3개를 이유와 함께 쌓는다. 공식 문구 없이 "근데 나는 이게 ~같아", "왜냐하면 ~거든"처럼 말하듯. 사실 요약으로 채우면 렉카처럼 보이니 금지.
+4. 마무리를 담백하게: 앞 내용 요약·억지 펀치·"이상 끝" 같은 정해진 끝인사 금지. 가이드의 세 방식 중 하나(자료: "필요한 사람은 댓글 남겨 줘, 정리한 거 보내 줄게" / 경험: "이런 경험 있으면 댓글로 얘기해 줘" / 생각: "그래서 나는 ~"으로 조용히 정리)를 소재에 맞게 고르고 cta_type에 적는다.
 5. 최종 길이: 가이드의 시리즈별 길이와 줄 수 범위에 맞춘다. beat는 훅 → 정보 → 인사이트 → 마무리 순서.
 6. 출력: 같은 JSON 구조로 완성본 하나. lines에서 2단계로 새로 넣은 줄에는 "added": true를 붙인다. 덜어낸 줄은 "cut": [{"say": "뺀 줄", "why": "뺀 이유(짧게)"}]에 모은다. research는 완성본에 실제로 쓴 사실만 남긴다. 설명·코드블록 없이 JSON만.
 """
@@ -174,6 +175,8 @@ def write_one(id_, it, guide):
     if isinstance(sc, dict) and sc.get("lines"):
         sc = edit_one(sc, it, guide)
         sc = review_one(sc, it)
+    if isinstance(sc, dict) and sc.get("lines"):
+        sc["gv"] = GUIDE_VERSION
     if isinstance(sc, dict) and sc.get("lines") and post({"action": "saveScript", "id": id_, "script": sc, "by": "Claude", "model": "claude-" + MODEL + "+web", "item": it}):
         return 1
     print("  스크립트 실패:", str(id_)[:60])
@@ -827,7 +830,8 @@ def main():
     allj = get("all")
     queue = get("queue").get("queue", []) if (not ONLY or "A" in ONLY) else []
     have_scripts = {s["id"] for s in allj.get("scripts", [])}
-    edited_ids = {s["id"] for s in allj.get("scripts", []) if str(s.get("model", "")).startswith("edited")}  # 팀이 직접 고친 대본은 자동 재작성으로 덮지 않는다
+    edited_ids = {s["id"] for s in allj.get("scripts", []) if str(s.get("model", "")).startswith("edited")}
+    fresh_ids = {s["id"] for s in allj.get("scripts", []) if (s.get("script") or {}).get("gv") == GUIDE_VERSION}  # 최신 기준으로 이미 쓴 대본  # 팀이 직접 고친 대본은 자동 재작성으로 덮지 않는다
     report = {}
 
     # E: 오늘의 큐레이션 (하루 1번, 그날 수집 데이터가 들어온 뒤)
@@ -943,7 +947,7 @@ def main():
         src_picks = ai.get("picks") if ai.get("date") in (NOW.strftime("%Y-%m-%d"), (NOW - timedelta(days=1)).strftime("%Y-%m-%d")) else (data.get("picks") or [])  # 자정 넘어도 전날 큐레이션 대본은 이어 쓴다
         for p in (src_picks or [])[:MAX_PICKS]:
             pid = p.get("id") or p.get("permalink") or p.get("url")
-            if pid and (pid not in have_scripts or "R" in ONLY) and pid not in qids and pid not in edited_ids:
+            if pid and (pid not in have_scripts or ("R" in ONLY and pid not in fresh_ids)) and pid not in qids and pid not in edited_ids:
                 jobsB.append((pid, pick_item(p)))
 
     # C: 광고 정리

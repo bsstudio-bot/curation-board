@@ -114,7 +114,7 @@ REVIEW_PROMPT = """너는 숏폼 대본 검수자다. 아래 대본(JSON)을 원
 2. 구조: beat가 훅 → 정보 → 인사이트 → 마무리 순서로 네 단계를 모두 갖췄는지 본다. 사실 나열·가십 소개로 끝나고 인사이트가 없거나 요약에 그치면, research의 사실에 기대 해석(왜 이런 일이 생겼나, 왜 끌리나, 비슷한 사례의 패턴, 우리 생활에 주는 의미)을 보강해 인사이트를 전체의 3분의 1 안팎으로 만든다. 훅이 인사·소개로 시작하면 의외의 장면·질문으로 바꾼다. 화제 인물이면 왜 떴나→예전 사례→몰락 사례→열광 이유→사회의 바람→댓글 질문이 4단계 안에 자연스럽게 들어갔는지도 본다. 몰락 사례는 실제로 보도된 '반짝 뒤 무너진' 사례여야 하고, 맞는 사례가 research에 없으면 그 단계를 억지로 채우지 말고 checks에 '몰락 사례 조사 보강'을 남긴다.
 3. 댓글: 마지막 질문과 comment_prompt가 공감 댓글과 다른 의견이 둘 다 나올 수 있는 질문인지 본다.
 4. 지어낸 경험 금지: 원문 글쓴이의 경험(다녀왔다, 먹어 봤다, 갔더니)을 고몽 1인칭으로 바꿔 말한 문장은 '~했대', '가 본 사람들 말로는 ~더라고' 같은 전언으로 고친다. 가이드의 '확인된 실제 경험' 목록에 없는 고몽 경험담도 전언이나 가정형으로 고친다.
-5. 말투·길이·형식은 유지한다. 출력은 고친 대본 JSON 객체 하나만(같은 필드 구조, 설명 없이)."""
+5. 말투(반말 독백)·한 호흡 한 줄 형식·길이는 유지한다. 출력은 고친 대본 JSON 객체 하나만(같은 필드 구조, 설명 없이)."""
 
 
 def review_one(sc, it):
@@ -122,9 +122,37 @@ def review_one(sc, it):
     return fixed if isinstance(fixed, dict) and fixed.get("lines") else sc
 
 
+_TONE = None
+
+
+def tone_examples():
+    """팀 시트(비공개)의 고몽 실제 말투 원문(board=tone)과 팀이 다듬어 발행한 대본(board=archive) 최근 3개."""
+    global _TONE
+    if _TONE is not None:
+        return _TONE
+    out = ""
+    try:
+        tone = get("notes&board=tone").get("notes", [])
+        if tone:
+            out += "\n[고몽 실제 토크 영상 자막 원문 — 말투·호흡·줄 나누기를 이대로 따라 한다. 내용은 베끼지 않는다]\n" + "\n\n".join("(" + str(x.get("title", "")) + ")\n" + str(x.get("note", "")) for x in tone[:6])
+        arc = sorted(get("notes&board=archive").get("notes", []), key=lambda x: str(x.get("at", "")), reverse=True)[:3]
+        if arc:
+            out += "\n\n[팀이 직접 다듬어 발행한 대본 — 가장 믿을 만한 완성본 예시. 말투·길이·구성을 이 수준에 맞춘다]\n"
+            for x in arc:
+                try:
+                    j = json.loads(x.get("note") or "{}")
+                    out += "\n(" + str(j.get("t", "")) + ")\n" + "\n".join(j.get("lines", [])) + "\n"
+                except Exception:  # noqa: BLE001
+                    pass
+    except Exception as e:  # noqa: BLE001
+        print("tone examples failed", e)
+    _TONE = out
+    return out
+
+
 def write_one(id_, it, guide):
     ref = open("prompts/story_reference.md", encoding="utf-8").read() if os.path.exists("prompts/story_reference.md") else ""
-    prompt = guide + "\n\n" + ref + "\n" + RESEARCH_TASK + "\n[소재]\n" + item_text(it)
+    prompt = guide + "\n" + tone_examples() + "\n\n" + ref + "\n" + RESEARCH_TASK + "\n[소재]\n" + item_text(it)
     sc = parse_json(claude(prompt, tools=["WebSearch", "WebFetch"], turns=25), dict)
     if isinstance(sc, dict) and sc.get("lines"):
         sc = review_one(sc, it)
@@ -718,6 +746,7 @@ def main():
     allj = get("all")
     queue = get("queue").get("queue", []) if (not ONLY or "A" in ONLY) else []
     have_scripts = {s["id"] for s in allj.get("scripts", [])}
+    edited_ids = {s["id"] for s in allj.get("scripts", []) if str(s.get("model", "")).startswith("edited")}  # 팀이 직접 고친 대본은 자동 재작성으로 덮지 않는다
     report = {}
 
     # E: 오늘의 큐레이션 (하루 1번, 그날 수집 데이터가 들어온 뒤)
@@ -828,7 +857,7 @@ def main():
         src_picks = ai.get("picks") if ai.get("date") == NOW.strftime("%Y-%m-%d") else (data.get("picks") or [])
         for p in (src_picks or [])[:MAX_PICKS]:
             pid = p.get("id") or p.get("permalink") or p.get("url")
-            if pid and (pid not in have_scripts or "R" in ONLY) and pid not in qids:
+            if pid and (pid not in have_scripts or "R" in ONLY) and pid not in qids and pid not in edited_ids:
                 jobsB.append((pid, pick_item(p)))
 
     # C: 광고 정리

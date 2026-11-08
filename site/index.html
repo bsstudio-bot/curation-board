@@ -557,7 +557,7 @@ document.addEventListener('click',async e=>{const a=e.target.closest('a#chgUser'
   if(e.target.id==='modal'){e.target.className='modal';return}
   const si=e.target.closest('.scitem');if(si){scModal(si.dataset.sc);return}
   if(e.target.closest('[data-closep]')){e.preventDefault();OPENP=null;render();return}
-  const pc=e.target.closest('.p2cell');if(pc&&!e.target.closest('button,a,input,textarea,label')){OPENP=OPENP===pc.dataset.openp?null:pc.dataset.openp;EDIT=null;render();const el=document.querySelector('.p2open');if(el)el.scrollIntoView({behavior:'smooth',block:'nearest'});return}
+  const pc=e.target.closest('.p2cell');if(pc&&(!e.target.closest('button,a,input,textarea,label')||e.target.closest('a.thumb,.istrip a'))){e.preventDefault();OPENP=OPENP===pc.dataset.openp?null:pc.dataset.openp;EDIT=null;render();const el=document.querySelector('.p2open');if(el)el.scrollIntoView({behavior:'smooth',block:'nearest'});return}
   const t=e.target.closest('button');if(!t)return;
   if(t.dataset.tab){tab=t.dataset.tab;render();scrollTo(0,0)}
   if(t.dataset.edit){if(!askUser(false))return;EDIT=t.dataset.edit;render();return}

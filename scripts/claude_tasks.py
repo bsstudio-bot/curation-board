@@ -940,7 +940,7 @@ def main():
     jobsB = []
     if not ONLY or "B" in ONLY or "R" in ONLY:
         qids = {i for i, _ in jobsA}
-        src_picks = ai.get("picks") if ai.get("date") == NOW.strftime("%Y-%m-%d") else (data.get("picks") or [])
+        src_picks = ai.get("picks") if ai.get("date") in (NOW.strftime("%Y-%m-%d"), (NOW - timedelta(days=1)).strftime("%Y-%m-%d")) else (data.get("picks") or [])  # 자정 넘어도 전날 큐레이션 대본은 이어 쓴다
         for p in (src_picks or [])[:MAX_PICKS]:
             pid = p.get("id") or p.get("permalink") or p.get("url")
             if pid and (pid not in have_scripts or "R" in ONLY) and pid not in qids and pid not in edited_ids:

@@ -16,7 +16,7 @@ PASS = os.environ.get("BOARD_PASS", "bs2026")
 KST = timezone(timedelta(hours=9))
 NOW = datetime.now(KST)
 MODEL = os.environ.get("CLAUDE_MODEL", "sonnet")
-MAX_PICKS, MAX_ADS, ADS_BATCH, SCRIPT_BATCH = 36, 40, 20, 4
+MAX_PICKS, MAX_ADS, ADS_BATCH, SCRIPT_BATCH = 52, 40, 20, 4
 GUIDE_VERSION = "2026-11-09b"  # 대본 기준이 바뀌면 올린다. R은 이 버전이 아닌 대본만 다시 쓴다
 ONLY = set(filter(None, os.environ.get("ONLY", "").split(",")))  # 예: ONLY=A  (요청만)
 
@@ -77,7 +77,7 @@ def item_text(it):
     src = (f"{it.get('cafe')} 맘카페 인기글 (조회 {it.get('reads')}, 댓글 {it.get('comments')})" if it.get("kind") == "cafe"
            else f"구글 급상승 검색어 (검색 {it.get('traffic')})" if it.get("kind") == "trend"
            else f"유튜브 {it.get('channel')} (조회 {it.get('views')})" if it.get("kind") == "youtube"
-           else "요즘 뜨는 인물 (웹 검색으로 찾음)" if it.get("kind") == "person" else "시의성 주제 (웹 검색으로 찾음)" if it.get("kind") == "topic" else f"@{it.get('handle')}")
+           else "요즘 뜨는 인물 (웹 검색으로 찾음)" if it.get("kind") == "person" else "시의성 주제 (웹 검색으로 찾음)" if it.get("kind") == "topic" else "고몽 생각 · 일상 공감 기획" if it.get("kind") == "life" else f"@{it.get('handle')}")
     t = [f"시리즈: {series}", f"해설 각도 힌트: {it.get('angle') or '없음'}", f"원문 출처: {src}",
          f"게시일: {str(it.get('timestamp') or it.get('written_at') or '')[:10]}", f"오늘 날짜: {NOW:%Y-%m-%d}"]
     dc = it.get("date_check") or {}
@@ -212,7 +212,7 @@ CURATE_PROMPT = """너는 유튜버 고몽(김웅현)의 **신규 채널** 숏�
 
 1) issues: 지금 뜨는 이슈 3~6개. 이야기로 풀 수 있는 주제를 우선한다(랭킹·통계 묶음은 제외). 여러 후보가 같은 주제를 다루거나(채널 2곳 이상·맘카페·검색어가 겹침), 검색량이 큰 화제를 묶는다.
    각 이슈: title(15자 이내), summary(무슨 일인지 1~2문장, 후보 내용만 근거), ids(관련 후보 id 목록), why_now(왜 지금 다룰 만한지 1문장), fit(1~10, 우리 채널 적합도)
-2) picks: 오늘 찍을 후보 28~36개(팀이 고를 수 있게 넉넉히). 시리즈 배분 가이드: 영화·드라마 3~6, 아이랑 갈 곳 4~6, 왜 그럴까 4~6, 화제 인물 2~4('요즘 뜨는 인물' 후보에서, 일반인 A와 유명인 선택·커리어 B를 섞어서), 밈·트렌드 3~5, AI·테크 2~3, 화제 1~3, 육아 정보 3~5, 맘카페 화제 2~3. '시의성 주제(웹 검색)' 후보는 이미 고몽 각도가 검토된 것이라 적극 활용하고 series는 후보에 적힌 것을 쓴다.
+2) picks: 오늘 찍을 후보 24~32개(팀이 고를 수 있게 넉넉히. '고몽 생각' 일상 공감 주제는 별도 단계에서 12~16개를 따로 만들어 맨 앞에 붙이므로 여기서는 고르지 않는다). 시리즈 배분 가이드: 영화·드라마 3~6, 아이랑 갈 곳 4~6, 왜 그럴까 4~6, 화제 인물 2~4('요즘 뜨는 인물' 후보에서, 일반인 A와 유명인 선택·커리어 B를 섞어서), 밈·트렌드 3~5, AI·테크 2~3, 화제 1~3, 육아 정보 3~5, 맘카페 화제 2~3. '시의성 주제(웹 검색)' 후보는 이미 고몽 각도가 검토된 것이라 적극 활용하고 series는 후보에 적힌 것을 쓴다.
    각 pick: id(후보 id 그대로), series, score(1~10), reason(왜 고몽 채널에 맞는지 1문장, 구체적으로), story(이야기 뼈대 한 줄: '발단 → 전개 → 반전/결말', 후보 내용 안에서만), angle(시청자가 궁금해할 질문 하나), gomong_angle(고몽다운 풀이 한 줄: 이야기꾼·영화/드라마 비유, 딸 둘 아빠 시선, 자기 고백형 유머 중 자연스러운 것. 2년 넘은 옛날 밈은 쓰지 않는다. 억지면 빈 문자열. 고몽이 실제로 겪은 일(병원·펫로스·육아 에피소드 등)을 사실처럼 지어내지 말고, 필요하면 '고몽 본인 경험이 있다면 ~로'처럼 조건으로 쓴다)
 
 [가장 중요한 기준 — 고몽이 '이야기'로 풀 수 있는가]
@@ -527,6 +527,70 @@ def web_topics():
                     "sources": src, "url": src[0] if src else "", "fit": _num(x.get("fit")), "caption": cap, "timestamp": NOW.isoformat()})
     print("  [주제] 후보:", [(x["title"], x["tseries"], x["fit"]) for x in out])
     return out
+
+
+LIFE_PROMPT = """오늘은 {today}이다. 너는 유튜버 고몽(김웅현)의 인스타 릴스 기획 PD다.
+고몽: 30대 후반, 여섯 살·세 살 두 딸 아빠, 영화·드라마 해설 10년차 이야기꾼. 카메라 보고 친구한테 말하듯 반말로 자기 생각을 말한다.
+이번에 찾는 것은 시의성 뉴스나 화제 인물이 아니라, '일상에서 고몽이 하는 생각·개똥철학' 릴스 소재다. 30대 중후반 두 아이 아빠가 이야기하는
+ (1) 관리: 30대 후반 남자의 몸·외모·생활 관리, 나이 들며 바뀌는 것
+ (2) 남자 건강: 체력, 수면, 배, 허리, 술, 검진 같은 이 나이 남자들이 실제로 걱정하는 것
+ (3) 가정의 평화: 부부 사이, 집안일 분담, 눈치, 대화, 서로 다른 생각에서 생기는 웃픈 장면
+ (4) 아빠 일상: 등원·주말·육퇴·아이와 놀기·아빠로 산다는 것
+ (5) 개똥철학: 일상의 작은 장면에서 끌어내는 고몽만의 엉뚱하지만 납득되는 생각
+[원칙]
+- 스토리텔링으로 재미있게: '누구나 겪는 장면 하나 → 그 장면을 고몽식으로 뒤집어 보는 생각 → 공감되는 결론'이 들어가야 한다. 정보 나열·체크리스트·랭킹 금지.
+- 사람들이 관심 있어 하는 주제여야 한다: 아래 [수집 후보](비슷한 주제를 다루는 크리에이터·검색 결과의 최근 영상과 반응)를 근거로 지금 사람들이 반응하는 테마를 읽어라. 단, 특정 영상·크리에이터의 기획을 그대로 가져오지 말고, 누구나 이야기할 수 있는 보편적인 장면으로 새로 짠다.
+- 고몽이 겪었다고 지어내지 않는다. 장면은 "아빠들 다 그거 알지?", "이 나이 되면", "우리 집이라면"처럼 관찰·가정으로 시작할 수 있게 짠다. 확인된 실제 경험은 두 딸 아빠라는 것, 백화점 유모차 엘리베이터 양보 못 받은 경험, 트라이크로 에스컬레이터 이동뿐이다.
+- 건강 주제는 웹 검색으로 근거 1~2개(국내 기관·전문의·보도)를 찾아 evidence에 출처와 함께 적는다. 의학적 단정·치료법·약 이름 금지.
+- 정치, 성별 갈등 조장, 특정인 비난, 사생활, 광고는 제외.
+테마별로 2~4개씩, 모두 12~16개. 각 JSON 객체:
+ theme('관리'|'남자 건강'|'가정의 평화'|'아빠 일상'|'개똥철학'), title(15자 이내, 궁금하게), hook(첫 3초 대사 한 줄, 고몽 반말), scene(누구나 겪는 장면 한두 문장),
+ story(장면 → 고몽식 생각 → 결론 한 줄), take(고몽 개똥철학 한 문장), why_now(사람들이 관심 있는 근거: 수집 후보의 반응·검색량 등 구체적으로), refs(근거가 된 후보 id 1~3개),
+ evidence([{"fact":"...","source":"URL"}], 건강·관리 주제만), cta('자료'|'경험'|'생각' 중 어울리는 마무리), fit(1~10: 고몽이 자기 말로 하기에 맞는 정도)
+출력은 JSON 배열만."""
+
+
+def life_topics(data):
+    L = data.get("life") or {}
+    cand = []
+    for v in sorted(L.get("youtube") or [], key=lambda v: (v.get("comments") or 0), reverse=True):
+        if (v.get("views") or 0) < (30000 if v.get("from_search") else 3000):
+            continue
+        cand.append(f"[id] yt:{v['id']} | 유튜브{' 쇼츠' if v.get('short') else ''} | {v.get('creator')} | {v.get('title')} | 조회 {v.get('views')} 댓글 {v.get('comments')} 평소대비 {v.get('ratio')}")
+    for p in L.get("ig_posts") or []:
+        if p.get("ad") or (p.get("likes") or 0) < 100:
+            continue
+        cand.append(f"[id] ig:{p.get('permalink')} | 인스타 | {p.get('creator')} | {(p.get('caption') or '')[:200]} | 좋아요 {p.get('likes')} 댓글 {p.get('comments')}")
+    hs = (data.get("hunsu") or {}).get("youtube") or []
+    for v in sorted(hs, key=lambda v: (v.get("comments") or 0), reverse=True)[:30]:
+        cand.append(f"[id] yt:{v['id']} | 유튜브(30대 관리) | {v.get('creator')} | {v.get('title')} | 조회 {v.get('views')} 댓글 {v.get('comments')}")
+    body = "\n".join(cand[:200]) or "(수집 후보 없음: 웹 검색으로 요즘 3040 아빠·남편들이 공감하는 주제를 찾아라)"
+    raw = claude(LIFE_PROMPT.replace("{today}", NOW.strftime("%Y-%m-%d")) + "\n\n[수집 후보]\n" + body, tools=["WebSearch", "WebFetch"], turns=30)
+    arr = parse_json(raw, list)
+    if not isinstance(arr, list):
+        print("  [일상] 파싱 실패:", (raw or "")[:300]); return []
+    url_of = {}
+    for v in (L.get("youtube") or []) + hs:
+        url_of["yt:" + v["id"]] = "https://www.youtube.com/watch?v=" + v["id"]
+    for p in L.get("ig_posts") or []:
+        url_of["ig:" + str(p.get("permalink"))] = p.get("permalink")
+    thumb_of = {"yt:" + v["id"]: v.get("thumb") for v in (L.get("youtube") or []) + hs if v.get("thumb")}
+    out = []
+    for x in arr:
+        if not (isinstance(x, dict) and x.get("title")) or _num(x.get("fit")) < 6:
+            continue
+        refs = [r for r in (x.get("refs") or []) if r in url_of]
+        ev = x.get("evidence") or []
+        cap = (f"고몽 생각({x.get('theme')}): {x['title']}\n훅: {x.get('hook','')}\n장면: {x.get('scene','')}\n이야기 뼈대: {x.get('story','')}\n"
+               f"고몽 개똥철학: {x.get('take','')}\n사람들이 관심 있는 이유: {x.get('why_now','')}\n마무리 방식: {x.get('cta','')}\n"
+               + ("근거: " + " / ".join(f"{e.get('fact','')} ({e.get('source','')})" for e in ev if isinstance(e, dict)) if ev else ""))
+        out.append({"kind": "life", "id": "life:" + x["title"], "title": x["title"], "theme": x.get("theme"), "hook": x.get("hook"), "scene": x.get("scene"),
+                    "story": x.get("story"), "take": x.get("take"), "why_now": x.get("why_now"), "evidence": ev, "cta": x.get("cta"),
+                    "refs": [url_of[r] for r in refs], "image": next((thumb_of[r] for r in refs if thumb_of.get(r)), ""),
+                    "fit": _num(x.get("fit")), "score": _num(x.get("fit")), "series": "고몽 생각", "angle": x.get("take"),
+                    "reason": x.get("why_now"), "caption": cap, "timestamp": NOW.isoformat()})
+    print("  [일상] 주제:", [(x["title"], x["theme"], x["fit"]) for x in out])
+    return sorted(out, key=lambda x: x["fit"], reverse=True)
 
 
 def _num(v):
@@ -859,6 +923,14 @@ def main():
         json.dump(ai, open(ai_path, "w", encoding="utf-8"), ensure_ascii=False)
         open(".ai_updated", "w").write("1")
         report["인물"] = f"찾음 {len(people)} · 추천 추가 {len(add)}"
+    if "L" in ONLY and ai.get("picks"):  # '고몽 생각'(일상 공감·개똥철학) 주제만 새로 찾아 오늘의 추천 맨 앞에
+        life = life_topics(data)
+        if life:
+            ai["picks"] = life + [x for x in ai["picks"] if x.get("kind") != "life"]
+            json.dump(ai, open(ai_path, "w", encoding="utf-8"), ensure_ascii=False)
+            open(".ai_updated", "w").write("1")
+            push_ai_now("고몽 생각(일상 공감) 주제 추가")
+        report["일상 주제"] = len(life)
     if "I" in ONLY and ai.get("picks"):  # 대표 이미지만 다시 붙이기 (Claude 안 씀)
         add_images(ai, data)
         json.dump(ai, open(ai_path, "w", encoding="utf-8"), ensure_ascii=False)
@@ -922,6 +994,11 @@ def main():
             new["yt_review"] = review
             new["people"] = people
             new["formats"] = make_formats(data)
+            try:
+                life = life_topics(data)
+            except Exception as e:  # noqa: BLE001
+                print("life failed", e); life = []
+            new["picks"] = life + [x for x in new["picks"] if x.get("kind") != "life"]
             ai = add_images(new, data)
             json.dump(ai, open(ai_path, "w", encoding="utf-8"), ensure_ascii=False)
             open(".ai_updated", "w").write("1")

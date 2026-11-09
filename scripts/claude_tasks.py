@@ -17,7 +17,7 @@ KST = timezone(timedelta(hours=9))
 NOW = datetime.now(KST)
 MODEL = os.environ.get("CLAUDE_MODEL", "sonnet")
 MAX_PICKS, MAX_ADS, ADS_BATCH, SCRIPT_BATCH = 52, 40, 20, 4
-GUIDE_VERSION = "2026-11-09d"  # 대본 기준이 바뀌면 올린다. R은 이 버전이 아닌 대본만 다시 쓴다
+GUIDE_VERSION = "2026-11-09e"  # 대본 기준이 바뀌면 올린다. R은 이 버전이 아닌 대본만 다시 쓴다
 ONLY = set(filter(None, os.environ.get("ONLY", "").split(",")))  # 예: ONLY=A  (요청만)
 
 
@@ -115,7 +115,7 @@ RESEARCH_TASK = """
 
 REVIEW_PROMPT = """너는 숏폼 대본 검수자다. 아래 대본(JSON)을 원문과 research(조사 사실·출처)에 대조해서 고쳐라.
 1. 정확성: 각 문장이 원문·research와 맞는지 본다. 날짜·연도('작년', '얼마 전')가 research의 날짜와 맞는지 특히 확인한다. 과장·단정·왜곡(예: '잠시 중단 후 재개'를 '결국 문 닫았다'로 쓰는 것)은 사실대로 고친다. 근거 없는 문장은 빼거나 checks로 옮긴다.
-2. 구조: beat가 훅 → 정보 → 인사이트 → 마무리 순서로 네 단계를 모두 갖췄는지 본다. 구체적으로 해 볼 방법(2~3개)이 없거나 뜬구름 잡는 교훈·'~인 거지' 같은 깨달음 말투로 끝나면 고친다(허당이지만 열심히 하는 아빠 톤). 인사이트가 8줄 미만이거나 사실 요약이면 research에 기대 해석을 늘리고, 마무리가 '이상 끝' 같은 정해진 끝인사이거나 요약이면 cta_type에 맞게 담백하게 고친다. 사실 나열·가십 소개로 끝나고 인사이트가 없거나 요약에 그치면, research의 사실에 기대 해석(왜 이런 일이 생겼나, 왜 끌리나, 비슷한 사례의 패턴, 우리 생활에 주는 의미)을 보강해 인사이트를 전체의 3분의 1 안팎으로 만든다. 훅이 인사·소개로 시작하면 의외의 장면·질문으로 바꾼다. 화제 인물이면 왜 떴나→예전 사례→몰락 사례→열광 이유→사회의 바람→댓글 질문이 4단계 안에 자연스럽게 들어갔는지도 본다. 몰락 사례는 실제로 보도된 '반짝 뒤 무너진' 사례여야 하고, 맞는 사례가 research에 없으면 그 단계를 억지로 채우지 말고 checks에 '몰락 사례 조사 보강'을 남긴다.
+2. 구조: beat가 훅 → 정보 → 인사이트 → 마무리 순서로 네 단계를 모두 갖췄는지 본다. 구체적으로 해 볼 방법(2~3개)이 없거나 뜬구름 잡는 교훈·'~인 거지' 같은 깨달음 말투로 끝나면 고친다(허당이지만 열심히 하는 아빠 톤). 인사이트가 8줄 미만이거나 사실 요약이면 research에 기대 해석을 늘리고, 마무리가 '이상 끝' 같은 정해진 끝인사, 요약, "여러분도 이런 적 있어?"·"댓글로 생각 들려줘" 같은 막연한 질문이면 가이드의 여섯 방식 중 하나로 자연스럽게 고친다. 사실 나열·가십 소개로 끝나고 인사이트가 없거나 요약에 그치면, research의 사실에 기대 해석(왜 이런 일이 생겼나, 왜 끌리나, 비슷한 사례의 패턴, 우리 생활에 주는 의미)을 보강해 인사이트를 전체의 3분의 1 안팎으로 만든다. 훅이 인사·소개로 시작하면 의외의 장면·질문으로 바꾼다. 화제 인물이면 왜 떴나→예전 사례→몰락 사례→열광 이유→사회의 바람→댓글 질문이 4단계 안에 자연스럽게 들어갔는지도 본다. 몰락 사례는 실제로 보도된 '반짝 뒤 무너진' 사례여야 하고, 맞는 사례가 research에 없으면 그 단계를 억지로 채우지 말고 checks에 '몰락 사례 조사 보강'을 남긴다.
 3. 댓글: 마지막 질문과 comment_prompt가 공감 댓글과 다른 의견이 둘 다 나올 수 있는 질문인지 본다.
 3-2. 자료 연도: research의 year를 보고 5년보다 오래된 통계·연구를 쓴 줄은 대본에 연도와 이유를 밝히거나, 더 최신 자료가 research에 있으면 그걸로 바꾼다. 숫자가 나오는 줄의 screen에 자료 연도를 적는다.
 4. 지어낸 경험 금지(가장 엄격하게): "요즘 ~하고 있어", "~하는 습관을 들였어", "~하고 나니까 덜 서운해졌어"처럼 고몽이 이미 하고 있다는 습관·변화·감정도 확인된 경험이 아니면 "나도 오늘부터 ~해 보려고"처럼 앞으로 해 볼 것으로 바꾼다. 고몽이 직접 보거나 가거나 먹거나 써 봤다는 문장("보면서 반갑긴 했어", "가 봤는데", "써 보니까")은 가이드 '확인된 실제 경험'에 없으면 모두 고친다. 대신 "보는 사람들은 ~할 것 같아", "나라면 ~할 것 같아"처럼 가정·관찰로. 또한 인사이트 구간에 사실·반응 인용이 섞여 있으면 정보 구간으로 옮기고 인사이트는 해석으로 채운다.
@@ -130,7 +130,7 @@ EDIT_PROMPT = """너는 고몽의 숏폼 대본 편집자다. 아래 '넉넉한 
 3-0. 말투 점검: 통달·친절·담백한 현자 말투, "~인 거지" 같은 깨달음 문장을 허당이지만 열심히 하는 아빠 톤("나도 몰랐어", "이거 나만 몰랐어?", "잔소리 들을 바엔 먼저 해 보자")으로 바꾼다. 아내·타인 비하 금지.
 3-1. 해 볼 것: 인사이트 뒷부분에 보는 사람이 바로 해 볼 구체적 방법 2~3개(언제·무엇을·얼마나)가 없으면 research 근거로 넣는다. 해석만 하고 끝나는 대본은 실패다.
 3. 인사이트를 키운다(이 단계의 핵심): 초안의 인사이트 후보 중 강한 것을 살려 전체의 40% 안팎(8~14줄)으로 늘린다. 덜어낸 정보 줄의 자리를 인사이트에 준다. 가이드의 세 층(왜 생겼나 / 사람들 마음 / 고몽 시선·비슷한 사례) 중 2~3개를 이유와 함께 쌓는다. 공식 문구 없이 "근데 나는 이게 ~같아", "왜냐하면 ~거든"처럼 말하듯. 사실 요약으로 채우면 렉카처럼 보이니 금지. 인사이트 구간에는 새로운 사실·반응 인용("~래", "~라는 말도 있더라")을 넣지 않는다. 그런 줄은 정보 구간으로 옮기고, 인사이트는 전부 고몽의 해석·비교·의미 부여로 채운다.
-4. 마무리를 담백하게: 앞 내용 요약·억지 펀치·"이상 끝" 같은 정해진 끝인사 금지. 가이드의 세 방식 중 하나(자료: "필요한 사람은 댓글 남겨 줘, 정리한 거 보내 줄게" / 경험: "이런 경험 있으면 댓글로 얘기해 줘" / 생각: "그래서 나는 ~"으로 조용히 정리)를 소재에 맞게 고르고 cta_type에 적는다.
+4. 마무리 보강: 가이드의 여섯 방식(키워드·선택·공유·저장·다음편·정리) 중 소재에 가장 자연스러운 하나로 다시 쓴다. 참여형을 우선 고려하되 억지면 다음편·정리. "여러분도 이런 적 있어?", "댓글로 생각 들려줘", "어떻게 했는지 알려줘", "궁금하다" 같은 막연한 질문과 "여러분" 호칭은 금지. 선택형은 1~2글자로 답할 수 있게, 키워드형은 짧은 한 단어 키워드를 cta_keyword에. cta_type에 방식을 적는다.
 5. 최종 길이: 가이드의 시리즈별 길이와 줄 수 범위에 맞춘다. beat는 훅 → 정보 → 인사이트 → 마무리 순서.
 6. 출력: 같은 JSON 구조로 완성본 하나. lines에서 2단계로 새로 넣은 줄에는 "added": true를 붙인다. 덜어낸 줄은 "cut": [{"say": "뺀 줄", "why": "뺀 이유(짧게)"}]에 모은다. research는 완성본에 실제로 쓴 사실만 남긴다. 설명·코드블록 없이 JSON만.
 """
@@ -172,6 +172,26 @@ def tone_examples():
         print("tone examples failed", e)
     _TONE = out
     return out
+
+
+ENDING_PROMPT = """너는 고몽 숏폼 대본 편집자다. 아래 대본(JSON)에서 '마무리' 구간(beat=마무리)만 다시 써라. 다른 줄은 한 글자도 바꾸지 않는다.
+가이드의 [4. 마무리] 규칙을 따른다: 키워드·선택·공유·저장·다음편·정리 중 소재에 가장 자연스러운 하나. 참여형을 우선 고려하되 억지스러우면 다음편·정리.
+금지: "여러분도 이런 적 있어?", "댓글로 생각 들려줘", "어떻게 했는지 알려줘", "궁금하다"로 끝나는 막연한 질문, "여러분" 호칭, 요약, 교훈, "이상 끝".
+허당이지만 열심히 하는 아빠 반말 톤, 2~5줄, 실제로 카메라 보고 말할 법한 문장. 선택형은 1~2글자로 답할 수 있게, 키워드형은 cta_keyword에 짧은 한 단어.
+출력: 같은 구조의 대본 JSON 하나(마무리 lines만 교체, cta_type·cta_keyword 갱신, caption 마지막 문장도 마무리 방식에 맞게). 설명 없이 JSON만."""
+
+
+def ending_one(id_, sc, it, guide):
+    fixed = parse_json(claude(guide + "\n\n" + ENDING_PROMPT + "\n\n[대본]\n" + json.dumps(sc, ensure_ascii=False)), dict)
+    if not (isinstance(fixed, dict) and fixed.get("lines")):
+        return 0
+    keep = [l for l in sc.get("lines", []) if l.get("beat") != "마무리"]
+    newend = [l for l in fixed["lines"] if l.get("beat") == "마무리"]
+    if not newend:
+        return 0
+    sc2 = dict(sc, lines=keep + newend, cta_type=fixed.get("cta_type", sc.get("cta_type")), cta_keyword=fixed.get("cta_keyword", ""),
+               caption=fixed.get("caption") or sc.get("caption"), gv=GUIDE_VERSION)
+    return 1 if post({"action": "saveScript", "id": id_, "script": sc2, "by": "Claude", "model": "claude-" + MODEL + "+ending", "item": it}) else 0
 
 
 def write_one(id_, it, guide):
@@ -553,7 +573,7 @@ LIFE_PROMPT = """오늘은 {today}이다. 너는 유튜버 고몽(김웅현)의 
 테마별로 2~4개씩, 모두 12~16개. 각 JSON 객체:
  theme('관리'|'남자 건강'|'가정의 평화'|'아빠 일상'|'개똥철학'), title(15자 이내, 궁금하게), hook(첫 3초 대사 한 줄, 고몽 반말), scene(누구나 겪는 장면 한두 문장),
  story(장면 → 고몽식 생각 → 결론 한 줄), take(고몽 개똥철학 한 문장), why_now(사람들이 관심 있는 근거: 수집 후보의 반응·검색량 등 구체적으로), refs(근거가 된 후보 id 1~3개),
- evidence([{"fact":"...","source":"URL"}], 건강·관리 주제는 필수), tips(바로 해 볼 구체적 방법 2~3개 배열), cta('자료'|'경험'|'생각' 중 어울리는 마무리), fit(1~10: 고몽이 자기 말로 하기에 맞는 정도)
+ evidence([{"fact":"...","source":"URL"}], 건강·관리 주제는 필수), tips(바로 해 볼 구체적 방법 2~3개 배열), cta('키워드'|'선택'|'공유'|'저장'|'다음편'|'정리' 중 어울리는 마무리), fit(1~10: 고몽이 자기 말로 하기에 맞는 정도)
 출력은 JSON 배열만."""
 
 
@@ -938,6 +958,16 @@ def main():
             open(".ai_updated", "w").write("1")
             push_ai_now("고몽 생각(일상 공감) 주제 추가")
         report["일상 주제"] = len(life)
+    if "M" in ONLY and ai.get("picks"):  # 기존 대본의 마무리만 최신 기준으로 다시 쓰기 (빠름, 웹 검색 없음)
+        allm = get("all")
+        S = {s["id"]: s for s in allm.get("scripts", [])}
+        guide_m = open("prompts/script_guide.md", encoding="utf-8").read()
+        jobsM = [(p["id"], S[p["id"]]) for p in ai["picks"] if p.get("id") in S and not str(S[p["id"]].get("model", "")).startswith("edited")
+                 and (S[p["id"]].get("script") or {}).get("gv") != GUIDE_VERSION]
+        from concurrent.futures import ThreadPoolExecutor
+        with ThreadPoolExecutor(max_workers=4) as ex:
+            done = sum(ex.map(lambda j: ending_one(j[0], j[1]["script"], j[1].get("item") or {}, guide_m), jobsM))
+        report["마무리 보강"] = f"{done}/{len(jobsM)}"
     if "I" in ONLY and ai.get("picks"):  # 대표 이미지만 다시 붙이기 (Claude 안 씀)
         add_images(ai, data)
         json.dump(ai, open(ai_path, "w", encoding="utf-8"), ensure_ascii=False)

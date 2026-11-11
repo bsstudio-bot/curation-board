@@ -16,8 +16,8 @@ PASS = os.environ.get("BOARD_PASS", "bs2026")
 KST = timezone(timedelta(hours=9))
 NOW = datetime.now(KST)
 MODEL = os.environ.get("CLAUDE_MODEL", "sonnet")
-MAX_PICKS, MAX_ADS, ADS_BATCH, SCRIPT_BATCH = 52, 40, 20, 4
-GUIDE_VERSION = "2026-11-09f"  # 대본 기준이 바뀌면 올린다. R은 이 버전이 아닌 대본만 다시 쓴다
+MAX_PICKS, MAX_ADS, ADS_BATCH, SCRIPT_BATCH = 62, 40, 20, 4
+GUIDE_VERSION = "2026-11-11g"  # 대본 기준이 바뀌면 올린다. R은 이 버전이 아닌 대본만 다시 쓴다
 ONLY = set(filter(None, os.environ.get("ONLY", "").split(",")))  # 예: ONLY=A  (요청만)
 
 
@@ -77,7 +77,7 @@ def item_text(it):
     src = (f"{it.get('cafe')} 맘카페 인기글 (조회 {it.get('reads')}, 댓글 {it.get('comments')})" if it.get("kind") == "cafe"
            else f"구글 급상승 검색어 (검색 {it.get('traffic')})" if it.get("kind") == "trend"
            else f"유튜브 {it.get('channel')} (조회 {it.get('views')})" if it.get("kind") == "youtube"
-           else "요즘 뜨는 인물 (웹 검색으로 찾음)" if it.get("kind") == "person" else "시의성 주제 (웹 검색으로 찾음)" if it.get("kind") == "topic" else "고몽 생각 · 일상 공감 기획" if it.get("kind") == "life" else f"@{it.get('handle')}")
+           else "요즘 뜨는 인물 (웹 검색으로 찾음)" if it.get("kind") == "person" else "시의성 주제 (웹 검색으로 찾음)" if it.get("kind") == "topic" else ("냄새 연구소 · 냄새 연구와 없애는 법 정보 시리즈" if it.get("series") == "냄새 연구소" else "고몽 생각 · 일상 공감 기획") if it.get("kind") == "life" else f"@{it.get('handle')}")
     t = [f"시리즈: {series}", f"해설 각도 힌트: {it.get('angle') or '없음'}", f"원문 출처: {src}",
          f"게시일: {str(it.get('timestamp') or it.get('written_at') or '')[:10]}", f"오늘 날짜: {NOW:%Y-%m-%d}"]
     dc = it.get("date_check") or {}
@@ -594,6 +594,62 @@ LIFE_PROMPT = """오늘은 {today}이다. 너는 유튜버 고몽(김웅현)의 
 출력은 JSON 배열만."""
 
 
+SMELL_PROMPT = """오늘은 {today}이다. 너는 유튜버 고몽(김웅현)의 '냄새 연구소' 릴스 시리즈 기획 PD다.
+고몽: 30대 후반 두 딸 아빠. 후각이 예민한 아내와 딸 앞에서 '냄새 안 나는 아빠'가 되려고 공부하는 허당 아빠 캐릭터. 반말 토크.
+시리즈 목표: 냄새에 대한 최신 연구와, 냄새를 실제로 없애는 방법을 꾸준히 발행한다(1년 빌드업용 정보 시리즈).
+[다룰 범위]
+ (1) 원인 연구: 나이대별 체취 성분(디아세틸·2-노넨알·아세트산 등), 부위(머리·정수리·목덜미·겨드랑이·발·입), 생기는 과정(피지 산화, 피부 균, 땀)
+ (2) 없애는 방법: 씻는 법·순서·온도·부위, 옷·베개·침구·모자 세탁과 관리, 생활 습관(식단·술·수면·스트레스), 입냄새·발냄새 관리
+ (3) 원리 이야기: 냄새를 '덮는 것'과 '없애는 것'의 차이, 흡착·중화·생성 억제가 어떻게 다른지(원료 이름은 원리 설명 수준만, 특정 브랜드·제품 홍보 금지)
+ (4) 오해 바로잡기: 흔히 믿는 냄새 상식이 연구로 보면 맞는지
+[이미 알려진 출발점 — 반드시 더 최신 자료가 있는지 웹 검색으로 먼저 확인하고, 있으면 최신을 쓴다]
+ - 맨담 연구: 30~40대 남성 기름 냄새 원인 디아세틸, 머리·목덜미 중심(2013 보도) / 감초·계피 등 플라보노이드가 디아세틸 생성 억제
+ - J Invest Dermatol 2001: 2-노넨알은 40세 이상에서만 검출, 피지 지방산 산화
+ - 40~50대 남성은 머리 냄새가 가장 강하고 귀 뒤는 상대적으로 약했다는 연구 / 노넨알은 폴리에스터에 남아 세탁해도 쌓인다는 연구
+[원칙]
+- 통계·연구는 최근 3년 자료를 우선한다. 5년 넘은 자료는 연도와 쓰는 이유를 evidence에 적는다. evidence는 출처 URL·연도 필수.
+- 모든 주제는 바로 해 볼 수 있는 방법 tips 2~3개(언제·무엇을·얼마나). 의학적 단정·치료·완치·약 이름 금지. 화장품 효능 과장 금지.
+- 특정 브랜드·제품명, 경쟁 제품 비교, 우리 브랜드 언급 금지(빌드업 단계).
+- 고몽이 겪었다고 지어내지 않는다. 장면은 관찰·가정("아빠들 그거 알지?", "베개 냄새 맡아 본 적 있지?")으로.
+- [이미 다룬 주제]와 겹치지 않게 새 각도로.
+6~10개. 각 JSON 객체:
+ theme('원인 연구'|'없애는 법'|'원리'|'오해'), title(15자 이내, 궁금하게), hook(첫 3초 반말 한 줄), scene(누구나 아는 장면), story(장면 → 연구로 본 이유 → 해 볼 것), take(허당 아빠의 한 줄 생각),
+ tips(2~3개), evidence([{"fact","source","year"}] 1~3개), why_now(왜 지금 관심 있는지: 계절·검색·반응 근거), cta('키워드'|'저장'|'선택'|'이야기' 중), fit(1~10)
+출력은 JSON 배열만."""
+
+
+def smell_topics(data, done=None):
+    raw = claude(SMELL_PROMPT.replace("{today}", NOW.strftime("%Y-%m-%d")) + "\n\n[이미 다룬 주제]\n" + ("\n".join(done or []) or "없음"),
+                 tools=["WebSearch", "WebFetch"], turns=35)
+    arr = parse_json(raw, list)
+    if not isinstance(arr, list):
+        print("  [냄새] 파싱 실패:", (raw or "")[:300]); return []
+    out = []
+    for x in arr:
+        if not (isinstance(x, dict) and x.get("title")) or _num(x.get("fit")) < 6 or len(x.get("tips") or []) < 2:
+            continue
+        ev = x.get("evidence") or []
+        cap = (f"냄새 연구소({x.get('theme')}): {x['title']}\n훅: {x.get('hook','')}\n장면: {x.get('scene','')}\n이야기 뼈대: {x.get('story','')}\n"
+               f"고몽 생각: {x.get('take','')}\n해 볼 것: {' / '.join(x.get('tips') or [])}\n왜 지금: {x.get('why_now','')}\n마무리 방식: {x.get('cta','')}\n"
+               + "근거: " + " / ".join(f"[{e.get('year','')}] {e.get('fact','')} ({e.get('source','')})" for e in ev if isinstance(e, dict)))
+        out.append({"kind": "life", "id": "smell:" + x["title"], "title": x["title"], "theme": x.get("theme"), "hook": x.get("hook"), "scene": x.get("scene"),
+                    "story": x.get("story"), "take": x.get("take"), "tips": x.get("tips") or [], "why_now": x.get("why_now"), "evidence": ev, "cta": x.get("cta"),
+                    "refs": [e.get("source") for e in ev if isinstance(e, dict) and e.get("source")][:3], "image": "",
+                    "fit": _num(x.get("fit")), "score": _num(x.get("fit")), "series": "냄새 연구소", "angle": x.get("take"),
+                    "reason": x.get("why_now"), "caption": cap, "timestamp": NOW.isoformat()})
+    print("  [냄새] 주제:", [(x["title"], x["theme"], x["fit"]) for x in out])
+    return sorted(out, key=lambda x: x["fit"], reverse=True)
+
+
+def add_smell(ai_obj, data):
+    done = list(ai_obj.get("smell_done") or [])
+    sm = smell_topics(data, done[-80:])
+    if sm:
+        ai_obj["picks"] = sm + [x for x in ai_obj.get("picks", []) if x.get("series") != "냄새 연구소"]
+        ai_obj["smell_done"] = (done + [x["title"] for x in sm])[-200:]
+    return len(sm)
+
+
 def life_topics(data):
     L = data.get("life") or {}
     cand = []
@@ -967,10 +1023,17 @@ def main():
         json.dump(ai, open(ai_path, "w", encoding="utf-8"), ensure_ascii=False)
         open(".ai_updated", "w").write("1")
         report["인물"] = f"찾음 {len(people)} · 추천 추가 {len(add)}"
+    if "N" in ONLY and ai.get("picks"):  # '냄새 연구소' 주제만 새로 찾아 오늘의 추천 맨 앞에
+        n = add_smell(ai, data)
+        if n:
+            json.dump(ai, open(ai_path, "w", encoding="utf-8"), ensure_ascii=False)
+            open(".ai_updated", "w").write("1")
+            push_ai_now("냄새 연구소 주제 추가")
+        report["냄새 주제"] = n
     if "L" in ONLY and ai.get("picks"):  # '고몽 생각'(일상 공감·개똥철학) 주제만 새로 찾아 오늘의 추천 맨 앞에
         life = life_topics(data)
         if life:
-            ai["picks"] = life + [x for x in ai["picks"] if x.get("kind") != "life"]
+            ai["picks"] = [x for x in ai["picks"] if x.get("series") == "냄새 연구소"] + life + [x for x in ai["picks"] if x.get("kind") != "life"]
             json.dump(ai, open(ai_path, "w", encoding="utf-8"), ensure_ascii=False)
             open(".ai_updated", "w").write("1")
             push_ai_now("고몽 생각(일상 공감) 주제 추가")
@@ -1053,6 +1116,11 @@ def main():
             except Exception as e:  # noqa: BLE001
                 print("life failed", e); life = []
             new["picks"] = life + [x for x in new["picks"] if x.get("kind") != "life"]
+            new["smell_done"] = ai.get("smell_done") or []
+            try:
+                add_smell(new, data)
+            except Exception as e:  # noqa: BLE001
+                print("smell failed", e)
             ai = add_images(new, data)
             json.dump(ai, open(ai_path, "w", encoding="utf-8"), ensure_ascii=False)
             open(".ai_updated", "w").write("1")

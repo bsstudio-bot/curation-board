@@ -17,7 +17,7 @@ KST = timezone(timedelta(hours=9))
 NOW = datetime.now(KST)
 MODEL = os.environ.get("CLAUDE_MODEL", "sonnet")
 MAX_PICKS, MAX_ADS, ADS_BATCH, SCRIPT_BATCH = 52, 40, 20, 4
-GUIDE_VERSION = "2026-11-09e"  # 대본 기준이 바뀌면 올린다. R은 이 버전이 아닌 대본만 다시 쓴다
+GUIDE_VERSION = "2026-11-09f"  # 대본 기준이 바뀌면 올린다. R은 이 버전이 아닌 대본만 다시 쓴다
 ONLY = set(filter(None, os.environ.get("ONLY", "").split(",")))  # 예: ONLY=A  (요청만)
 
 
@@ -137,7 +137,7 @@ EDIT_PROMPT = """너는 고몽의 숏폼 대본 편집자다. 아래 '넉넉한 
 
 
 def edit_one(sc, it, guide):
-    fixed = parse_json(claude(guide + "\n" + tone_examples() + "\n\n" + EDIT_PROMPT + "\n[원문]\n" + item_text(it) + "\n\n[넉넉한 초안]\n" + json.dumps(sc, ensure_ascii=False)), dict)
+    fixed = parse_json(claude(guide + "\n" + tone_examples() + ending_examples() + "\n\n" + EDIT_PROMPT + "\n[원문]\n" + item_text(it) + "\n\n[넉넉한 초안]\n" + json.dumps(sc, ensure_ascii=False)), dict)
     return fixed if isinstance(fixed, dict) and fixed.get("lines") else sc
 
 
@@ -174,19 +174,36 @@ def tone_examples():
     return out
 
 
-ENDING_PROMPT = """너는 고몽 숏폼 대본 편집자다. 아래 대본(JSON)에서 '마무리' 구간(beat=마무리)만 다시 써라. 다른 줄은 한 글자도 바꾸지 않는다.
-가이드의 [4. 마무리] 규칙을 따른다: 키워드·선택·공유·저장·다음편·정리 중 소재에 가장 자연스러운 하나. 참여형을 우선 고려하되 억지스러우면 다음편·정리.
-금지: "여러분도 이런 적 있어?", "댓글로 생각 들려줘", "어떻게 했는지 알려줘", "궁금하다"로 끝나는 막연한 질문, "여러분" 호칭, 요약, 교훈, "이상 끝".
-허당이지만 열심히 하는 아빠 반말 톤, 2~5줄, 실제로 카메라 보고 말할 법한 문장. 선택형은 1~2글자로 답할 수 있게, 키워드형은 cta_keyword에 짧은 한 단어.
-출력: 같은 구조의 대본 JSON 하나(마무리 lines만 교체, cta_type·cta_keyword 갱신, caption 마지막 문장도 마무리 방식에 맞게). 설명 없이 JSON만."""
+ENDING_PROMPT = """너는 고몽 숏폼 대본 편집자다. 아래 대본(JSON)의 뒷부분(인사이트+마무리)만 다시 써라. 훅·정보 줄은 한 글자도 바꾸지 않는다.
+가이드의 [4. 마무리] 규칙을 따른다. 가족·아이·부부·감성 소재와 '고몽 생각' 시리즈는 '이야기' 방식을 1순위로: 특정 그룹에게 진짜 궁금한 구체적 질문 → 내 경우(확인된 사실만: 두 딸, 여섯 살·세 살) → [고몽 이야기] 자리(slot: true, 무엇을 말하면 되는지 적기) → 솔직한 감정의 반전 → 가벼운 권유 → 말하다 마는 장난 한 줄. 이 경우 해석·당부·해 볼 것·1/2 선택은 빼도 된다.
+그 밖의 소재(관리·건강·정보·시사)는 해석과 해 볼 것은 살리고 마무리만 키워드·선택·공유·저장·다음편·정리 중 가장 자연스러운 하나로.
+아래 [팀이 고친 마무리 예시]의 before→after 차이를 그대로 배워라.
+금지: "여러분도 이런 적 있어?", "댓글로 생각 들려줘", "궁금하다"로 끝나는 막연한 질문, "여러분" 호칭, 요약, 명언·교훈 말투, "이상 끝", 지어낸 고몽 경험.
+허당이지만 열심히 하는 아빠 반말 톤. 출력: 같은 구조의 대본 JSON 하나(cta_type·cta_keyword 갱신, caption도 마무리에 맞게). 설명 없이 JSON만."""
+
+
+_ENDX = None
+
+
+def ending_examples():
+    global _ENDX
+    if _ENDX is None:
+        _ENDX = ""
+        try:
+            for x in get("notes&board=ending_ex").get("notes", [])[-4:]:
+                j = json.loads(x.get("note") or "{}")
+                _ENDX += "\n[팀이 고친 마무리 예시: " + str(j.get("t", "")) + "]\n(before)\n" + "\n".join(j.get("before", [])) + "\n(after)\n" + "\n".join(j.get("after", [])) + "\n(바뀐 점) " + str(j.get("why", "")) + "\n"
+        except Exception as e:  # noqa: BLE001
+            print("ending examples failed", e)
+    return _ENDX
 
 
 def ending_one(id_, sc, it, guide):
-    fixed = parse_json(claude(guide + "\n\n" + ENDING_PROMPT + "\n\n[대본]\n" + json.dumps(sc, ensure_ascii=False)), dict)
+    fixed = parse_json(claude(guide + "\n" + ending_examples() + "\n\n" + ENDING_PROMPT + "\n\n[대본]\n" + json.dumps(sc, ensure_ascii=False)), dict)
     if not (isinstance(fixed, dict) and fixed.get("lines")):
         return 0
-    keep = [l for l in sc.get("lines", []) if l.get("beat") != "마무리"]
-    newend = [l for l in fixed["lines"] if l.get("beat") == "마무리"]
+    keep = [l for l in sc.get("lines", []) if l.get("beat") in ("훅", "정보")]
+    newend = [l for l in fixed["lines"] if l.get("beat") in ("인사이트", "마무리")]
     if not newend:
         return 0
     sc2 = dict(sc, lines=keep + newend, cta_type=fixed.get("cta_type", sc.get("cta_type")), cta_keyword=fixed.get("cta_keyword", ""),
@@ -196,7 +213,7 @@ def ending_one(id_, sc, it, guide):
 
 def write_one(id_, it, guide):
     ref = open("prompts/story_reference.md", encoding="utf-8").read() if os.path.exists("prompts/story_reference.md") else ""
-    prompt = guide + "\n" + tone_examples() + "\n\n" + ref + "\n" + RESEARCH_TASK + "\n[소재]\n" + item_text(it)
+    prompt = guide + "\n" + tone_examples() + ending_examples() + "\n\n" + ref + "\n" + RESEARCH_TASK + "\n[소재]\n" + item_text(it)
     sc = parse_json(claude(prompt, tools=["WebSearch", "WebFetch"], turns=25), dict)
     if isinstance(sc, dict) and sc.get("lines"):
         sc = edit_one(sc, it, guide)

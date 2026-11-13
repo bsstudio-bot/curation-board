@@ -994,7 +994,8 @@ def main():
     global ONLY
     data = json.load(open("site/data.json", encoding="utf-8"))
     allj = get("all")
-    auto = (json.load(open("site/auto.json", encoding="utf-8")) if os.path.exists("site/auto.json") else {}).get("auto", True)
+    _ac = json.load(open("site/auto.json", encoding="utf-8")) if os.path.exists("site/auto.json") else {}
+    auto = _ac.get("auto", True) or ("월화수목금토일"[NOW.weekday()] in (_ac.get("days") or []))  # 월·목 등 지정 요일만 자동
     if not ONLY and not auto:  # 자동 실행 꺼짐: 팀이 요청한 것(A)만 처리
         ONLY = {"A"}
     queue = get("queue").get("queue", []) if (not ONLY or "A" in ONLY) else []

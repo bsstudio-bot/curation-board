@@ -991,9 +991,21 @@ def push_ai_now(msg):
 
 
 def main():
+    global ONLY
     data = json.load(open("site/data.json", encoding="utf-8"))
     allj = get("all")
+    auto = (json.load(open("site/auto.json", encoding="utf-8")) if os.path.exists("site/auto.json") else {}).get("auto", True)
+    if not ONLY and not auto:  # 자동 실행 꺼짐: 팀이 요청한 것(A)만 처리
+        ONLY = {"A"}
     queue = get("queue").get("queue", []) if (not ONLY or "A" in ONLY) else []
+    runs = [q for q in queue if str(q.get("id", "")).startswith("run:")]  # 보드의 '오늘의 추천 새로 만들기' 버튼
+    queue = [q for q in queue if not str(q.get("id", "")).startswith("run:")]
+    if runs:
+        ONLY = (set(ONLY) - {"A"}) | {"E", "B"} | ({"A"} if queue else set())
+        for q in runs:  # 대기열에서 완료 처리 후 임시 행 삭제
+            post({"action": "saveScript", "id": q["id"], "script": {"title": "run"}, "by": "system", "model": "run", "item": {}})
+        post({"action": "deleteScripts", "ids": [q["id"] for q in runs]})
+        print("  보드 버튼으로 큐레이션 실행:", [q["id"] for q in runs])
     have_scripts = {s["id"] for s in allj.get("scripts", [])}
     edited_ids = {s["id"] for s in allj.get("scripts", []) if str(s.get("model", "")).startswith("edited")}
     fresh_ids = {s["id"] for s in allj.get("scripts", []) if (s.get("script") or {}).get("gv") == GUIDE_VERSION}  # 최신 기준으로 이미 쓴 대본  # 팀이 직접 고친 대본은 자동 재작성으로 덮지 않는다
